@@ -9,6 +9,7 @@ app.use(express.json());
 app.use(cors());
 
 // --- 1. 金鑰與變數設定 ---
+// 優先使用環境變數，若無則使用預設金鑰
 const GEMINI_KEY = process.env.GEMINI_KEY || "AIzaSyAH9bL5cjHmIvWX96oao46sjoGKSphC_sI";
 const MONGODB_URI = process.env.MONGODB_URI; 
 
@@ -35,6 +36,11 @@ const PositionSchema = new mongoose.Schema({
 const Position = mongoose.model('Position', PositionSchema);
 
 // --- 4. API 路由 ---
+
+// 首頁路由：避免出現 "Cannot GET /" 錯誤
+app.get('/', (req, res) => {
+  res.send('🚀 伺服器運行中！API 接口已準備就緒。');
+});
 
 app.post('/api/save_data', async (req, res) => {
   try {
@@ -105,6 +111,7 @@ app.post('/api/prices', async (req, res) => {
   try {
     const requests = codes.map(async (code) => {
       try {
+        // 自動判斷台股後綴 (.TW 或 .TWO)
         const suffix = (code.length === 4 && (code.startsWith('6') || code.startsWith('3') || code.startsWith('8'))) ? '.TWO' : '.TW';
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}`;
         const resp = await axios.get(url, { timeout: 5000 });
@@ -120,7 +127,7 @@ app.post('/api/prices', async (req, res) => {
   }
 });
 
-// [AI 分析] 補全此路由
+// [AI 分析] 補全路由：調用 Gemini 1.5 Flash
 app.post('/api/ai_analyze', async (req, res) => {
   const { prompt } = req.body;
   try {
@@ -134,7 +141,8 @@ app.post('/api/ai_analyze', async (req, res) => {
   }
 });
 
-// --- 5. 啟動伺服器 (Render 必需配置) ---
+// --- 5. 啟動伺服器 ---
+// 使用 Render 指定的環境變數端口，預設為 10000
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log(`🚀 伺服器運行在端口 ${PORT}`);
