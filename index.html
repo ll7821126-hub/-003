@@ -4,8 +4,36 @@
   <meta charset="utf-8" />
   <title>台灣股市客戶持倉追蹤系統 (AI 實時版)</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
+  </head>
+<body>
+  <script>
+    // --- 核心配置：自動判斷 API 路徑 ---
+    const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? 'http://localhost:10000'
+      : ''; 
+
+    // 範例：修改後的抓取報價函數
+    async function fetchPrices(codes) {
+      try {
+        const response = await fetch(`${API_BASE}/api/prices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ codes })
+        });
+        return await response.json();
+      } catch (err) {
+        console.error("報價抓取失敗", err);
+        return {};
+      }
+    }
+
+    // --- 請確保下方的所有 fetch 請求都加上了 ${API_BASE} ---
+    // 例如：fetch(`${API_BASE}/api/get_data?userId=${userId}`)
+    // 例如：fetch(`${API_BASE}/api/save_data`, { ... })
+  </script>
+</body>
+</html>
+
     :root {
       --bg-body: #f3f4f6;
       --bg-card: #ffffff;
