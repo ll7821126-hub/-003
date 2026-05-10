@@ -9,7 +9,6 @@ app.use(express.json());
 app.use(cors());
 
 // --- 1. 金鑰與變數設定 ---
-// 優先讀取環境變數，若無則使用你提供的金鑰
 const GEMINI_KEY = process.env.GEMINI_KEY || "AIzaSyAH9bL5cjHmIvWX96oao46sjoGKSphC_sI";
 const MONGODB_URI = process.env.MONGODB_URI; 
 
@@ -37,7 +36,6 @@ const Position = mongoose.model('Position', PositionSchema);
 
 // --- 4. API 路由 ---
 
-// [基礎功能] 儲存資料
 app.post('/api/save_data', async (req, res) => {
   try {
     const newPos = new Position(req.body);
@@ -48,7 +46,6 @@ app.post('/api/save_data', async (req, res) => {
   }
 });
 
-// [基礎功能] 取得特定使用者的所有持倉
 app.get('/api/get_data', async (req, res) => {
   try {
     const data = await Position.find({ userId: req.query.userId });
@@ -58,7 +55,6 @@ app.get('/api/get_data', async (req, res) => {
   }
 });
 
-// [新增功能] 更新單筆持倉 (修改數量或成本)
 app.post('/api/update_position', async (req, res) => {
   try {
     const { userId, client, code, updates } = req.body;
@@ -73,7 +69,6 @@ app.post('/api/update_position', async (req, res) => {
   }
 });
 
-// [基礎功能] 刪除單筆持倉
 app.post('/api/delete_position', async (req, res) => {
   try {
     const { userId, client, code } = req.body;
@@ -84,7 +79,6 @@ app.post('/api/delete_position', async (req, res) => {
   }
 });
 
-// [新增功能] 批量刪除特定客戶所有持倉
 app.post('/api/delete_client_all', async (req, res) => {
   try {
     const { userId, client } = req.body;
@@ -95,7 +89,6 @@ app.post('/api/delete_client_all', async (req, res) => {
   }
 });
 
-// [基礎功能] 更新客戶檔案 (Profile)
 app.post('/api/update_client_profile', async (req, res) => {
   try {
     const { userId, client, clientProfile } = req.body;
@@ -106,14 +99,12 @@ app.post('/api/update_client_profile', async (req, res) => {
   }
 });
 
-// [進階功能] 實時抓取台股報價 (判斷上市/上櫃)
 app.post('/api/prices', async (req, res) => {
   const { codes } = req.body;
   const results = {};
   try {
     const requests = codes.map(async (code) => {
       try {
-        // 判斷代碼長度與開頭，簡單區分上市(.TW)與上櫃(.TWO)
         const suffix = (code.length === 4 && (code.startsWith('6') || code.startsWith('3') || code.startsWith('8'))) ? '.TWO' : '.TW';
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}`;
         const resp = await axios.get(url, { timeout: 5000 });
@@ -129,8 +120,22 @@ app.post('/api/prices', async (req, res) => {
   }
 });
 
-// [進階功能] AI 分析 (修正 Key 引用)
+// [AI 分析] 補全此路由
 app.post('/api/ai_analyze', async (req, res) => {
   const { prompt } = req.body;
   try {
-    const
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+    const response = await axios.post(url, {
+      contents: [{ parts: [{ text: prompt }] }]
+    });
+    res.json({ result: response.data.candidates[0].content.parts[0].text });
+  } catch (err) {
+    res.status(500).json({ error: "AI 分析失敗" });
+  }
+});
+
+// --- 5. 啟動伺服器 (Render 必需配置) ---
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`🚀 伺服器運行在端口 ${PORT}`);
+});
