@@ -456,6 +456,7 @@
       color:#374151;
       line-height:1.7;
       text-align:justify;
+      white-space: pre-line;
     }
     .ai-tag{
       display:inline-block;
@@ -469,7 +470,6 @@
     .tag-bear{background:#d1fae5;color:#065f46}
     .tag-neu{background:#f3f4f6;color:#4b5563}
 
-    /* Loading Animation */
     .ai-loading {
       text-align: center;
       padding: 40px;
@@ -685,67 +685,15 @@
   }
 
   // ---- 雲端 API：新增 / 更新 / 刪除 ----
-  async function apiCreatePosition(item) {
+  async function apiSaveData(data) {
     try {
-      const clientProfile = getProfileForClient(item.client);
       await fetch(`${API_URL}/save_data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          client: item.client,
-          stockName: item.stockName,
-          code: item.code,
-          quantity: item.quantity,
-          cost: item.cost,
-          stopLoss: item.stopLoss ? Number(item.stopLoss) : undefined,
-          takeProfit: item.takeProfit ? Number(item.takeProfit) : undefined,
-          recommendType: item.recommendType || 'no',
-          clientProfile
-        })
+        body: JSON.stringify(data)
       });
     } catch (err) {
-      console.error('新增時同步雲端失敗', err);
-    }
-  }
-
-  async function apiUpdatePosition(item) {
-    try {
-      const clientProfile = getProfileForClient(item.client);
-      await fetch(`${API_URL}/update_position`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          client: item.client,
-          stockName: item.stockName,
-          code: item.code,
-          quantity: item.quantity,
-          cost: item.cost,
-          stopLoss: item.stopLoss ? Number(item.stopLoss) : undefined,
-          takeProfit: item.takeProfit ? Number(item.takeProfit) : undefined,
-          recommendType: item.recommendType || 'no',
-          clientProfile
-        })
-      });
-    } catch (err) {
-      console.error('更新雲端倉位失敗', err);
-    }
-  }
-
-  async function apiDeletePosition(item) {
-    try {
-      await fetch(`${API_URL}/delete_position`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          client: item.client,
-          code: item.code
-        })
-      });
-    } catch (err) {
-      console.error('刪除雲端倉位失敗', err);
+      console.error('同步雲端失敗', err);
     }
   }
 
@@ -771,6 +719,7 @@
 
       if (!groups[client]) groups[client] = { items: [], cost:0, val:0, qty:0, count:0 };
 
+      // 嚴格轉型與 fallback
       const cur = (h.currentPrice !== null && h.currentPrice !== undefined)
         ? Number(h.currentPrice)
         : Number(h.cost);
@@ -845,7 +794,7 @@
 
       const headRow = document.createElement("tr");
       headRow.className = "group-row";
-      headRow.innerHTML = `<td colspan="11">${client} | 投入 NT$ ${fmtMoney(g.cost)} | 盈虧 <span class="${pnlClass}">NT$ ${fmtMoney(pnl)} (${fmtPct(rate)})</span></td>`;
+      headRow.innerHTML = `<td colspan="10">${client} | 投入 NT$ ${fmtMoney(g.cost)} | 盈虧 <span class="${pnlClass}">NT$ ${fmtMoney(pnl)} (${fmtPct(rate)})</span></td>`;
       tableBody.appendChild(headRow);
 
       g.items.forEach(item => {
@@ -898,7 +847,7 @@
     }
   }
 
-  // ==== ★ 抓價：呼叫後端 /api/prices ====
+  // ==== 抓價：呼叫後端 /api/prices ====
   window.realRefresh = async () => {
     if (!holdings.length) {
       render();
@@ -912,7 +861,7 @@
     try {
       const codes = [...new Set(
         holdings
-          .map(h => (h.code || '').toString().trim())
+          .map(h => String(h.code || '').trim())
           .filter(Boolean)
       )];
 
@@ -922,27 +871,29 @@
         return;
       }
 
-      const response = await fetch(`${API_URL}/prices?t=${Date.now()}`, {
+      const response = await fetch(`${API_URL}/prices`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ codes })
       });
 
       if (!response.ok) throw new Error("網路錯誤：" + response.status);
-      const prices = await response.json();
+      const resData = await response.json();
 
-      holdings = holdings.map(h => {
-        const key = (h.code || '').toString().trim();
-        const price = prices[key];
-        if (price !== undefined && price !== null) {
-          return { ...h, currentPrice: price };
+      if (resData.success && resData.prices) {
+        const priceMap = resData.prices;
+
+        holdings.forEach(h => {
+          const key = String(h.code || '').trim();
+          if (priceMap[key] !== undefined && priceMap[key] !== null) {
+            h.currentPrice = Number(priceMap[key]);
+          }
+        });
+
+        await save();
+        if (lastUpdateEl) {
+          lastUpdateEl.innerText = `最後更新：${new Date().toLocaleTimeString('zh-TW')}`;
         }
-        return h;
-      });
-
-      await save();
-      if (lastUpdateEl) {
-        lastUpdateEl.innerText = `最後更新：${new Date().toLocaleTimeString('zh-TW')}`;
       }
     } catch (error) {
       console.error("刷新失敗:", error);
@@ -956,39 +907,19 @@
   // ---- 從雲端載入初始資料 ----
   async function loadFromCloud() {
     try {
-      const res = await fetch(`${API_URL}/get_data?userId=${encodeURIComponent(userId)}`);
+      const res = await fetch(`${API_URL}/get_data?customId=${encodeURIComponent(userId)}`);
       if (!res.ok) {
-        console.warn('載入雲端資料失敗，使用本機資料');
         render();
         return;
       }
-      const data = await res.json();
+      const resData = await res.json();
 
-      if (Array.isArray(data) && data.length) {
-        holdings = data.map(h => ({
-          id: h._id || `${h.code}_${h.createdAt || Date.now()}`,
-          client: h.client,
-          stockName: h.stockName,
-          code: h.code,
-          quantity: h.quantity,
-          cost: h.cost,
-          stopLoss: h.stopLoss,
-          takeProfit: h.takeProfit,
-          recommendType: h.recommendType || 'no',
-          currentPrice: h.currentPrice ?? h.cost
-        }));
-
-        profiles = {};
-        data.forEach(h => {
-          if (h.clientProfile && h.client) {
-            profiles[h.client] = h.clientProfile;
-          }
-        });
-
+      if (resData.success && resData.data && resData.data.holdings) {
+        holdings = resData.data.holdings;
         localStorage.setItem(DB_KEY, JSON.stringify(holdings));
-        localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
       }
       render();
+      realRefresh(); // 初始化載入後自動刷新一次最新股價
     } catch (err) {
       console.error('載入雲端資料異常', err);
       render();
@@ -1029,7 +960,6 @@
       if (idx > -1) {
         newItem.currentPrice = holdings[idx].currentPrice ?? newItem.currentPrice;
         holdings[idx] = newItem;
-        await apiUpdatePosition(newItem);
       }
     } else {
       const existingIndex = holdings.findIndex(
@@ -1048,7 +978,7 @@
         const totalCostAmount = oldQty * oldCost + addQty * addCost;
         const avgCost = totalQty > 0 ? totalCostAmount / totalQty : oldCost;
 
-        const merged = {
+        holdings[existingIndex] = {
           ...old,
           quantity: totalQty,
           cost: Number(avgCost.toFixed(2)),
@@ -1057,12 +987,8 @@
           recommendType: newItem.recommendType || old.recommendType || 'no',
           currentPrice: old.currentPrice ?? newItem.currentPrice
         };
-
-        holdings[existingIndex] = merged;
-        await apiUpdatePosition(merged);
       } else {
         holdings.push(newItem);
-        await apiCreatePosition(newItem);
       }
     }
 
@@ -1078,12 +1004,8 @@
   // ---- 刪除 / 編輯 ----
   window.delItem = async (id) => {
     if(!confirm("確定刪除？")) return;
-    const target = holdings.find(h => h.id === id);
     holdings = holdings.filter(h => h.id !== id);
     await save();
-    if (target) {
-      await apiDeletePosition(target);
-    }
   };
 
   window.editItem = (id) => {
@@ -1101,11 +1023,17 @@
     document.getElementById("submitBtn").innerText = "更新持倉";
   };
 
-  // ---- 儲存到 localStorage ----
+  // ---- 儲存到 localStorage 並同步至雲端 ----
   async function save() {
     localStorage.setItem(DB_KEY, JSON.stringify(holdings));
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
     render();
+
+    // 同步到 DB
+    await apiSaveData({
+      customId: userId,
+      holdings: holdings
+    });
   }
 
   function resetForm() {
@@ -1161,63 +1089,37 @@
 
     profiles[name] = profileData;
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
-    console.log('💾 已更新前端 profiles:', name, profileData);
 
     document.getElementById("profileModal").style.display = "none";
     render();
-
-    try {
-      const res = await fetch(`${API_URL}/update_client_profile`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId,
-          client: name,
-          clientProfile: profileData
-        })
-      });
-
-      const result = await res.json();
-      console.log('☁️ 後端客戶檔案已同步', result);
-    } catch (err) {
-      console.error('❌ 同步客戶檔案到雲端失敗', err);
-    }
   };
 
-  // ---- AI 實時分析 (呼叫後端 API) ----
-
-  // 1. 通用 API 呼叫函數 (轉發給後端)
-  async function callGeminiAI(promptText) {
+  // ---- AI 實時分析 (呼叫後端 API /api/ai_diagnose) ----
+  async function callGeminiAI(clientData) {
     try {
-      const response = await fetch(`${API_URL}/ai_analyze`, {
+      const response = await fetch(`${API_URL}/ai_diagnose`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: promptText })
+        body: JSON.stringify({ clientData })
       });
       
       if (!response.ok) throw new Error('Backend API Error');
       
       const data = await response.json();
-      if (!data.success) throw new Error(data.error);
+      if (!data.success) throw new Error(data.diagnosis || '解析失敗');
 
-      return data.text;
+      return data.diagnosis;
     } catch (error) {
       console.error('AI Request Error:', error);
-      return `
-        <div class="ai-box">
-          <div class="ai-header">⚠️ 系統訊息</div>
-          <div class="ai-content">AI 分析暫時無法使用，請檢查後端連線或稍後再試。</div>
-        </div>
-      `;
+      return `AI 診斷暫時無法使用，請檢查後端連線或金鑰配置。`;
     }
   }
 
-  // 2. 單一個股分析
+  // 單一個股分析
   window.aiAnalyzeStock = async (id) => {
     const h = holdings.find(i => i.id === id);
     if (!h) return;
 
-    // 顯示 Modal 和 Loading
     document.getElementById("aiModalTitle").innerText = `${h.stockName} (${h.code}) 深度解析`;
     const modalContent = document.getElementById("aiModalContent");
     modalContent.innerHTML = `
@@ -1226,68 +1128,21 @@
         <div>🤖 正在調閱財報與技術線圖...</div>
       </div>
     `;
-    document.getElementById("aiModal").style.display = "block";
+    document.getElementById("aiModal").style.display = "flex";
 
-    const cur = Number(h.currentPrice) || Number(h.cost);
-    const rate = ((cur - h.cost) / h.cost) * 100;
-    
-    // 構建 Prompt
-    const prompt = `
-      你是一位專業的台灣股市分析師。請針對以下持倉進行深度分析：
-      股票：${h.stockName} (代碼 ${h.code})
-      成本價：${h.cost}
-      現價：${cur}
-      目前報酬率：${rate.toFixed(2)}%
+    const aiResponse = await callGeminiAI({
+      targetStock: h,
+      type: "single_stock_analysis"
+    });
 
-      請不要使用 markdown 代碼塊 (如 \`\`\`html)，請直接返回純 HTML 代碼，並依照以下結構和 CSS class 生成內容：
-
-      <div class="ai-box">
-        <div class="ai-header">🏢 基本面解析</div>
-        <div class="ai-content">
-          (請在此處分析該公司近況、產業地位或營收表現，並加上 <span class="ai-tag tag-bull">利多</span> 或 <span class="ai-tag tag-bear">利空</span> 等標籤)
-        </div>
-      </div>
-      <div class="ai-box">
-        <div class="ai-header">📈 技術走勢</div>
-        <div class="ai-content">
-          (請分析目前股價趨勢、均線排列或支撐壓力位)
-        </div>
-      </div>
-      <div class="ai-box">
-        <div class="ai-header">🛑 止盈止損判斷</div>
-        <div class="ai-content">
-          (給出具體的止盈或止損價格建議，並說明理由)
-        </div>
-      </div>
-      <div class="ai-box">
-        <div class="ai-header">➕ 補倉建議</div>
-        <div class="ai-content">
-          (根據目前走勢，建議加碼、觀望還是減倉？)
-        </div>
-      </div>
-      <div class="ai-box">
-        <div class="ai-header">🔮 後市分析</div>
-        <div class="ai-content">
-          (總結未來一季的展望)
-        </div>
-      </div>
-
-      請確保語氣專業、客觀，並使用繁體中文。
-    `;
-
-    // 呼叫 API 並渲染
-    const aiResponse = await callGeminiAI(prompt);
-    // 簡單過濾掉可能存在的 markdown 標記
-    const cleanHtml = aiResponse.replace(/```html/g, '').replace(/```/g, '');
-    modalContent.innerHTML = cleanHtml;
+    modalContent.innerHTML = `<div class="ai-box"><div class="ai-content">${aiResponse}</div></div>`;
   };
 
-  // 3. 投資組合分析
+  // 投資組合分析
   window.aiAnalyzePortfolio = async (client) => {
     const items = holdings.filter(h => h.client === client);
     if(!items.length) return;
 
-    // 顯示 Modal 和 Loading
     document.getElementById("aiModalTitle").innerText = `${client} 組合診斷`;
     const modalContent = document.getElementById("aiModalContent");
     modalContent.innerHTML = `
@@ -1296,60 +1151,16 @@
         <div>🤖 正在計算風險係數與資產配置...</div>
       </div>
     `;
-    document.getElementById("aiModal").style.display = "block";
+    document.getElementById("aiModal").style.display = "flex";
 
-    let totalCost = 0, totalVal = 0, winCount = 0;
-    let stockListStr = "";
-    
-    items.forEach(h => {
-      const cur = h.currentPrice || h.cost;
-      const val = cur * h.quantity;
-      const cost = h.cost * h.quantity;
-      totalCost += cost;
-      totalVal += val;
-      if(cur > h.cost) winCount++;
-      
-      const r = ((cur - h.cost)/h.cost)*100;
-      stockListStr += `- ${h.stockName} (${h.code}): 佔比約${Math.round(val)}元, 報酬率${r.toFixed(2)}%\n`;
+    const aiResponse = await callGeminiAI({
+      clientName: client,
+      holdings: items,
+      profile: profiles[client] || {},
+      type: "portfolio_diagnosis"
     });
 
-    const totalRate = totalCost > 0 ? ((totalVal - totalCost)/totalCost)*100 : 0;
-
-    // 構建 Prompt
-    const prompt = `
-      你是一位資深投資顧問。請分析客戶「${client}」的投資組合：
-      
-      【整體數據】
-      總成本：${fmtMoney(totalCost)}
-      總市值：${fmtMoney(totalVal)}
-      總報酬率：${totalRate.toFixed(2)}%
-      勝率：${Math.round(winCount/items.length*100)}% (${winCount}/${items.length})
-
-      【持倉明細】
-      ${stockListStr}
-
-      請不要使用 markdown 代碼塊，直接返回純 HTML 代碼，依照以下結構：
-
-      <div class="ai-box">
-        <div class="ai-header">📝 組合體質診斷</div>
-        <div class="ai-content">
-          (分析持倉集中度、產業分佈風險、以及目前整體績效表現。請使用 <span class="ai-tag tag-bull">優秀</span> 或 <span class="ai-tag tag-neu">待加強</span> 等標籤)
-        </div>
-      </div>
-      <div class="ai-box">
-        <div class="ai-header">📢 操作建議</div>
-        <div class="ai-content">
-          (針對虧損或獲利的部位，給出具體的調整建議，例如汰弱留強、分散風險或獲利了結)
-        </div>
-      </div>
-      
-      請確保語氣誠懇、專業，使用繁體中文。
-    `;
-
-    // 呼叫 API 並渲染
-    const aiResponse = await callGeminiAI(prompt);
-    const cleanHtml = aiResponse.replace(/```html/g, '').replace(/```/g, '');
-    modalContent.innerHTML = cleanHtml;
+    modalContent.innerHTML = `<div class="ai-box"><div class="ai-content">${aiResponse}</div></div>`;
   };
 
   // ---- 匯出 CSV ----
