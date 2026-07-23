@@ -1,54 +1,38 @@
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-
-// 安全載入 yahoo-finance2
-let yahooFinance = null;
-try {
-  const YahooFinanceClass = require('yahoo-finance2').default;
-  yahooFinance = new YahooFinanceClass();
-  if (yahooFinance.suppressNotices) {
-    yahooFinance.suppressNotices(['yahooSurvey']);
-  }
-} catch (e) {
-  console.warn("⚠️ yahoo-finance2 模組初始化警告，將使用備用 API 機制");
-}
-
-const app = express();
-
-app.use(cors());
-app.use(express.json());
-
-// 獲取 GEMINI API KEY
-const apiKey = process.env.GEMINI_API_KEY;
-
-if (apiKey) {
-  console.log("✅ GEMINI_API_KEY 環境變數已成功載入");
-} else {
-  console.warn("⚠️ 警告：未設定 GEMINI_API_KEY 環境變數");
-}
-
-// 輔助函式：使用指定版本標籤的模型名稱
+// 輔助函式：呼叫官方標準 Gemini API 模型
 async function callGeminiApi(prompt) {
+  // 使用最標準且穩定的模型清單
   const models = [
-    "gemini-1.5-flash-001",
-    "gemini-1.5-flash-002",
-    "gemini-1.5-pro-001",
-    "gemini-2.0-flash-exp"
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro"
   ];
   let lastError = null;
 
   for (const modelName of models) {
     try {
+      // 官方標準 Endpoint
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      
       const response = await axios.post(
         url,
-        { contents: [{ parts: [{ text: prompt }] }] },
-        { headers: { 'Content-Type': 'application/json' } }
+        {
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ]
+        },
+        { 
+          headers: { 'Content-Type': 'application/json' },
+          timeout: 10000 // 設定 10 秒超時保護
+        }
       );
 
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) return text;
+      if (text) {
+        console.log(`✅ 成功使用模型: ${modelName}`);
+        return text;
+      }
     } catch (err) {
       lastError = err.response?.data?.error?.message || err.message;
       console.warn(`⚠️ 模型 ${modelName} 調用失敗:`, lastError);
@@ -57,113 +41,3 @@ async function callGeminiApi(prompt) {
 
   throw new Error(lastError || "所有 Gemini API 模型均呼叫失敗");
 }
-
-// ==================== 1. AI 診斷 API 路由 ====================
-app.post('/api/ai_diagnose', async (req, res) => {
-  try {
-    if (!apiKey) {
-      return res.status(500).json({
-        success: false,
-        diagnosis: "後端未檢測到 GEMINI_API_KEY，請檢查 Render 的 Environment 設定。"
-      });
-    }
-
-    const { clientData } = req.body;
-    if (!clientData) {
-      return res.status(400).json({
-        success: false,
-        diagnosis: "未收到有效的診斷請求數據。"
-      });
-    }
-
-    // 構建提示詞 (Prompt)
-    let prompt = "你是一位專業的台灣股市投資顧問。請用繁體中文提供簡明、專業且客觀的診斷與操作建議：\n\n";
-
-    if (clientData.type === "single_stock_analysis") {
-      const stock = clientData.targetStock || {};
-      prompt += `【單股分析】\n`;
-      prompt += `股票名稱/代碼：${stock.stockName || ''} (${stock.code || ''})\n`;
-      prompt += `買入成本：NT$ ${stock.cost || 0}\n`;
-      prompt += `當前現價：NT$ ${stock.currentPrice || stock.cost || 0}\n`;
-      prompt += `持股數量：${stock.quantity || 0} 股\n`;
-      prompt += `請針對該股短中線趨勢、潛在風險與後續操作策略給出簡短建議。`;
-    } else if (clientData.type === "portfolio_diagnosis") {
-      prompt += `【整體持倉組合診斷】\n`;
-      prompt += `客戶姓名：${clientData.clientName || '未名'}\n`;
-      prompt += `客戶背景檔案：${JSON.stringify(clientData.profile || {})}\n`;
-      prompt += `持倉列表清單：${JSON.stringify(clientData.holdings || [])}\n`;
-      prompt += `請評估該投資組合的集中度風險、整體盈虧狀況，並給出資產配置建議。`;
-    } else {
-      prompt += `請求內容：${JSON.stringify(clientData)}\n請提供投資分析。`;
-    }
-
-    // 呼叫 Gemini REST API
-    const responseText = await callGeminiApi(prompt);
-
-    return res.json({
-      success: true,
-      diagnosis: responseText
-    });
-
-  } catch (error) {
-    console.error("❌ Gemini API 調用發生錯誤:", error);
-    return res.status(500).json({
-      success: false,
-      diagnosis: `AI 診斷呼叫失敗：${error.message}`
-    });
-  }
-});
-
-// ==================== 2. 股價抓取 API 路由 ====================
-app.post('/api/prices', async (req, res) => {
-  try {
-    const { codes } = req.body;
-    if (!codes || !Array.isArray(codes) || codes.length === 0) {
-      return res.json({ success: true, prices: {} });
-    }
-
-    console.log("正在向網路抓取最新股價:", codes);
-    const priceMap = {};
-
-    await Promise.all(
-      codes.map(async (code) => {
-        try {
-          if (yahooFinance) {
-            try {
-              const quote = await yahooFinance.quote(`${code}.TW`);
-              if (quote && quote.regularMarketPrice) priceMap[code] = quote.regularMarketPrice;
-            } catch (e1) {
-              const quoteTWO = await yahooFinance.quote(`${code}.TWO`);
-              if (quoteTWO && quoteTWO.regularMarketPrice) priceMap[code] = quoteTWO.regularMarketPrice;
-            }
-          } else {
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW`;
-            const resp = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-            const meta = resp.data.chart.result[0].meta;
-            if (meta && meta.regularMarketPrice) {
-              priceMap[code] = meta.regularMarketPrice;
-            }
-          }
-        } catch (err) {
-          console.warn(`無法獲取代碼 ${code} 的股價資訊`);
-        }
-      })
-    );
-
-    console.log("最終抓取的價格結果:", priceMap);
-    return res.json({
-      success: true,
-      prices: priceMap
-    });
-
-  } catch (err) {
-    console.error("抓取股價失敗:", err);
-    return res.status(500).json({ success: false, error: err.message });
-  }
-});
-
-// ==================== 3. 啟動伺服器 ====================
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
