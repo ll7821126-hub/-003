@@ -1,14 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const axios = require('axios');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 // 安全載入 yahoo-finance2
 let yahooFinance = null;
 try {
   const YahooFinanceClass = require('yahoo-finance2').default;
   yahooFinance = new YahooFinanceClass();
-  // 關閉廢棄通知提示
   if (yahooFinance.suppressNotices) {
     yahooFinance.suppressNotices(['yahooSurvey']);
   }
@@ -18,25 +16,48 @@ try {
 
 const app = express();
 
-// 啟用 CORS 與 JSON 解析 middleware
 app.use(cors());
 app.use(express.json());
 
-// 初始化 Gemini AI Client
+// 獲取 GEMINI API KEY
 const apiKey = process.env.GEMINI_API_KEY;
-let genAI = null;
 
 if (apiKey) {
-  genAI = new GoogleGenerativeAI(apiKey);
   console.log("✅ GEMINI_API_KEY 環境變數已成功載入");
 } else {
   console.warn("⚠️ 警告：未設定 GEMINI_API_KEY 環境變數");
 }
 
+// 輔助函式：直接調用 REST API（避免 SDK 版本相容問題）
+async function callGeminiApi(prompt) {
+  // 優先順序模型清單
+  const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"];
+  let lastError = null;
+
+  for (const modelName of models) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const response = await axios.post(url, {
+        contents: [{ parts: [{ text: prompt }] }]
+      }, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text;
+    } catch (err) {
+      lastError = err.response?.data?.error?.message || err.message;
+      console.warn(`⚠️ 模型 ${modelName} 調用失敗:`, lastError);
+    }
+  }
+
+  throw new Error(lastError || "所有 Gemini 模型均調用失敗");
+}
+
 // ==================== 1. AI 診斷 API 路由 ====================
 app.post('/api/ai_diagnose', async (req, res) => {
   try {
-    if (!genAI) {
+    if (!apiKey) {
       return res.status(500).json({
         success: false,
         diagnosis: "後端未檢測到 GEMINI_API_KEY，請檢查 Render 的 Environment 設定。"
@@ -72,10 +93,8 @@ app.post('/api/ai_diagnose', async (req, res) => {
       prompt += `請求內容：${JSON.stringify(clientData)}\n請提供投資分析。`;
     }
 
-    // 使用 gemini-2.0-flash 模型
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    // 呼叫 Gemini REST API
+    const responseText = await callGeminiApi(prompt);
 
     return res.json({
       success: true,
@@ -86,7 +105,7 @@ app.post('/api/ai_diagnose', async (req, res) => {
     console.error("❌ Gemini API 調用發生錯誤:", error);
     return res.status(500).json({
       success: false,
-      diagnosis: `AI 診斷呼叫失敗，原因：${error.message}`
+      diagnosis: `AI 診斷呼叫失敗：${error.message}`
     });
   }
 });
@@ -106,7 +125,6 @@ app.post('/api/prices', async (req, res) => {
       codes.map(async (code) => {
         try {
           if (yahooFinance) {
-            // 優先嘗試使用 yahooFinance
             try {
               const quote = await yahooFinance.quote(`${code}.TW`);
               if (quote && quote.regularMarketPrice) priceMap[code] = quote.regularMarketPrice;
@@ -115,7 +133,6 @@ app.post('/api/prices', async (req, res) => {
               if (quoteTWO && quoteTWO.regularMarketPrice) priceMap[code] = quoteTWO.regularMarketPrice;
             }
           } else {
-            // 備用方案：使用 axios 抓取 Yahoo 公開數據
             const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW`;
             const resp = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
             const meta = resp.data.chart.result[0].meta;
