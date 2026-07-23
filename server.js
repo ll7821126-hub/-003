@@ -57,7 +57,7 @@ const ClientData = mongoose.model('ClientData', ClientDataSchema);
 const priceCache = {}; 
 const CACHE_DURATION = 30 * 1000; // 30 秒快取
 
-// (A) 證交所 TWSE API 抓取邏輯 (上市+上櫃雙重查詢)
+// (A) 證交所 TWSE API 抓取邏輯
 async function fetchTwsePrices(codes) {
   const results = {};
   if (!codes || codes.length === 0) return results;
@@ -78,7 +78,7 @@ async function fetchTwsePrices(codes) {
         'Referer': 'https://mis.twse.com.tw/stock/fibest.jsp',
         'Accept': 'application/json, text/javascript, */*; q=0.01'
       },
-      timeout: 6000
+      timeout: 5000
     });
 
     if (resp.data && resp.data.msgArray) {
@@ -106,53 +106,42 @@ async function fetchTwsePrices(codes) {
   return results;
 }
 
-// (B) Yahoo Finance 備援抓取邏輯 (解決 quote is not a function)
-async function fetchYahooPrices(codes) {
+// (B) Yahoo Finance 直連 API (無需 NPM 套件，穩如泰山)
+async function fetchYahooDirectPrices(codes) {
   const results = {};
   if (!codes || codes.length === 0) return results;
 
-  try {
-    const yahooModule = await import('yahoo-finance2');
-    // 相容 CommonJS 與 ES Module 匯出結構
-    const yahooFinance = yahooModule.default?.quote ? yahooModule.default : (yahooModule.quote ? yahooModule : yahooModule.default?.default);
+  for (const code of codes) {
+    const clean = code.trim();
+    // 優先查詢上市 .TW，若失敗再查上櫃 .TWO
+    const suffixes = ['.TW', '.TWO'];
 
-    if (!yahooFinance || typeof yahooFinance.quote !== 'function') {
-      console.error('❌ Yahoo Finance 模組載入失敗：找不到 quote 函式');
-      return results;
-    }
+    for (const suffix of suffixes) {
+      const symbol = `${clean}${suffix}`;
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`;
 
-    if (typeof yahooFinance.suppressNotices === 'function') {
-      yahooFinance.suppressNotices(['yahooSurvey']);
-    }
+      try {
+        const resp = await axios.get(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          },
+          timeout: 4000
+        });
 
-    const querySymbols = [];
-    codes.forEach(c => {
-      const clean = c.trim();
-      if (!clean.endsWith('.TW') && !clean.endsWith('.TWO')) {
-        querySymbols.push(`${clean}.TW`);
-        querySymbols.push(`${clean}.TWO`);
-      } else {
-        querySymbols.push(clean);
-      }
-    });
-
-    const quotes = await yahooFinance.quote(querySymbols, { return: 'array' }, { validateResult: false });
-
-    if (Array.isArray(quotes)) {
-      quotes.forEach(quote => {
-        if (quote && quote.symbol) {
-          const pureCode = quote.symbol.split('.')[0];
-          const price = quote.regularMarketPrice || quote.postMarketPrice || quote.previousClose;
-
-          if (price && price > 0 && !results[pureCode]) {
-            results[pureCode] = parseFloat(Number(price).toFixed(2));
+        const meta = resp.data?.chart?.result?.[0]?.meta;
+        if (meta) {
+          const price = meta.regularMarketPrice || meta.chartPreviousClose;
+          if (price && !isNaN(price) && price > 0) {
+            results[clean] = parseFloat(Number(price).toFixed(2));
+            break; // 抓到了就跳出 suffix 迴圈
           }
         }
-      });
+      } catch (err) {
+        // 忽略單個失敗，繼續嘗試 .TWO 或下一個股票
+      }
     }
-  } catch (err) {
-    console.error('⚠️ Yahoo Finance 抓取失敗:', err.message);
   }
+
   return results;
 }
 
@@ -197,8 +186,8 @@ app.post('/api/prices', async (req, res) => {
       });
 
       if (stillMissing.length > 0) {
-        console.log(`⚠️ TWSE 未查到，轉用 Yahoo 備援查詢: ${stillMissing.join(', ')}`);
-        const yahooPrices = await fetchYahooPrices(stillMissing);
+        console.log(`⚠️ TWSE 未查到，轉用 Yahoo 直連備援: ${stillMissing.join(', ')}`);
+        const yahooPrices = await fetchYahooDirectPrices(stillMissing);
 
         stillMissing.forEach(code => {
           if (yahooPrices[code]) {
@@ -239,7 +228,7 @@ ${JSON.stringify(clientData, null, 2)}`;
   }
 });
 
-// 💾 取得資料 API (相容 customId 與 userId)
+// 💾 取得資料 API
 app.get('/api/get_data', async (req, res) => {
   try {
     const targetId = req.query.customId || req.query.userId;
@@ -293,12 +282,10 @@ app.post('/api/admin_login', (req, res) => {
   }
 });
 
-// 5. 健康檢查 Endpoint
 app.get('/', (req, res) => {
-  res.send('<h1>Backend API Online</h1><p>Frontend is hosted on Netlify.</p>');
+  res.send('<h1>Backend API Online</h1>');
 });
 
-// 6. 啟動伺服器
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
