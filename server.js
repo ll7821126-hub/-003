@@ -4,7 +4,7 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const yahooFinance = require('yahoo-finance2').default;
+const yahooFinance = require('yahoo-finance2');
 
 const app = express();
 app.use(cors());
@@ -43,7 +43,7 @@ const ClientDataSchema = new mongoose.Schema({
 const ClientData = mongoose.model('ClientData', ClientDataSchema);
 
 // ----------------------------------------------------
-// 3. 快取與股價抓取核心邏輯 (修復版)
+// 3. 快取與股價抓取核心邏輯
 // ----------------------------------------------------
 const priceCache = {}; // { '2330': { price: 600, time: timestamp } }
 const CACHE_DURATION = 30 * 1000; // 30秒快取，防止頻繁請求被封鎖
