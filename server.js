@@ -1,10 +1,20 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// 修正 yahoo-finance2 引入方式
-const YahooFinance = require('yahoo-finance2').default;
-const yahooFinance = new YahooFinance();
+// 安全載入 yahoo-finance2
+let yahooFinance = null;
+try {
+  const YahooFinanceClass = require('yahoo-finance2').default;
+  yahooFinance = new YahooFinanceClass();
+  // 關閉廢棄通知提示
+  if (yahooFinance.suppressNotices) {
+    yahooFinance.suppressNotices(['yahooSurvey']);
+  }
+} catch (e) {
+  console.warn("⚠️ yahoo-finance2 模組初始化警告，將使用備用 API 機制");
+}
 
 const app = express();
 
@@ -95,21 +105,26 @@ app.post('/api/prices', async (req, res) => {
     await Promise.all(
       codes.map(async (code) => {
         try {
-          const symbolTW = `${code}.TW`;
-          const quote = await yahooFinance.quote(symbolTW);
-          if (quote && quote.regularMarketPrice) {
-            priceMap[code] = quote.regularMarketPrice;
-          }
-        } catch (e) {
-          try {
-            const symbolTWO = `${code}.TWO`;
-            const quoteTWO = await yahooFinance.quote(symbolTWO);
-            if (quoteTWO && quoteTWO.regularMarketPrice) {
-              priceMap[code] = quoteTWO.regularMarketPrice;
+          if (yahooFinance) {
+            // 優先嘗試使用 yahooFinance
+            try {
+              const quote = await yahooFinance.quote(`${code}.TW`);
+              if (quote && quote.regularMarketPrice) priceMap[code] = quote.regularMarketPrice;
+            } catch (e1) {
+              const quoteTWO = await yahooFinance.quote(`${code}.TWO`);
+              if (quoteTWO && quoteTWO.regularMarketPrice) priceMap[code] = quoteTWO.regularMarketPrice;
             }
-          } catch (err) {
-            console.warn(`無法獲取代碼 ${code} 的股價資訊`);
+          } else {
+            // 備用方案：使用 axios 抓取 Yahoo 公開數據
+            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW`;
+            const resp = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
+            const meta = resp.data.chart.result[0].meta;
+            if (meta && meta.regularMarketPrice) {
+              priceMap[code] = meta.regularMarketPrice;
+            }
           }
+        } catch (err) {
+          console.warn(`無法獲取代碼 ${code} 的股價資訊`);
         }
       })
     );
