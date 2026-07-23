@@ -28,15 +28,16 @@ if (apiKey) {
   console.warn("⚠️ 警告：未設定 GEMINI_API_KEY 環境變數");
 }
 
-// 輔助函式：直接調用 REST API（避免 SDK 版本相容問題）
+// 輔助函式：使用 Google API 正式版 Endpoint (v1)
 async function callGeminiApi(prompt) {
-  // 優先順序模型清單
-  const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash-exp"];
+  // 使用 v1 正式 Endpoint 與支援的模型清單
+  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
   let lastError = null;
 
   for (const modelName of models) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      // 改用 v1 正式 API 版本 Endpoint
+      const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
       const response = await axios.post(url, {
         contents: [{ parts: [{ text: prompt }] }]
       }, {
@@ -46,12 +47,24 @@ async function callGeminiApi(prompt) {
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) return text;
     } catch (err) {
-      lastError = err.response?.data?.error?.message || err.message;
-      console.warn(`⚠️ 模型 ${modelName} 調用失敗:`, lastError);
+      // 嘗試備用 Endpoint v1beta
+      try {
+        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        const response = await axios.post(fallbackUrl, {
+          contents: [{ parts: [{ text: prompt }] }]
+        }, {
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text;
+      } catch (e) {
+        lastError = err.response?.data?.error?.message || err.message;
+        console.warn(`⚠️ 模型 ${modelName} 調用失敗:`, lastError);
+      }
     }
   }
 
-  throw new Error(lastError || "所有 Gemini 模型均調用失敗");
+  throw new Error(lastError || "所有 Gemini API 模型均呼叫失敗");
 }
 
 // ==================== 1. AI 診斷 API 路由 ====================
