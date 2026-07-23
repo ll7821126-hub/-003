@@ -73,7 +73,7 @@ app.post('/api/ai_diagnose', async (req, res) => {
     }
 
     // 使用 gemini-2.0-flash 模型
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(prompt);
     const responseText = result.response.text();
 
