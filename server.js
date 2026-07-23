@@ -6,20 +6,30 @@ const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
-app.use(cors());
+
+// 開放所有跨網域 CORS 存取 (配合 Netlify 前端)
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json({ limit: '10mb' }));
 
 // ----------------------------------------------------
-// 1. 環境變數與連線設定 (優先讀取 Render 的 Environment)
+// 1. 環境變數與連線設定 (同時相容兩種變數命名)
 // ----------------------------------------------------
 const PORT = process.env.PORT || 10000;
 
-const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "AIzaSyCiJkOf1Q294uX1zS20N4gAms0U1c_VpsI").trim();
-const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://admin:admin112233@cluster0.pjhjmg1.mongodb.net/stockDB?retryWrites=true&w=wmajority';
+const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || process.env.GEMINI_KEY || "AIzaSyCiJkOf1Q294uX1zS20N4gAms0U1c_VpsI").trim();
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb+srv://admin:admin112233@cluster0.pjhjmg1.mongodb.net/stockDB?retryWrites=true&w=majority';
 
-mongoose.connect(MONGO_URI)
+// Mongoose 連線設定
+mongoose.connect(MONGO_URI, {
+  serverSelectionTimeoutMS: 5000
+})
   .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
+  .catch(err => console.error('❌ MongoDB connection error:', err.message));
 
 // ----------------------------------------------------
 // 2. Data Models (Mongoose)
@@ -43,8 +53,8 @@ const ClientData = mongoose.model('ClientData', ClientDataSchema);
 // ----------------------------------------------------
 // 3. 快取與股價抓取核心邏輯
 // ----------------------------------------------------
-const priceCache = {}; // { '2330': { price: 600, time: timestamp } }
-const CACHE_DURATION = 30 * 1000; // 30秒快取
+const priceCache = {}; 
+const CACHE_DURATION = 30 * 1000;
 
 // (A) 證交所 TWSE API 抓取邏輯
 async function fetchTwsePrices(codes) {
@@ -83,21 +93,23 @@ async function fetchTwsePrices(codes) {
       });
     }
   } catch (err) {
-    console.error('⚠️ TWSE 抓取失敗/被拒絕:', err.message);
+    console.error('⚠️ TWSE 抓取失敗:', err.message);
   }
   return results;
 }
 
-// (B) Yahoo Finance 備援抓取邏輯 (動態 Import 修復版)
+// (B) Yahoo Finance 備援抓取邏輯
 async function fetchYahooPrices(codes) {
   const results = {};
   if (!codes || codes.length === 0) return results;
 
   try {
     const yahooFinanceModule = await import('yahoo-finance2');
-    const yahooFinance = yahooFinanceModule.default;
+    const yahooFinance = yahooFinanceModule.default || yahooFinanceModule;
 
-    yahooFinance.suppressNotices(['yahooSurvey']);
+    if (typeof yahooFinance.suppressNotices === 'function') {
+      yahooFinance.suppressNotices(['yahooSurvey']);
+    }
     
     const querySymbols = [];
     codes.forEach(c => {
@@ -145,6 +157,7 @@ async function fetchYahooPrices(codes) {
 // 4. API Endpoints
 // ----------------------------------------------------
 
+// 📡 股價查詢 API
 app.post('/api/prices', async (req, res) => {
   try {
     const { codes } = req.body;
@@ -200,6 +213,7 @@ app.post('/api/prices', async (req, res) => {
   }
 });
 
+// 🤖 Gemini AI 診斷 API
 app.post('/api/ai_diagnose', async (req, res) => {
   try {
     const { clientData } = req.body;
@@ -241,16 +255,18 @@ ${JSON.stringify(clientData, null, 2)}`;
   }
 });
 
+// 💾 儲存資料 API (同時支援 customId 與 userId)
 app.post('/api/save_data', async (req, res) => {
   try {
     const data = req.body;
-    if (!data.customId) {
-      return res.status(400).json({ success: false, message: 'customId is required' });
+    const targetId = data.customId || data.userId;
+    if (!targetId) {
+      return res.status(400).json({ success: false, message: 'customId or userId is required' });
     }
 
     const updated = await ClientData.findOneAndUpdate(
-      { customId: data.customId },
-      { ...data, updatedAt: new Date() },
+      { customId: targetId },
+      { ...data, customId: targetId, updatedAt: new Date() },
       { upsert: true, new: true }
     );
 
@@ -260,20 +276,25 @@ app.post('/api/save_data', async (req, res) => {
   }
 });
 
+// 💾 取得資料 API (同時支援 customId 與 userId 查詢)
 app.get('/api/get_data', async (req, res) => {
   try {
-    const { customId } = req.query;
-    if (customId) {
-      const client = await ClientData.findOne({ customId });
-      return res.json({ success: true, data: client });
+    const targetId = req.query.customId || req.query.userId;
+    
+    if (targetId) {
+      const client = await ClientData.findOne({ customId: targetId });
+      return res.json({ success: true, data: client || null });
     }
+
     const all = await ClientData.find({});
     res.json({ success: true, data: all });
   } catch (err) {
+    console.error('❌ /api/get_data 錯誤:', err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
+// 🔑 後台登入認證
 app.post('/api/admin_login', (req, res) => {
   const { password } = req.body;
   if (password === 'Qq112233.') {
@@ -284,12 +305,10 @@ app.post('/api/admin_login', (req, res) => {
 });
 
 // ----------------------------------------------------
-// 5. 靜態檔案託管
+// 5. 健康檢查 Endpoint (替代原本靜態頁面轉向)
 // ----------------------------------------------------
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/', (req, res) => {
+  res.send('<h1>Backend API Online</h1><p>Frontend is hosted on Netlify.</p>');
 });
 
 // ----------------------------------------------------
