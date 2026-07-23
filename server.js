@@ -28,39 +28,30 @@ if (apiKey) {
   console.warn("⚠️ 警告：未設定 GEMINI_API_KEY 環境變數");
 }
 
-// 輔助函式：使用 Google API 正式版 Endpoint (v1)
+// 輔助函式：使用指定版本標籤的模型名稱
 async function callGeminiApi(prompt) {
-  // 使用 v1 正式 Endpoint 與支援的模型清單
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const models = [
+    "gemini-1.5-flash-001",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-pro-001",
+    "gemini-2.0-flash-exp"
+  ];
   let lastError = null;
 
   for (const modelName of models) {
     try {
-      // 改用 v1 正式 API 版本 Endpoint
-      const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${apiKey}`;
-      const response = await axios.post(url, {
-        contents: [{ parts: [{ text: prompt }] }]
-      }, {
-        headers: { 'Content-Type': 'application/json' }
-      });
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const response = await axios.post(
+        url,
+        { contents: [{ parts: [{ text: prompt }] }] },
+        { headers: { 'Content-Type': 'application/json' } }
+      );
 
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) return text;
     } catch (err) {
-      // 嘗試備用 Endpoint v1beta
-      try {
-        const fallbackUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
-        const response = await axios.post(fallbackUrl, {
-          contents: [{ parts: [{ text: prompt }] }]
-        }, {
-          headers: { 'Content-Type': 'application/json' }
-        });
-        const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return text;
-      } catch (e) {
-        lastError = err.response?.data?.error?.message || err.message;
-        console.warn(`⚠️ 模型 ${modelName} 調用失敗:`, lastError);
-      }
+      lastError = err.response?.data?.error?.message || err.message;
+      console.warn(`⚠️ 模型 ${modelName} 調用失敗:`, lastError);
     }
   }
 
