@@ -4,7 +4,6 @@ const cors = require('cors');
 const axios = require('axios');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const yahooFinance = require('yahoo-finance2');
 
 const app = express();
 app.use(cors());
@@ -15,7 +14,6 @@ app.use(express.json({ limit: '10mb' }));
 // ----------------------------------------------------
 const PORT = process.env.PORT || 10000;
 
-// 如果 Render 環境變數沒設定，才會降級使用預設值（建議至 Render 後台設定）
 const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "AIzaSyCiJkOf1Q294uX1zS20N4gAms0U1c_VpsI").trim();
 const MONGO_URI = process.env.MONGO_URI || 'mongodb+srv://admin:admin112233@cluster0.pjhjmg1.mongodb.net/stockDB?retryWrites=true&w=wmajority';
 
@@ -46,7 +44,7 @@ const ClientData = mongoose.model('ClientData', ClientDataSchema);
 // 3. 快取與股價抓取核心邏輯
 // ----------------------------------------------------
 const priceCache = {}; // { '2330': { price: 600, time: timestamp } }
-const CACHE_DURATION = 30 * 1000; // 30秒快取，防止頻繁請求被封鎖
+const CACHE_DURATION = 30 * 1000; // 30秒快取
 
 // (A) 證交所 TWSE API 抓取邏輯
 async function fetchTwsePrices(codes) {
@@ -69,13 +67,13 @@ async function fetchTwsePrices(codes) {
     if (resp.data && resp.data.msgArray) {
       resp.data.msgArray.forEach(item => {
         const code = item.c;
-        let priceStr = item.z; // 成交價
+        let priceStr = item.z;
 
         if (!priceStr || priceStr === '-') {
-          if (item.a) priceStr = item.a.split('_')[0]; // 最佳賣價一
+          if (item.a) priceStr = item.a.split('_')[0];
         }
         if (!priceStr || priceStr === '-') {
-          priceStr = item.y; // 昨收價
+          priceStr = item.y;
         }
 
         const price = parseFloat(priceStr);
@@ -90,26 +88,28 @@ async function fetchTwsePrices(codes) {
   return results;
 }
 
-// (B) Yahoo Finance 備援抓取邏輯
+// (B) Yahoo Finance 備援抓取邏輯 (動態 Import 修復版)
 async function fetchYahooPrices(codes) {
   const results = {};
   if (!codes || codes.length === 0) return results;
 
-  const querySymbols = [];
-  codes.forEach(c => {
-    const clean = c.trim();
-    if (!clean.endsWith('.TW') && !clean.endsWith('.TWO')) {
-      querySymbols.push(`${clean}.TW`);
-      querySymbols.push(`${clean}.TWO`);
-    } else {
-      querySymbols.push(clean);
-    }
-  });
-
   try {
+    const yahooFinanceModule = await import('yahoo-finance2');
+    const yahooFinance = yahooFinanceModule.default;
+
     yahooFinance.suppressNotices(['yahooSurvey']);
     
-    // 帶上 Header 防止被 Yahoo Finance 防火牆擋掉
+    const querySymbols = [];
+    codes.forEach(c => {
+      const clean = c.trim();
+      if (!clean.endsWith('.TW') && !clean.endsWith('.TWO')) {
+        querySymbols.push(`${clean}.TW`);
+        querySymbols.push(`${clean}.TWO`);
+      } else {
+        querySymbols.push(clean);
+      }
+    });
+
     const quotes = await yahooFinance.quote(
       querySymbols, 
       { return: 'array' }, 
@@ -145,7 +145,6 @@ async function fetchYahooPrices(codes) {
 // 4. API Endpoints
 // ----------------------------------------------------
 
-// 📡 股價查詢 API
 app.post('/api/prices', async (req, res) => {
   try {
     const { codes } = req.body;
@@ -157,7 +156,6 @@ app.post('/api/prices', async (req, res) => {
     const finalPrices = {};
     const missingCodes = [];
 
-    // 1. 先查快取
     const now = Date.now();
     uniqueCodes.forEach(code => {
       if (priceCache[code] && (now - priceCache[code].time < CACHE_DURATION)) {
@@ -167,11 +165,9 @@ app.post('/api/prices', async (req, res) => {
       }
     });
 
-    // 2. 快取沒有的向外抓取
     if (missingCodes.length > 0) {
       console.log(`🔍 正在向網路抓取最新股價: ${missingCodes.join(', ')}`);
 
-      // 優先用 TWSE API
       const twsePrices = await fetchTwsePrices(missingCodes);
       
       const stillMissing = [];
@@ -184,7 +180,6 @@ app.post('/api/prices', async (req, res) => {
         }
       });
 
-      // 未查到的股票使用 Yahoo Finance 備援
       if (stillMissing.length > 0) {
         console.log(`⚠️ TWSE 未查到，轉用 Yahoo 備援查詢: ${stillMissing.join(', ')}`);
         const yahooPrices = await fetchYahooPrices(stillMissing);
@@ -205,7 +200,6 @@ app.post('/api/prices', async (req, res) => {
   }
 });
 
-// 🤖 Gemini AI 診斷 API
 app.post('/api/ai_diagnose', async (req, res) => {
   try {
     const { clientData } = req.body;
@@ -215,7 +209,6 @@ app.post('/api/ai_diagnose', async (req, res) => {
 
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     
-    // 自動選擇合適的 Gemini 模型
     let modelName = "gemini-1.5-flash";
     try {
       const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`);
@@ -248,7 +241,6 @@ ${JSON.stringify(clientData, null, 2)}`;
   }
 });
 
-// 💾 客戶資料 Save/Get API
 app.post('/api/save_data', async (req, res) => {
   try {
     const data = req.body;
@@ -282,7 +274,6 @@ app.get('/api/get_data', async (req, res) => {
   }
 });
 
-// 🔑 後台登入認證
 app.post('/api/admin_login', (req, res) => {
   const { password } = req.body;
   if (password === 'Qq112233.') {
@@ -293,7 +284,7 @@ app.post('/api/admin_login', (req, res) => {
 });
 
 // ----------------------------------------------------
-// 5. 靜態檔案託管 (Hosting Front-End)
+// 5. 靜態檔案託管
 // ----------------------------------------------------
 app.use(express.static(path.join(__dirname, 'public')));
 
