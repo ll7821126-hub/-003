@@ -7,12 +7,22 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// ----------------------------------------------------
+// 0. 強制放行 CORS 與 Preflight (徹底解決 403 / 跨網域阻擋)
+// ----------------------------------------------------
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  
+  // 處理瀏覽器的 OPTIONS 預檢請求 (Preflight Request)
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
 
+app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 // ----------------------------------------------------
@@ -54,7 +64,7 @@ const ClientData = mongoose.model('ClientData', ClientDataSchema);
 // 3. 快取與股價抓取核心邏輯
 // ----------------------------------------------------
 const priceCache = {}; 
-const CACHE_DURATION = 30 * 1000; 
+const CACHE_DURATION = 30 * 1000; // 30 秒快取
 
 // (A) 證交所 TWSE API
 async function fetchTwsePrices(codes) {
