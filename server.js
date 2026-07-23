@@ -1,7 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const yahooFinance = require('yahoo-finance2').default;
+
+// 修正 yahoo-finance2 引入方式
+const YahooFinance = require('yahoo-finance2').default;
+const yahooFinance = new YahooFinance();
 
 const app = express();
 
@@ -81,7 +84,7 @@ app.post('/api/ai_diagnose', async (req, res) => {
 // ==================== 2. 股價抓取 API 路由 ====================
 app.post('/api/prices', async (req, res) => {
   try {
-    const { codes } = req.body; // 傳入台股代號陣列，例如 ["2330", "2317"]
+    const { codes } = req.body;
     if (!codes || !Array.isArray(codes) || codes.length === 0) {
       return res.json({ success: true, prices: {} });
     }
@@ -89,11 +92,9 @@ app.post('/api/prices', async (req, res) => {
     console.log("正在向網路抓取最新股價:", codes);
     const priceMap = {};
 
-    // 併發併行抓取股價
     await Promise.all(
       codes.map(async (code) => {
         try {
-          // 支援台股上市 (.TW) 及 上櫃 (.TWO)
           const symbolTW = `${code}.TW`;
           const quote = await yahooFinance.quote(symbolTW);
           if (quote && quote.regularMarketPrice) {
@@ -101,7 +102,6 @@ app.post('/api/prices', async (req, res) => {
           }
         } catch (e) {
           try {
-            // 若上市失敗則嘗試上櫃
             const symbolTWO = `${code}.TWO`;
             const quoteTWO = await yahooFinance.quote(symbolTWO);
             if (quoteTWO && quoteTWO.regularMarketPrice) {
