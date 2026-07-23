@@ -7,7 +7,6 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 
-// 開放跨網域 CORS 存取 (配合 Netlify 前端)
 app.use(cors({
   origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -55,9 +54,9 @@ const ClientData = mongoose.model('ClientData', ClientDataSchema);
 // 3. 快取與股價抓取核心邏輯
 // ----------------------------------------------------
 const priceCache = {}; 
-const CACHE_DURATION = 30 * 1000; // 30 秒快取
+const CACHE_DURATION = 30 * 1000; 
 
-// (A) 證交所 TWSE API 抓取邏輯
+// (A) 證交所 TWSE API
 async function fetchTwsePrices(codes) {
   const results = {};
   if (!codes || codes.length === 0) return results;
@@ -86,12 +85,12 @@ async function fetchTwsePrices(codes) {
         const code = item.c;
         if (!code) return;
 
-        let priceStr = item.z; // 最新成交價
+        let priceStr = item.z; 
         if (!priceStr || priceStr === '-') {
-          if (item.a) priceStr = item.a.split('_')[0]; // 買進委託價
+          if (item.a) priceStr = item.a.split('_')[0]; 
         }
         if (!priceStr || priceStr === '-') {
-          priceStr = item.y; // 昨收價
+          priceStr = item.y; 
         }
 
         const price = parseFloat(priceStr);
@@ -106,39 +105,45 @@ async function fetchTwsePrices(codes) {
   return results;
 }
 
-// (B) Yahoo Finance 直連 API (無需 NPM 套件，穩如泰山)
+// (B) Yahoo Finance 抗封鎖直連 API (帶 CORS Proxy 備援)
 async function fetchYahooDirectPrices(codes) {
   const results = {};
   if (!codes || codes.length === 0) return results;
 
   for (const code of codes) {
     const clean = code.trim();
-    // 優先查詢上市 .TW，若失敗再查上櫃 .TWO
     const suffixes = ['.TW', '.TWO'];
 
     for (const suffix of suffixes) {
       const symbol = `${clean}${suffix}`;
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`;
+      const targets = [
+        `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`,
+        `https://corsproxy.io/?${encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=1m&range=1d`)}`
+      ];
 
-      try {
-        const resp = await axios.get(url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          },
-          timeout: 4000
-        });
+      for (const targetUrl of targets) {
+        try {
+          const resp = await axios.get(targetUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            },
+            timeout: 3000
+          });
 
-        const meta = resp.data?.chart?.result?.[0]?.meta;
-        if (meta) {
-          const price = meta.regularMarketPrice || meta.chartPreviousClose;
-          if (price && !isNaN(price) && price > 0) {
-            results[clean] = parseFloat(Number(price).toFixed(2));
-            break; // 抓到了就跳出 suffix 迴圈
+          const meta = resp.data?.chart?.result?.[0]?.meta;
+          if (meta) {
+            const price = meta.regularMarketPrice || meta.chartPreviousClose || meta.previousClose;
+            if (price && !isNaN(price) && price > 0) {
+              results[clean] = parseFloat(Number(price).toFixed(2));
+              break;
+            }
           }
+        } catch (err) {
+          // 自動嘗試下一個 Proxy
         }
-      } catch (err) {
-        // 忽略單個失敗，繼續嘗試 .TWO 或下一個股票
       }
+
+      if (results[clean]) break;
     }
   }
 
@@ -198,6 +203,7 @@ app.post('/api/prices', async (req, res) => {
       }
     }
 
+    console.log('✅ 最終抓取到的價格結果:', finalPrices);
     res.json({ success: true, prices: finalPrices });
   } catch (err) {
     console.error('❌ /api/prices 錯誤:', err);
