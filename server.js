@@ -126,7 +126,28 @@ app.post('/api/ai_diagnose', async (req, res) => {
   }
 });
 
-// ==================== 2. 股價抓取 API 路由 ====================
+// 輔助函式：使用 Axios 直接向 Yahoo Chart API 請求股價 (自動試 TW 與 TWO)
+async function fetchPriceViaAxios(code) {
+  const suffixes = ['.TW', '.TWO'];
+  for (const suffix of suffixes) {
+    try {
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}`;
+      const resp = await axios.get(url, { 
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
+        timeout: 5000 
+      });
+      const meta = resp.data?.chart?.result?.[0]?.meta;
+      if (meta && typeof meta.regularMarketPrice === 'number') {
+        return meta.regularMarketPrice;
+      }
+    } catch (e) {
+      // 忽略單次失敗，嘗試下一個後綴
+    }
+  }
+  return null;
+}
+
+// ==================== 2. 股價抓取 API 路由 (修復上櫃股票抓取) ====================
 app.post('/api/prices', async (req, res) => {
   try {
     const { codes } = req.body;
@@ -139,25 +160,32 @@ app.post('/api/prices', async (req, res) => {
 
     await Promise.all(
       codes.map(async (code) => {
-        try {
-          if (yahooFinance) {
+        let price = null;
+
+        // 策略 1: 嘗試使用 yahoo-finance2 庫
+        if (yahooFinance) {
+          try {
+            const quote = await yahooFinance.quote(`${code}.TW`);
+            if (quote && quote.regularMarketPrice) price = quote.regularMarketPrice;
+          } catch (e1) {
             try {
-              const quote = await yahooFinance.quote(`${code}.TW`);
-              if (quote && quote.regularMarketPrice) priceMap[code] = quote.regularMarketPrice;
-            } catch (e1) {
               const quoteTWO = await yahooFinance.quote(`${code}.TWO`);
-              if (quoteTWO && quoteTWO.regularMarketPrice) priceMap[code] = quoteTWO.regularMarketPrice;
-            }
-          } else {
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.TW`;
-            const resp = await axios.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-            const meta = resp.data.chart.result[0].meta;
-            if (meta && meta.regularMarketPrice) {
-              priceMap[code] = meta.regularMarketPrice;
+              if (quoteTWO && quoteTWO.regularMarketPrice) price = quoteTWO.regularMarketPrice;
+            } catch (e2) {
+              // 庫查詢失敗
             }
           }
-        } catch (err) {
-          console.warn(`無法獲取代碼 ${code} 的股價資訊`);
+        }
+
+        // 策略 2: 如果策略 1 沒抓到，改走增強版 Axios 直接請求 (支援 .TW 與 .TWO)
+        if (!price) {
+          price = await fetchPriceViaAxios(code);
+        }
+
+        if (price !== null && price !== undefined) {
+          priceMap[code] = price;
+        } else {
+          console.warn(`⚠️ 無法獲取代碼 ${code} 的股價資訊`);
         }
       })
     );
