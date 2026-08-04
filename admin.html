@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', sans-serif; background: #f3f4f6; margin: 0; padding: 20px; color: #1f2937; }
-    .container { max-width: 1200px; margin: 0 auto; }
+    .container { max-width: 1280px; margin: 0 auto; }
     .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 20px 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 24px; }
     .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
     table { width: 100%; border-collapse: collapse; margin-top: 12px; }
@@ -23,6 +23,11 @@
     input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; margin-top: 6px; margin-bottom: 16px; box-sizing: border-box; }
     .tag { font-size: 12px; padding: 3px 8px; border-radius: 99px; background: #dbeafe; color: #1e40af; font-weight: 600; }
     .detail-section { background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 12px; display: none; }
+    .pnl-pos { color: #dc2626; font-weight: 600; } /* 獲利紅 */
+    .pnl-neg { color: #16a34a; font-weight: 600; } /* 虧損綠 */
+    .pnl-zero { color: #4b5563; }
+    .stock-link { text-decoration: none; color: #2563eb; font-weight: 600; }
+    .stock-link:hover { text-decoration: underline; }
   </style>
 </head>
 <body>
@@ -46,7 +51,7 @@
       <span id="userCount" style="font-size:14px;color:#6b7280;">請先完成管理員驗證</span>
     </div>
     <div>
-      <button class="btn btn-secondary" onclick="loadAdminData()">🔄 重新整理</button>
+      <button class="btn btn-secondary" onclick="loadAdminData()">🔄 重新整理 / 更新股價</button>
       <button class="btn btn-primary" onclick="exportAllCSV()">📥 匯出全系統 CSV</button>
     </div>
   </div>
@@ -58,6 +63,12 @@
   const API_URL = "https://003-v2.onrender.com/api";
   let currentAdminPwd = "";
   let globalUsersData = [];
+  let priceMap = {};
+
+  function fmtMoney(num) {
+    if (num === null || num === undefined || isNaN(num)) return "-";
+    return Number(num).toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
 
   async function handleAdminLogin(e) {
     e.preventDefault();
@@ -68,6 +79,23 @@
     const success = await loadAdminData();
     if (success) {
       document.getElementById("loginModal").style.display = "none";
+    }
+  }
+
+  async function fetchRealTimePrices(codes) {
+    if (!codes || codes.length === 0) return;
+    try {
+      const res = await fetch(`${API_URL}/prices`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codes: codes })
+      });
+      const data = await res.json();
+      if (data.success && data.prices) {
+        priceMap = data.prices;
+      }
+    } catch (e) {
+      console.warn("無法抓取最新股價:", e);
     }
   }
 
@@ -86,7 +114,21 @@
       }
 
       globalUsersData = data.users;
-      document.getElementById("userCount").innerText = `當前系統共有 ${data.totalUsers} 位用戶註冊/使用中`;
+
+      // 收集所有股票代碼並抓取即時價格
+      const allCodes = new Set();
+      globalUsersData.forEach(u => {
+        (u.holdings || []).forEach(h => {
+          if (h.code) allCodes.add(String(h.code).trim());
+        });
+      });
+
+      if (allCodes.size > 0) {
+        document.getElementById("userCount").innerText = `當前系統共 ${data.totalUsers} 位用戶，正在更新實時股價...`;
+        await fetchRealTimePrices(Array.from(allCodes));
+      }
+
+      document.getElementById("userCount").innerText = `當前系統共有 ${data.totalUsers} 位用戶註冊/使用中 (實時股價已更新)`;
       renderUsers(data.users);
       return true;
     } catch (err) {
@@ -109,19 +151,37 @@
 
       let holdingsRows = "";
       user.holdings.forEach(h => {
+        const curPrice = priceMap[h.code] || h.cost || 0;
+        const qty = Number(h.quantity) || 0;
+        const cost = Number(h.cost) || 0;
+        const totalValue = curPrice * qty;
+        const pnl = (curPrice - cost) * qty;
+        const pnlRate = cost > 0 ? ((curPrice - cost) / cost) * 100 : 0;
+
+        let pnlClass = "pnl-zero";
+        if (pnl > 0) pnlClass = "pnl-pos";
+        else if (pnl < 0) pnlClass = "pnl-neg";
+
         holdingsRows += `
           <tr>
             <td>${h.client || '預設'}</td>
-            <td><strong>${h.stockName}</strong> (${h.code})</td>
-            <td>${h.quantity} 股</td>
-            <td>NT$ ${h.cost}</td>
-            <td>${h.stopLoss || '-'} / ${h.takeProfit || '-'}</td>
+            <td>
+              <a href="https://statementdog.com/analysis/${h.code}" target="_blank" class="stock-link">
+                ${h.stockName} (${h.code})
+              </a>
+            </td>
+            <td>${fmtMoney(qty)} 股</td>
+            <td>NT$ ${fmtMoney(cost)}</td>
+            <td style="font-weight:600;color:#2563eb;">NT$ ${fmtMoney(curPrice)}</td>
+            <td>NT$ ${fmtMoney(totalValue)}</td>
+            <td class="${pnlClass}">NT$ ${fmtMoney(pnl)} (${pnlRate >= 0 ? '+' : ''}${pnlRate.toFixed(2)}%)</td>
+            <td style="font-size:12px;color:#9ca3af;">${h.stopLoss || '-'} / ${h.takeProfit || '-'}</td>
           </tr>
         `;
       });
 
       let profilesText = "";
-      Object.keys(user.profiles).forEach(clientName => {
+      Object.keys(user.profiles || {}).forEach(clientName => {
         const p = user.profiles[clientName];
         profilesText += `
           <div style="font-size:13px;background:#fff;padding:10px;border-radius:6px;border:1px solid #e5e7eb;margin-top:6px;">
@@ -144,15 +204,18 @@
           <h4>📌 客戶背景檔案</h4>
           ${profilesText || '<div style="font-size:13px;color:#9ca3af;">尚未建立任何客戶檔案</div>'}
 
-          <h4 style="margin-top:16px;">📈 持倉股票清單</h4>
+          <h4 style="margin-top:16px;">📈 持倉股票清單 (含實時股價)</h4>
           ${user.holdings.length > 0 ? `
             <table>
               <thead>
                 <tr>
                   <th>客戶</th>
-                  <th>股票</th>
-                  <th>持股數</th>
+                  <th>股票名稱 (代碼)</th>
+                  <th>持股數量</th>
                   <th>買入成本</th>
+                  <th>當前現價</th>
+                  <th>即時市值</th>
+                  <th>預估盈虧</th>
                   <th>止損 / 止盈</th>
                 </tr>
               </thead>
@@ -173,10 +236,12 @@
 
   function exportAllCSV() {
     if (!globalUsersData.length) return alert("無資料可導出");
-    let csv = "用戶帳號,客戶姓名,股票名稱,股票代碼,數量,成本價,止損價,止盈價\n";
+    let csv = "用戶帳號,客戶姓名,股票名稱,股票代碼,數量,成本價,當前現價,預估盈虧,止損價,止盈價\n";
     globalUsersData.forEach(user => {
       user.holdings.forEach(h => {
-        csv += `${user.userId},${h.client||''},${h.stockName},${h.code},${h.quantity},${h.cost},${h.stopLoss||''},${h.takeProfit||''}\n`;
+        const curPrice = priceMap[h.code] || h.cost || 0;
+        const pnl = (curPrice - h.cost) * h.quantity;
+        csv += `${user.userId},${h.client||''},${h.stockName},${h.code},${h.quantity},${h.cost},${curPrice},${pnl},${h.stopLoss||''},${h.takeProfit||''}\n`;
       });
     });
     const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
