@@ -122,7 +122,7 @@ app.post('/api/admin/all_data', (req, res) => {
   const { adminPassword } = req.body;
 
   // 管理員驗證密碼（可於 Render 環境變數設定 ADMIN_PASSWORD，預設為 admin123456）
-  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "admin123456";
+  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "Qq112233.";
 
   if (adminPassword !== ADMIN_SECRET) {
     return res.status(403).json({ success: false, message: '管理員密碼錯誤！' });
