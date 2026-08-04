@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <title>系統管理員後台 - 客戶持倉總控</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; background: #f3f4f6; margin: 0; padding: 20px; color: #1f2937; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 20px 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 24px; }
+    .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
+    th { background: #f9fafb; font-weight: 600; color: #4b5563; }
+    .btn { cursor: pointer; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; transition: .2s; }
+    .btn-primary { background: #10b981; color: #fff; }
+    .btn-primary:hover { background: #059669; }
+    .btn-secondary { background: #e5e7eb; color: #374151; }
+    .btn-secondary:hover { background: #d1d5db; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+    .login-box { background: #fff; padding: 30px; border-radius: 16px; width: 360px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
+    input { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; margin-top: 6px; margin-bottom: 16px; box-sizing: border-box; }
+    .tag { font-size: 12px; padding: 3px 8px; border-radius: 99px; background: #dbeafe; color: #1e40af; font-weight: 600; }
+    .detail-section { background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 12px; display: none; }
+  </style>
+</head>
+<body>
+
+<!-- 管理員登入彈窗 -->
+<div id="loginModal" class="modal-overlay">
+  <div class="login-box">
+    <h2 style="margin-top:0;text-align:center;">🛡️ 管理員後台登入</h2>
+    <form onsubmit="handleAdminLogin(event)">
+      <label style="font-size:13px;color:#4b5563;">管理員金鑰 / 密碼</label>
+      <input type="password" id="adminPwdInput" placeholder="預設密碼：admin123456" required />
+      <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">驗證登入</button>
+    </form>
+  </div>
+</div>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h2 style="margin:0;">📊 全系統數據總控後台</h2>
+      <span id="userCount" style="font-size:14px;color:#6b7280;">請先完成管理員驗證</span>
+    </div>
+    <div>
+      <button class="btn btn-secondary" onclick="loadAdminData()">🔄 重新整理</button>
+      <button class="btn btn-primary" onclick="exportAllCSV()">📥 匯出全系統 CSV</button>
+    </div>
+  </div>
+
+  <div id="usersList"></div>
+</div>
+
+<script>
+  const API_URL = "https://003-v2.onrender.com/api";
+  let currentAdminPwd = "";
+  let globalUsersData = [];
+
+  async function handleAdminLogin(e) {
+    e.preventDefault();
+    const pwd = document.getElementById("adminPwdInput").value.trim();
+    if (!pwd) return;
+
+    currentAdminPwd = pwd;
+    const success = await loadAdminData();
+    if (success) {
+      document.getElementById("loginModal").style.display = "none";
+    }
+  }
+
+  async function loadAdminData() {
+    try {
+      const res = await fetch(`${API_URL}/admin/all_data`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminPassword: currentAdminPwd })
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.message || "管理員密碼錯誤！");
+        return false;
+      }
+
+      globalUsersData = data.users;
+      document.getElementById("userCount").innerText = `當前系統共有 ${data.totalUsers} 位用戶註冊/使用中`;
+      renderUsers(data.users);
+      return true;
+    } catch (err) {
+      alert("連線失敗，請檢查 Render 後端服務狀態");
+      return false;
+    }
+  }
+
+  function renderUsers(users) {
+    const container = document.getElementById("usersList");
+    if (!users || users.length === 0) {
+      container.innerHTML = `<div class="card" style="text-align:center;color:#9ca3af;">目前雲端資料庫無任何用戶資料</div>`;
+      return;
+    }
+
+    container.innerHTML = "";
+    users.forEach((user, index) => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      let holdingsRows = "";
+      user.holdings.forEach(h => {
+        holdingsRows += `
+          <tr>
+            <td>${h.client || '預設'}</td>
+            <td><strong>${h.stockName}</strong> (${h.code})</td>
+            <td>${h.quantity} 股</td>
+            <td>NT$ ${h.cost}</td>
+            <td>${h.stopLoss || '-'} / ${h.takeProfit || '-'}</td>
+          </tr>
+        `;
+      });
+
+      let profilesText = "";
+      Object.keys(user.profiles).forEach(clientName => {
+        const p = user.profiles[clientName];
+        profilesText += `
+          <div style="font-size:13px;background:#fff;padding:10px;border-radius:6px;border:1px solid #e5e7eb;margin-top:6px;">
+            <strong>${clientName}</strong>: 性別:${p.gender || '未填'} | 年齡:${p.age ? p.age+'歲' : '未填'} | 股齡:${p.experience || '未填'} | 風格:${p.style || '未填'} | 備註:${p.note || '無'}
+          </div>
+        `;
+      });
+
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <h3 style="margin:0;display:inline-block;">👤 帳號自訂ID: ${user.userId}</h3>
+            <span class="tag" style="margin-left:8px;">密碼: ${user.password || '無'}</span>
+            <span class="tag" style="background:#fef3c7;color:#92400e;margin-left:4px;">持倉筆數: ${user.holdingsCount}</span>
+          </div>
+          <button class="btn btn-secondary" onclick="toggleDetail('detail-${index}')">查看詳細內容</button>
+        </div>
+
+        <div id="detail-${index}" class="detail-section">
+          <h4>📌 客戶背景檔案</h4>
+          ${profilesText || '<div style="font-size:13px;color:#9ca3af;">尚未建立任何客戶檔案</div>'}
+
+          <h4 style="margin-top:16px;">📈 持倉股票清單</h4>
+          ${user.holdings.length > 0 ? `
+            <table>
+              <thead>
+                <tr>
+                  <th>客戶</th>
+                  <th>股票</th>
+                  <th>持股數</th>
+                  <th>買入成本</th>
+                  <th>止損 / 止盈</th>
+                </tr>
+              </thead>
+              <tbody>${holdingsRows}</tbody>
+            </table>
+          ` : '<div style="font-size:13px;color:#9ca3af;">無持倉資料</div>'}
+        </div>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  function toggleDetail(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === "block" ? "none" : "block";
+  }
+
+  function exportAllCSV() {
+    if (!globalUsersData.length) return alert("無資料可導出");
+    let csv = "用戶帳號,客戶姓名,股票名稱,股票代碼,數量,成本價,止損價,止盈價\n";
+    globalUsersData.forEach(user => {
+      user.holdings.forEach(h => {
+        csv += `${user.userId},${h.client||''},${h.stockName},${h.code},${h.quantity},${h.cost},${h.stopLoss||''},${h.takeProfit||''}\n`;
+      });
+    });
+    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "全系統客戶持倉總表.csv";
+    a.click();
+  }
+</script>
+</body>
+</html>
