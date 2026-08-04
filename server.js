@@ -19,6 +19,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 記憶體數據庫 (儲存用戶持倉與客戶檔案)
+const userDataStore = {};
+
 // 獲取 GEMINI API KEY
 const apiKey = process.env.GEMINI_API_KEY;
 
@@ -70,7 +73,51 @@ app.get('/', (req, res) => {
   res.send('Server is running normally!');
 });
 
-// ==================== 1. AI 診斷 API 路由 ====================
+// ==================== 1. 帳號與持倉數據 API (新增) ====================
+
+// 讀取用戶資料
+app.get('/api/get_data', (req, res) => {
+  const customId = req.query.customId;
+  if (!customId) {
+    return res.status(400).json({ success: false, message: '缺少 customId 參數' });
+  }
+
+  const userData = userDataStore[customId];
+  if (userData) {
+    return res.json({ success: true, data: userData });
+  } else {
+    return res.json({
+      success: true,
+      data: { password: "", holdings: [], profiles: {} }
+    });
+  }
+});
+
+// 儲存用戶資料
+app.post('/api/save_data', (req, res) => {
+  const { customId, password, holdings, profiles } = req.body;
+
+  if (!customId) {
+    return res.status(400).json({ success: false, message: '缺少 customId' });
+  }
+
+  // 若帳號已有密碼，進行防覆蓋驗證
+  if (userDataStore[customId] && userDataStore[customId].password) {
+    if (userDataStore[customId].password !== password) {
+      return res.status(403).json({ success: false, message: '密碼不符，無法更新數據' });
+    }
+  }
+
+  userDataStore[customId] = {
+    password: password || "",
+    holdings: holdings || [],
+    profiles: profiles || {}
+  };
+
+  return res.json({ success: true, message: '雲端同步成功' });
+});
+
+// ==================== 2. AI 診斷 API 路由 ====================
 app.post('/api/ai_diagnose', async (req, res) => {
   try {
     if (!apiKey) {
@@ -147,7 +194,7 @@ async function fetchPriceViaAxios(code) {
   return null;
 }
 
-// ==================== 2. 股價抓取 API 路由 (修復上櫃股票抓取) ====================
+// ==================== 3. 股價抓取 API 路由 ====================
 app.post('/api/prices', async (req, res) => {
   try {
     const { codes } = req.body;
@@ -177,7 +224,7 @@ app.post('/api/prices', async (req, res) => {
           }
         }
 
-        // 策略 2: 如果策略 1 沒抓到，改走增強版 Axios 直接請求 (支援 .TW 與 .TWO)
+        // 策略 2: 如果策略 1 沒抓到，改走增強版 Axios 直接請求
         if (!price) {
           price = await fetchPriceViaAxios(code);
         }
@@ -211,7 +258,7 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// ==================== 3. 啟動伺服器 ====================
+// ==================== 4. 啟動伺服器 ====================
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
