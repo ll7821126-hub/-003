@@ -874,10 +874,10 @@
         const tr = document.createElement("tr");
         if(isRec) tr.className = "is-recommend";
 
-        tr.innerHTML = `
+       tr.innerHTML = `
           <td class="t-left">
             ${isRec ? '<span class="tag-recommend">推薦</span>' : ''}
-            <a href="https://statementdog.com/analysis/tse/${item.code}" target="_blank" class="stock-link">
+            <a href="https://statementdog.com/analysis/${item.code}" target="_blank" class="stock-link">
               ${item.stockName}
             </a>
           </td>
