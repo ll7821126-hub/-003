@@ -553,14 +553,14 @@
       <!-- 股票名稱 + 自動建議 -->
       <div class="form-group">
         <label>股票名稱</label>
-        <input id="stockName" placeholder="輸入名稱自動帶入代碼" autocomplete="off" oninput="handleStockInput('name')" required />
+        <input id="stockName" placeholder="輸入名稱自動帶入代碼" autocomplete="off" oninput="handleStockInput('name')" onchange="autoFillPair('name')" required />
         <div id="nameSuggestions" class="suggestions-list"></div>
       </div>
       
       <!-- 證券代碼 + 自動建議 -->
       <div class="form-group">
         <label>證券代碼</label>
-        <input id="code" placeholder="例如：2330" autocomplete="off" oninput="handleStockInput('code')" required />
+        <input id="code" placeholder="例如：2330 / 6770" autocomplete="off" oninput="handleStockInput('code')" onchange="autoFillPair('code')" required />
         <div id="codeSuggestions" class="suggestions-list"></div>
       </div>
       
@@ -709,7 +709,7 @@
   const DB_KEY = "korea_stock_v13_sync";
   const PROFILE_KEY = "korea_profile_v13_sync";
 
-  // 熱門股票靜態快取，加速自動識別
+  // 1. 全台股常用與上市櫃熱門標的清單（涵蓋力積電 6770、東華 1444 等）
   const COMMON_STOCKS = [
     { code: "2330", name: "台積電" },
     { code: "2317", name: "鴻海" },
@@ -725,7 +725,38 @@
     { code: "3231", name: "緯創" },
     { code: "2357", name: "華碩" },
     { code: "2379", name: "瑞昱" },
-    { code: "3008", name: "大立光" }
+    { code: "3008", name: "大立光" },
+    { code: "6770", name: "力積電" },
+    { code: "1444", name: "東華" },
+    { code: "2603", name: "長榮" },
+    { code: "2609", name: "陽明" },
+    { code: "2615", name: "萬海" },
+    { code: "2356", name: "英業達" },
+    { code: "6669", name: "緯穎" },
+    { code: "3034", name: "聯詠" },
+    { code: "8069", name: "元太" },
+    { code: "2376", name: "技嘉" },
+    { code: "2301", name: "光寶科" },
+    { code: "2886", name: "兆豐金" },
+    { code: "2884", name: "玉山金" },
+    { code: "5880", name: "合庫金" },
+    { code: "2892", name: "第一金" },
+    { code: "2880", name: "華南金" },
+    { code: "2883", name: "開發金" },
+    { code: "2885", name: "元大金" },
+    { code: "2890", name: "永豐金" },
+    { code: "2801", name: "彰銀" },
+    { code: "2834", name: "臺企銀" },
+    { code: "9910", name: "豐泰" },
+    { code: "9904", name: "寶成" },
+    { code: "1101", name: "台泥" },
+    { code: "1102", name: "亞泥" },
+    { code: "1216", name: "統一" },
+    { code: "1301", name: "台塑" },
+    { code: "1303", name: "南亞" },
+    { code: "1326", name: "台化" },
+    { code: "6505", name: "台塑化" },
+    { code: "2002", name: "中鋼" }
   ];
 
   const form = document.getElementById("holdForm");
@@ -766,7 +797,37 @@
     if (el) el.innerText = `👤 已登入: ${userId}`;
   }
 
-  // 自動辨識股票名稱與代碼
+  // 通用股票比對輔助函式
+  function findStockMatch(query) {
+    if (!query) return null;
+    const q = query.trim().toLowerCase().replace(/臺/g, '台');
+    return COMMON_STOCKS.find(s => 
+      s.code === q || 
+      s.name.toLowerCase().replace(/臺/g, '台') === q
+    );
+  }
+
+  // 雙向自動反填核心邏輯 (Change / Blur 觸發)
+  function autoFillPair(sourceType) {
+    const nameInput = document.getElementById("stockName");
+    const codeInput = document.getElementById("code");
+
+    if (sourceType === 'name') {
+      const match = findStockMatch(nameInput.value);
+      if (match) {
+        nameInput.value = match.name;
+        codeInput.value = match.code;
+      }
+    } else if (sourceType === 'code') {
+      const match = findStockMatch(codeInput.value);
+      if (match) {
+        codeInput.value = match.code;
+        nameInput.value = match.name;
+      }
+    }
+  }
+
+  // 自動辨識股票名稱與代碼 (Input 動態搜尋)
   function handleStockInput(type) {
     const nameInput = document.getElementById("stockName");
     const codeInput = document.getElementById("code");
@@ -780,16 +841,25 @@
       return;
     }
 
-    // 1. 先從本地常用股票庫比對
+    // 1. 即時比對並嘗試帶入
+    const exactMatch = findStockMatch(query);
+    if (exactMatch) {
+      if (type === 'name' && !codeInput.value) codeInput.value = exactMatch.code;
+      if (type === 'code' && !nameInput.value) nameInput.value = exactMatch.name;
+    }
+
+    // 2. 從本地股票庫搜尋並過濾建議
+    const cleanQ = query.toLowerCase().replace(/臺/g, '台');
     const matches = COMMON_STOCKS.filter(s => 
-      s.name.includes(query) || s.code.includes(query)
+      s.name.toLowerCase().replace(/臺/g, '台').includes(cleanQ) || 
+      s.code.includes(cleanQ)
     );
 
     if (matches.length > 0) {
       showSuggestions(type, matches);
     }
 
-    // 2. 透過 Yahoo Finance API 線上即時查詢對應名稱/代碼
+    // 3. 透過 Yahoo Finance API 線上即時補強搜尋
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(async () => {
       try {
