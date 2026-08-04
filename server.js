@@ -127,7 +127,7 @@ app.post('/api/save_data', async (req, res) => {
 // ==================== 2. 管理員後台 API (MongoDB 版) ====================
 app.post('/api/admin/all_data', async (req, res) => {
   const { adminPassword } = req.body;
-  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "admin123456";
+  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "Qq112233.";
 
   if (adminPassword !== ADMIN_SECRET) {
     return res.status(403).json({ success: false, message: '管理員密碼錯誤！' });
