@@ -11,6 +11,8 @@
       --bg-card: #ffffff;
       --primary: #10b981;
       --primary-hover: #059669;
+      --sell-primary: #ef4444;
+      --sell-hover: #dc2626;
       --text-main: #1f2937;
       --text-sub: #6b7280;
       --border: #e5e7eb;
@@ -251,7 +253,7 @@
       font-size:12px;
     }
 
-    .form-group{margin-bottom:16px}
+    .form-group{margin-bottom:16px;position:relative;}
     .form-group label{
       display:block;
       font-size:13px;
@@ -272,6 +274,32 @@
     input:focus,select:focus,textarea:focus{
       border-color:var(--primary);
       box-shadow:0 0 0 3px rgba(16,185,129,.15);
+    }
+
+    /* 自動建議清單樣式 */
+    .suggestions-list {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 50;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      display: none;
+    }
+    .suggestion-item {
+      padding: 8px 12px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+    }
+    .suggestion-item:hover {
+      background-color: #f3f4f6;
     }
 
     .btn{
@@ -297,6 +325,13 @@
       box-shadow:0 4px 10px rgba(16,185,129,.25);
     }
     .btn-save:hover{background:var(--primary-hover);transform:translateY(-1px)}
+    .btn-save.sell-mode {
+      background: var(--sell-primary);
+      box-shadow: 0 4px 10px rgba(239, 68, 68, .25);
+    }
+    .btn-save.sell-mode:hover {
+      background: var(--sell-hover);
+    }
     .btn-ghost{background:#f3f4f6;color:#4b5563}
     .btn-ghost:hover{background:#e5e7eb}
     .btn-clear{
@@ -497,56 +532,76 @@
 
 <div class="layout-container">
   <aside class="sidebar">
-    <h2 style="font-size:20px;font-weight:800;margin-bottom:24px;color:#111827;">新增 / 修改持倉</h2>
+    <h2 style="font-size:20px;font-weight:800;margin-bottom:16px;color:#111827;">交易與持倉管理</h2>
+    
+    <!-- 交易類型切換 -->
+    <div class="form-group">
+      <label>操作類型</label>
+      <select id="tradeType" onchange="toggleTradeType()">
+        <option value="buy">➕ 買入 / 新增持倉</option>
+        <option value="sell">➖ 賣出 / 減倉結算</option>
+      </select>
+    </div>
+
     <form id="holdForm">
       <input type="hidden" id="editId" />
       <div class="form-group">
         <label>客戶姓名</label>
         <input id="client" placeholder="例如：陳先生" required />
       </div>
+      
+      <!-- 股票名稱 + 自動建議 -->
       <div class="form-group">
         <label>股票名稱</label>
-        <input id="stockName" placeholder="例如：台積電" required />
+        <input id="stockName" placeholder="輸入名稱自動帶入代碼" autocomplete="off" oninput="handleStockInput('name')" required />
+        <div id="nameSuggestions" class="suggestions-list"></div>
       </div>
+      
+      <!-- 證券代碼 + 自動建議 -->
       <div class="form-group">
         <label>證券代碼</label>
-        <input id="code" placeholder="例如：2330" required />
+        <input id="code" placeholder="例如：2330" autocomplete="off" oninput="handleStockInput('code')" required />
+        <div id="codeSuggestions" class="suggestions-list"></div>
       </div>
       
       <!-- 張數與股數連動輸入 -->
       <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
-          <label>持股張數 (張)</label>
+          <label id="lotsLabel">持股張數 (張)</label>
           <input id="lots" type="number" step="any" placeholder="例如：1" oninput="syncQuantityFromLots()" />
         </div>
         <div>
-          <label>持股數量 (股)</label>
+          <label id="qtyLabel">持股數量 (股)</label>
           <input id="quantity" type="number" min="1" placeholder="例如：1000" oninput="syncLotsFromQuantity()" required />
         </div>
       </div>
+      
       <div class="form-group">
-        <label>買入價格 (NT$)</label>
+        <label id="priceLabel">買入價格 (NT$)</label>
         <input id="cost" type="number" step="0.01" placeholder="例如：34.78" required />
       </div>
 
-      <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div>
-          <label>止損價 (選填)</label>
-          <input id="stopLoss" type="number" step="0.01" />
+      <div id="extraOptions">
+        <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label>止損價 (選填)</label>
+            <input id="stopLoss" type="number" step="0.01" />
+          </div>
+          <div>
+            <label>止盈價 (選填)</label>
+            <input id="takeProfit" type="number" step="0.01" />
+          </div>
         </div>
-        <div>
-          <label>止盈價 (選填)</label>
-          <input id="takeProfit" type="number" step="0.01" />
+        <div class="form-group">
+          <label>是否為推薦飆股</label>
+          <select id="recommendType">
+            <option value="no">否</option>
+            <option value="yes">是 (列表高亮顯示)</option>
+          </select>
         </div>
       </div>
-      <div class="form-group">
-        <label>是否為推薦飆股</label>
-        <select id="recommendType">
-          <option value="no">否</option>
-          <option value="yes">是 (列表高亮顯示)</option>
-        </select>
-      </div>
-      <div style="margin-top:30px;">
+
+      <div style="margin-top:20px;">
         <button type="submit" class="btn btn-save" id="submitBtn">保存持倉</button>
       </div>
       <div style="margin-top:16px;display:flex;gap:10px;">
@@ -567,7 +622,6 @@
       </div>
 
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <!-- 登入帳號顯示與退出按鈕 -->
         <div style="display:flex;align-items:center;gap:8px;background:#f3f4f6;padding:4px 12px;border-radius:99px;border:1px solid #d1d5db;font-size:12px;">
           <span id="userStatusDisplay" style="color:#374151;font-weight:600;">👤 未登入</span>
           <button onclick="logout()" class="btn btn-ghost" style="padding:2px 8px;font-size:11px;border-radius:6px;background:#e5e7eb;color:#374151;">退出</button>
@@ -652,9 +706,27 @@
 
 <script>
   const API_URL = "https://003-v2.onrender.com/api";
-
   const DB_KEY = "korea_stock_v13_sync";
   const PROFILE_KEY = "korea_profile_v13_sync";
+
+  // 熱門股票靜態快取，加速自動識別
+  const COMMON_STOCKS = [
+    { code: "2330", name: "台積電" },
+    { code: "2317", name: "鴻海" },
+    { code: "2454", name: "聯發科" },
+    { code: "2308", name: "台達電" },
+    { code: "2382", name: "廣達" },
+    { code: "2881", name: "富邦金" },
+    { code: "2882", name: "國泰金" },
+    { code: "2412", name: "中華電" },
+    { code: "2303", name: "聯電" },
+    { code: "3711", name: "日月光投控" },
+    { code: "2891", name: "中信金" },
+    { code: "3231", name: "緯創" },
+    { code: "2357", name: "華碩" },
+    { code: "2379", name: "瑞昱" },
+    { code: "3008", name: "大立光" }
+  ];
 
   const form = document.getElementById("holdForm");
   const tableBody = document.getElementById("tableBody");
@@ -666,11 +738,11 @@
   let holdings = [];
   let profiles = {};
   let autoTimer = null;
+  let searchDebounce = null;
 
   let userId = localStorage.getItem("app_user_id") || "";
   let currentPassword = localStorage.getItem("app_user_password") || "";
 
-  // 讀取本地快取
   try {
     holdings = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
     profiles = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
@@ -692,6 +764,110 @@
   function updateUserDisplay() {
     const el = document.getElementById("userStatusDisplay");
     if (el) el.innerText = `👤 已登入: ${userId}`;
+  }
+
+  // 自動辨識股票名稱與代碼
+  function handleStockInput(type) {
+    const nameInput = document.getElementById("stockName");
+    const codeInput = document.getElementById("code");
+    const nameSug = document.getElementById("nameSuggestions");
+    const codeSug = document.getElementById("codeSuggestions");
+
+    const query = (type === 'name' ? nameInput.value : codeInput.value).trim();
+    if (!query) {
+      nameSug.style.display = "none";
+      codeSug.style.display = "none";
+      return;
+    }
+
+    // 1. 先從本地常用股票庫比對
+    const matches = COMMON_STOCKS.filter(s => 
+      s.name.includes(query) || s.code.includes(query)
+    );
+
+    if (matches.length > 0) {
+      showSuggestions(type, matches);
+    }
+
+    // 2. 透過 Yahoo Finance API 線上即時查詢對應名稱/代碼
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://query1-api.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=6&country=Taiwan`);
+        const data = await res.json();
+        if (data && data.quotes) {
+          const apiMatches = data.quotes
+            .filter(q => q.symbol && (q.symbol.endsWith('.TW') || q.symbol.endsWith('.TWO')))
+            .map(q => ({
+              code: q.symbol.replace(/\.(TW|TWO)$/, ''),
+              name: q.shortname || q.longname || q.symbol
+            }));
+          
+          const combined = [...matches, ...apiMatches];
+          const unique = Array.from(new Map(combined.map(item => [item.code, item])).values());
+          showSuggestions(type, unique);
+        }
+      } catch (err) {
+        console.log("網路搜尋失敗:", err);
+      }
+    }, 300);
+  }
+
+  function showSuggestions(type, items) {
+    const container = type === 'name' ? document.getElementById("nameSuggestions") : document.getElementById("codeSuggestions");
+    if (!items.length) {
+      container.style.display = "none";
+      return;
+    }
+
+    container.innerHTML = items.map(item => `
+      <div class="suggestion-item" onclick="selectStock('${item.name}', '${item.code}')">
+        <span><strong>${item.name}</strong></span>
+        <span style="color:#6b7280">${item.code}</span>
+      </div>
+    `).join('');
+    container.style.display = "block";
+  }
+
+  function selectStock(name, code) {
+    document.getElementById("stockName").value = name;
+    document.getElementById("code").value = code;
+    document.getElementById("nameSuggestions").style.display = "none";
+    document.getElementById("codeSuggestions").style.display = "none";
+  }
+
+  // 點擊頁面其它地方隱藏建議框
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest('.form-group')) {
+      document.getElementById("nameSuggestions").style.display = "none";
+      document.getElementById("codeSuggestions").style.display = "none";
+    }
+  });
+
+  // 交易類型切換UI
+  function toggleTradeType() {
+    const type = document.getElementById("tradeType").value;
+    const submitBtn = document.getElementById("submitBtn");
+    const extraOptions = document.getElementById("extraOptions");
+    const lotsLabel = document.getElementById("lotsLabel");
+    const qtyLabel = document.getElementById("qtyLabel");
+    const priceLabel = document.getElementById("priceLabel");
+
+    if (type === "sell") {
+      submitBtn.innerText = "確認賣出 / 減倉";
+      submitBtn.classList.add("sell-mode");
+      extraOptions.style.display = "none";
+      lotsLabel.innerText = "賣出張數 (張)";
+      qtyLabel.innerText = "賣出數量 (股)";
+      priceLabel.innerText = "賣出價格 (NT$)";
+    } else {
+      submitBtn.innerText = "保存持倉";
+      submitBtn.classList.remove("sell-mode");
+      extraOptions.style.display = "block";
+      lotsLabel.innerText = "持股張數 (張)";
+      qtyLabel.innerText = "持股數量 (股)";
+      priceLabel.innerText = "買入價格 (NT$)";
+    }
   }
 
   // 登入驗證處理
@@ -749,7 +925,6 @@
     }
   }
 
-  // 雲端儲存
   async function apiSaveData(data) {
     if (!userId) return;
     try {
@@ -766,14 +941,12 @@
     }
   }
 
-  // 搜尋過濾
   let filterText = "";
   searchInput.addEventListener('input', (e) => {
     filterText = e.target.value.trim().toLowerCase();
     render();
   });
 
-  // 主畫面渲染
   function render() {
     const groups = {};
     let hasData = false;
@@ -807,7 +980,6 @@
     }
     emptyTip.style.display = "none";
 
-    // 客戶卡片
     cardsContainer.innerHTML = "";
     Object.keys(groups).sort().forEach(client => {
       const g = groups[client];
@@ -850,7 +1022,6 @@
       cardsContainer.appendChild(card);
     });
 
-    // 表格
     tableBody.innerHTML = "";
     Object.keys(groups).sort().forEach(client => {
       const g = groups[client];
@@ -902,7 +1073,6 @@
     });
   }
 
-  // 自動刷新
   function toggleAutoRefresh() {
     const checkbox = document.getElementById('autoRefreshCheck');
     if(checkbox.checked) {
@@ -913,7 +1083,6 @@
     }
   }
 
-  // 抓即時股價
   window.realRefresh = async () => {
     if (!holdings.length) {
       render();
@@ -966,7 +1135,6 @@
     }
   };
 
-  // 從雲端載入
   async function loadFromCloud() {
     if (!userId || !currentPassword) return;
     try {
@@ -991,66 +1159,92 @@
     }
   }
 
-  // 表單送出
+  // 表單提交（支援買入與賣出處理）
   form.addEventListener("submit", async e => {
     e.preventDefault();
+    const tradeType = document.getElementById("tradeType").value;
     const clientVal = document.getElementById("client").value.trim();
     const stockVal = document.getElementById("stockName").value.trim();
     const codeVal = document.getElementById("code").value.trim();
-    const qtyVal = document.getElementById("quantity").value;
-    const costVal = document.getElementById("cost").value;
+    const qtyVal = Number(document.getElementById("quantity").value);
+    const costVal = Number(document.getElementById("cost").value);
 
     if(!clientVal || !stockVal || !codeVal || !qtyVal || !costVal) {
       alert("請填寫必填項");
       return;
     }
 
-    const id = document.getElementById("editId").value;
+    if (tradeType === "sell") {
+      // 賣出 / 減倉邏輯
+      const existingIndex = holdings.findIndex(h => h.client === clientVal && h.code === codeVal);
+      if (existingIndex === -1) {
+        alert(`❌ 找不到客戶 [${clientVal}] 持有 [${stockVal}(${codeVal})] 的持倉記錄！`);
+        return;
+      }
 
-    const newItem = {
-      id: id || Date.now().toString(),
-      client: clientVal,
-      stockName: stockVal,
-      code: codeVal,
-      quantity: Number(qtyVal),
-      cost: Number(costVal),
-      stopLoss: document.getElementById("stopLoss").value,
-      takeProfit: document.getElementById("takeProfit").value,
-      recommendType: document.getElementById("recommendType").value,
-      currentPrice: Number(costVal)
-    };
+      const currentItem = holdings[existingIndex];
+      const currentQty = Number(currentItem.quantity) || 0;
 
-    if (id) {
-      const idx = holdings.findIndex(h => h.id === id);
-      if (idx > -1) {
-        newItem.currentPrice = holdings[idx].currentPrice ?? newItem.currentPrice;
-        holdings[idx] = newItem;
+      if (qtyVal > currentQty) {
+        alert(`❌ 賣出數量（${qtyVal}股）超過客戶目前持股數量（${currentQty}股）！`);
+        return;
+      }
+
+      if (qtyVal === currentQty) {
+        // 全部清倉，刪除持倉紀錄
+        holdings.splice(existingIndex, 1);
+        alert(`✅ 已清倉！客戶 [${clientVal}] 已全數賣出 [${stockVal}]。`);
+      } else {
+        // 部分減倉
+        holdings[existingIndex].quantity = currentQty - qtyVal;
+        alert(`✅ 已減倉！客戶 [${clientVal}] 剩餘 [${stockVal}] ${holdings[existingIndex].quantity} 股。`);
       }
     } else {
-      const existingIndex = holdings.findIndex(h => h.client === newItem.client && h.code === newItem.code);
+      // 買入 / 新增持倉邏輯
+      const id = document.getElementById("editId").value;
+      const newItem = {
+        id: id || Date.now().toString(),
+        client: clientVal,
+        stockName: stockVal,
+        code: codeVal,
+        quantity: qtyVal,
+        cost: costVal,
+        stopLoss: document.getElementById("stopLoss").value,
+        takeProfit: document.getElementById("takeProfit").value,
+        recommendType: document.getElementById("recommendType").value,
+        currentPrice: costVal
+      };
 
-      if (existingIndex > -1) {
-        const old = holdings[existingIndex];
-        const oldQty = Number(old.quantity) || 0;
-        const oldCost = Number(old.cost) || 0;
-        const addQty = Number(newItem.quantity) || 0;
-        const addCost = Number(newItem.cost) || 0;
-
-        const totalQty = oldQty + addQty;
-        const totalCostAmount = oldQty * oldCost + addQty * addCost;
-        const avgCost = totalQty > 0 ? totalCostAmount / totalQty : oldCost;
-
-        holdings[existingIndex] = {
-          ...old,
-          quantity: totalQty,
-          cost: Number(avgCost.toFixed(2)),
-          stopLoss: newItem.stopLoss || old.stopLoss,
-          takeProfit: newItem.takeProfit || old.takeProfit,
-          recommendType: newItem.recommendType || old.recommendType || 'no',
-          currentPrice: old.currentPrice ?? newItem.currentPrice
-        };
+      if (id) {
+        const idx = holdings.findIndex(h => h.id === id);
+        if (idx > -1) {
+          newItem.currentPrice = holdings[idx].currentPrice ?? newItem.currentPrice;
+          holdings[idx] = newItem;
+        }
       } else {
-        holdings.push(newItem);
+        const existingIndex = holdings.findIndex(h => h.client === newItem.client && h.code === newItem.code);
+
+        if (existingIndex > -1) {
+          const old = holdings[existingIndex];
+          const oldQty = Number(old.quantity) || 0;
+          const oldCost = Number(old.cost) || 0;
+
+          const totalQty = oldQty + qtyVal;
+          const totalCostAmount = oldQty * oldCost + qtyVal * costVal;
+          const avgCost = totalQty > 0 ? totalCostAmount / totalQty : oldCost;
+
+          holdings[existingIndex] = {
+            ...old,
+            quantity: totalQty,
+            cost: Number(avgCost.toFixed(2)),
+            stopLoss: newItem.stopLoss || old.stopLoss,
+            takeProfit: newItem.takeProfit || old.takeProfit,
+            recommendType: newItem.recommendType || old.recommendType || 'no',
+            currentPrice: old.currentPrice ?? newItem.currentPrice
+          };
+        } else {
+          holdings.push(newItem);
+        }
       }
     }
 
@@ -1063,7 +1257,6 @@
     }
   });
 
-  // 刪除 / 編輯
   window.delItem = async (id) => {
     if(!confirm("確定刪除？")) return;
     holdings = holdings.filter(h => h.id !== id);
@@ -1073,12 +1266,14 @@
   window.editItem = (id) => {
     const h = holdings.find(i => i.id === id);
     if(!h) return;
+    document.getElementById("tradeType").value = "buy";
+    toggleTradeType();
+    
     document.getElementById("editId").value = h.id;
     document.getElementById("client").value = h.client;
     document.getElementById("stockName").value = h.stockName;
     document.getElementById("code").value = h.code;
     
-    // 自動連動張數
     document.getElementById("quantity").value = h.quantity;
     document.getElementById("lots").value = h.quantity ? (h.quantity / 1000) : "";
 
@@ -1089,7 +1284,6 @@
     document.getElementById("submitBtn").innerText = "更新持倉";
   };
 
-  // 張數與股數雙向連動
   function syncQuantityFromLots() {
     const lotsVal = parseFloat(document.getElementById("lots").value);
     if (!isNaN(lotsVal)) {
@@ -1108,7 +1302,6 @@
     }
   }
 
-  // 儲存至本地與雲端
   async function save() {
     localStorage.setItem(DB_KEY, JSON.stringify(holdings));
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
@@ -1125,7 +1318,8 @@
     form.reset();
     document.getElementById("editId").value = "";
     document.getElementById("lots").value = "";
-    document.getElementById("submitBtn").innerText = "保存持倉";
+    document.getElementById("tradeType").value = "buy";
+    toggleTradeType();
   }
 
   function clearAllData() {
@@ -1139,7 +1333,6 @@
     }
   }
 
-  // 客戶檔案
   window.openProfile = (client) => {
     const p = profiles[client] || {};
     document.getElementById("p_clientName").value = client;
@@ -1178,7 +1371,6 @@
     await save();
   };
 
-  // AI 診斷
   async function callGeminiAI(clientData) {
     try {
       const response = await fetch(`${API_URL}/ai_diagnose`, {
@@ -1240,7 +1432,6 @@
     modalContent.innerHTML = `<div class="ai-box"><div class="ai-content">${aiResponse}</div></div>`;
   };
 
-  // 匯出 CSV
   window.exportCSV = () => {
     if(!holdings.length) {
       alert("無數據");
@@ -1265,7 +1456,6 @@
     if(e.target.className === "modal-overlay") e.target.style.display = "none";
   };
 
-  // 初始化登入狀態
   document.addEventListener("DOMContentLoaded", () => {
     if (userId && currentPassword) {
       document.getElementById("loginModal").style.display = "none";
