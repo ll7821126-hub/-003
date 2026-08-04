@@ -474,6 +474,27 @@
 </head>
 <body>
 
+<!-- 登入與權限驗證 Modal -->
+<div id="loginModal" class="modal-overlay" style="display:flex; z-index:9999;">
+  <div class="modal" style="width:380px; padding:28px;">
+    <div style="text-align:center; margin-bottom:20px;">
+      <h3 style="margin:0; font-size:20px; color:#111827;">🔑 系統帳號登入</h3>
+      <p style="margin:6px 0 0; font-size:13px; color:#6b7280;">請設定/輸入您的專屬帳號與密碼</p>
+    </div>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>帳號名稱</label>
+        <input type="text" id="loginAccount" placeholder="例如：chen888" required />
+      </div>
+      <div class="form-group">
+        <label>管理密碼</label>
+        <input type="password" id="loginPassword" placeholder="請輸入密碼" required />
+      </div>
+      <button type="submit" class="btn btn-save" style="margin-top:10px;">登入 / 載入持倉</button>
+    </form>
+  </div>
+</div>
+
 <div class="layout-container">
   <aside class="sidebar">
     <h2 style="font-size:20px;font-weight:800;margin-bottom:24px;color:#111827;">新增 / 修改持倉</h2>
@@ -546,11 +567,10 @@
       </div>
 
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-        <!-- 雲端同步帳號輸入區域 -->
-        <div style="display:flex;align-items:center;gap:6px;background:#f3f4f6;padding:4px 8px;border-radius:99px;border:1px solid #d1d5db;">
-          <span style="font-size:12px;color:#4b5563;font-weight:600;">☁️ 同步帳號:</span>
-          <input type="text" id="customUserIdInput" style="width:110px;padding:4px 8px;font-size:12px;border:1px solid #ccc;border-radius:6px;background:#fff;" placeholder="例如: chen888">
-          <button onclick="switchUserAccount()" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;border-radius:6px;background:#10b981;color:#fff;">綁定/載入</button>
+        <!-- 登入帳號顯示與退出按鈕 -->
+        <div style="display:flex;align-items:center;gap:8px;background:#f3f4f6;padding:4px 12px;border-radius:99px;border:1px solid #d1d5db;font-size:12px;">
+          <span id="userStatusDisplay" style="color:#374151;font-weight:600;">👤 未登入</span>
+          <button onclick="logout()" class="btn btn-ghost" style="padding:2px 8px;font-size:11px;border-radius:6px;background:#e5e7eb;color:#374151;">退出</button>
         </div>
 
         <span id="lastUpdate" style="font-size:12px;color:#6b7280;"></span>
@@ -647,12 +667,8 @@
   let profiles = {};
   let autoTimer = null;
 
-  // 1. 初始化用戶代碼 (可自訂跨電腦同步)
-  let userId = localStorage.getItem("app_user_id");
-  if (!userId) {
-    userId = "user_" + Math.random().toString(36).substr(2, 6);
-    localStorage.setItem("app_user_id", userId);
-  }
+  let userId = localStorage.getItem("app_user_id") || "";
+  let currentPassword = localStorage.getItem("app_user_password") || "";
 
   // 讀取本地快取
   try {
@@ -673,29 +689,77 @@
     return n > 0 ? "+" + s : s;
   };
 
-  // 綁定 / 切換雲端帳號
-  async function switchUserAccount() {
-    const newAccount = document.getElementById("customUserIdInput").value.trim();
-    if (!newAccount) {
-      alert("請輸入有效的同步帳號！");
-      return;
-    }
+  function updateUserDisplay() {
+    const el = document.getElementById("userStatusDisplay");
+    if (el) el.innerText = `👤 已登入: ${userId}`;
+  }
 
-    if (confirm(`確定要切換至帳號「${newAccount}」並載入該帳號的雲端持倉嗎？`)) {
-      userId = newAccount;
+  // 登入驗證處理
+  async function handleLogin(e) {
+    e.preventDefault();
+    const acc = document.getElementById("loginAccount").value.trim();
+    const pwd = document.getElementById("loginPassword").value.trim();
+
+    if (!acc || !pwd) return alert("請輸入帳號與密碼");
+
+    try {
+      const res = await fetch(`${API_URL}/get_data?customId=${encodeURIComponent(acc)}`);
+      const resData = await res.json();
+
+      if (resData.success && resData.data && resData.data.password) {
+        if (resData.data.password !== pwd) {
+          alert("❌ 密碼錯誤！無法載入該帳號資料。");
+          return;
+        }
+      }
+
+      userId = acc;
+      currentPassword = pwd;
       localStorage.setItem("app_user_id", userId);
-      alert(`已切換帳號為: ${userId}，正在載入雲端數據...`);
-      await loadFromCloud();
+      localStorage.setItem("app_user_password", currentPassword);
+
+      document.getElementById("loginModal").style.display = "none";
+      updateUserDisplay();
+
+      if (resData.success && resData.data && resData.data.holdings) {
+        holdings = resData.data.holdings;
+        profiles = resData.data.profiles || {};
+        localStorage.setItem(DB_KEY, JSON.stringify(holdings));
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+      }
+
+      render();
+      realRefresh();
+    } catch (err) {
+      console.error("登入失敗", err);
+      alert("連線失敗，請檢查網路狀況");
+    }
+  }
+
+  function logout() {
+    if (confirm("確定要退出登入嗎？")) {
+      localStorage.removeItem("app_user_id");
+      localStorage.removeItem("app_user_password");
+      userId = "";
+      currentPassword = "";
+      holdings = [];
+      profiles = {};
+      render();
+      document.getElementById("loginModal").style.display = "flex";
     }
   }
 
   // 雲端儲存
   async function apiSaveData(data) {
+    if (!userId) return;
     try {
       await fetch(`${API_URL}/save_data`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        body: JSON.stringify({
+          ...data,
+          password: currentPassword
+        })
       });
     } catch (err) {
       console.error('同步雲端失敗', err);
@@ -904,6 +968,7 @@
 
   // 從雲端載入
   async function loadFromCloud() {
+    if (!userId || !currentPassword) return;
     try {
       const res = await fetch(`${API_URL}/get_data?customId=${encodeURIComponent(userId)}`);
       if (!res.ok) {
@@ -914,7 +979,9 @@
 
       if (resData.success && resData.data && resData.data.holdings) {
         holdings = resData.data.holdings;
+        profiles = resData.data.profiles || {};
         localStorage.setItem(DB_KEY, JSON.stringify(holdings));
+        localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
       }
       render();
       realRefresh();
@@ -1049,7 +1116,8 @@
 
     await apiSaveData({
       customId: userId,
-      holdings: holdings
+      holdings: holdings,
+      profiles: profiles
     });
   }
 
@@ -1107,7 +1175,7 @@
 
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
     document.getElementById("profileModal").style.display = "none";
-    render();
+    await save();
   };
 
   // AI 診斷
@@ -1197,14 +1265,16 @@
     if(e.target.className === "modal-overlay") e.target.style.display = "none";
   };
 
-  // 初始化時將帳號帶入右上角
+  // 初始化登入狀態
   document.addEventListener("DOMContentLoaded", () => {
-    const userInp = document.getElementById("customUserIdInput");
-    if (userInp) userInp.value = userId;
+    if (userId && currentPassword) {
+      document.getElementById("loginModal").style.display = "none";
+      updateUserDisplay();
+      loadFromCloud();
+    } else {
+      document.getElementById("loginModal").style.display = "flex";
+    }
   });
-
-  // 啟動載入
-  loadFromCloud();
 </script>
 </body>
 </html>
