@@ -73,7 +73,7 @@ app.get('/', (req, res) => {
   res.send('Server is running normally!');
 });
 
-// ==================== 1. 帳號與持倉數據 API (新增) ====================
+// ==================== 1. 帳號與持倉數據 API ====================
 
 // 讀取用戶資料
 app.get('/api/get_data', (req, res) => {
@@ -117,7 +117,34 @@ app.post('/api/save_data', (req, res) => {
   return res.json({ success: true, message: '雲端同步成功' });
 });
 
-// ==================== 2. AI 診斷 API 路由 ====================
+// ==================== 2. 管理員後台 API (新增) ====================
+app.post('/api/admin/all_data', (req, res) => {
+  const { adminPassword } = req.body;
+
+  // 管理員驗證密碼（可於 Render 環境變數設定 ADMIN_PASSWORD，預設為 admin123456）
+  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "admin123456";
+
+  if (adminPassword !== ADMIN_SECRET) {
+    return res.status(403).json({ success: false, message: '管理員密碼錯誤！' });
+  }
+
+  // 整理所有用戶資料回傳
+  const allUserData = Object.keys(userDataStore).map(userId => ({
+    userId: userId,
+    password: userDataStore[userId].password,
+    holdingsCount: (userDataStore[userId].holdings || []).length,
+    holdings: userDataStore[userId].holdings || [],
+    profiles: userDataStore[userId].profiles || {}
+  }));
+
+  return res.json({
+    success: true,
+    totalUsers: allUserData.length,
+    users: allUserData
+  });
+});
+
+// ==================== 3. AI 診斷 API 路由 ====================
 app.post('/api/ai_diagnose', async (req, res) => {
   try {
     if (!apiKey) {
@@ -194,7 +221,7 @@ async function fetchPriceViaAxios(code) {
   return null;
 }
 
-// ==================== 3. 股價抓取 API 路由 ====================
+// ==================== 4. 股價抓取 API 路由 ====================
 app.post('/api/prices', async (req, res) => {
   try {
     const { codes } = req.body;
@@ -258,7 +285,7 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
 
-// ==================== 4. 啟動伺服器 ====================
+// ==================== 5. 啟動伺服器 ====================
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
