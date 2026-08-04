@@ -208,6 +208,23 @@
           </span>`;
         }
 
+        // 計算該客戶的總持倉成本與總收益百分點
+        let totalClientCost = 0;
+        let totalClientMarketValue = 0;
+        clientHoldings.forEach(h => {
+          const curPrice = priceMap[h.code] || h.cost || 0;
+          const qty = Number(h.quantity) || 0;
+          const cost = Number(h.cost) || 0;
+          totalClientCost += cost * qty;
+          totalClientMarketValue += curPrice * qty;
+        });
+        const totalClientPnl = totalClientMarketValue - totalClientCost;
+        const totalClientPnlRate = totalClientCost > 0 ? (totalClientPnl / totalClientCost) * 100 : 0;
+        
+        let totalPnlClass = "pnl-zero";
+        if (totalClientPnl > 0) totalPnlClass = "pnl-pos";
+        else if (totalClientPnl < 0) totalPnlClass = "pnl-neg";
+
         let tableRows = "";
         clientHoldings.forEach(h => {
           const curPrice = priceMap[h.code] || h.cost || 0;
@@ -243,6 +260,10 @@
             <div class="client-title">
               <span>👤 客戶：${clientName}</span>
               ${profileBadge}
+              <span style="font-size:12px;font-weight:normal;color:#4b5563;margin-left:auto;">
+                總持倉成本: <strong>NT$ ${fmtMoney(totalClientCost)}</strong> ｜ 
+                總預估盈虧: <span class="${totalPnlClass}">NT$ ${fmtMoney(totalClientPnl)} (${totalClientPnlRate >= 0 ? '+' : ''}${totalClientPnlRate.toFixed(2)}%)</span>
+              </span>
             </div>
             <table>
               <thead>
