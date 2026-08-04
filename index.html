@@ -82,7 +82,7 @@
       gap:12px;
       flex-wrap:wrap;
     }
-    .search-wrapper{position:relative;width:320px;margin-left:20px}
+    .search-wrapper{position:relative;width:240px;margin-left:12px}
     .search-input{
       width:100%;
       padding:8px 16px 8px 36px;
@@ -442,15 +442,6 @@
       margin-bottom:16px;
       box-shadow:0 2px 8px rgba(0,0,0,.03);
     }
-    .ai-header{
-      display:flex;
-      align-items:center;
-      margin-bottom:12px;
-      font-weight:700;
-      font-size:16px;
-      color:#111827;
-      gap:8px;
-    }
     .ai-content{
       font-size:14px;
       color:#374151;
@@ -458,17 +449,6 @@
       text-align:justify;
       white-space: pre-line;
     }
-    .ai-tag{
-      display:inline-block;
-      padding:2px 8px;
-      border-radius:4px;
-      font-size:12px;
-      margin-right:6px;
-      font-weight:600;
-    }
-    .tag-bull{background:#fee2e2;color:#b91c1c}
-    .tag-bear{background:#d1fae5;color:#065f46}
-    .tag-neu{background:#f3f4f6;color:#4b5563}
 
     .ai-loading {
       text-align: center;
@@ -512,7 +492,7 @@
         <input id="code" placeholder="例如：2330" required />
       </div>
       
-      <!-- 修改處：張數與股數連動輸入，買入價格支援小數點後兩位 -->
+      <!-- 張數與股數連動輸入 -->
       <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
           <label>持股張數 (張)</label>
@@ -558,18 +538,25 @@
   <main class="main-content">
     <header class="top-bar">
       <div class="page-title">
-        持倉概覽 · 實時報價
+        持倉概覽
         <div class="search-wrapper">
           <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" class="search-input" placeholder="按股票名稱 / 代碼篩選...">
+          <input type="text" id="searchInput" class="search-input" placeholder="篩選股票/代碼...">
         </div>
       </div>
 
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <!-- 雲端同步帳號輸入區域 -->
+        <div style="display:flex;align-items:center;gap:6px;background:#f3f4f6;padding:4px 8px;border-radius:99px;border:1px solid #d1d5db;">
+          <span style="font-size:12px;color:#4b5563;font-weight:600;">☁️ 同步帳號:</span>
+          <input type="text" id="customUserIdInput" style="width:110px;padding:4px 8px;font-size:12px;border:1px solid #ccc;border-radius:6px;background:#fff;" placeholder="例如: chen888">
+          <button onclick="switchUserAccount()" class="btn btn-ghost" style="padding:4px 10px;font-size:12px;border-radius:6px;background:#10b981;color:#fff;">綁定/載入</button>
+        </div>
+
         <span id="lastUpdate" style="font-size:12px;color:#6b7280;"></span>
         <label class="switch-label">
           <input type="checkbox" id="autoRefreshCheck" onchange="toggleAutoRefresh()">
-          <span>自動刷新 (10秒)</span>
+          <span>自動刷新 (10s)</span>
         </label>
         <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="realRefresh()">🔄 刷新行情</button>
         <button class="btn btn-ghost btn-sm" onclick="exportCSV()">📥 導出</button>
@@ -637,14 +624,13 @@
       <div class="profile-item full"><label>備註 (選填)</label><textarea id="p_note" rows="3" placeholder="例如：風險承受能力、職業、收入穩定性等"></textarea></div>
     </div>
     <div class="profile-footer">
-      <div class="profile-tip">客戶檔案信息會同步至雲端，後台也可查看</div>
+      <div class="profile-tip">客戶檔案信息會同步至雲端</div>
       <button class="btn-profile-save" onclick="saveProfile()">保存檔案</button>
     </div>
   </div>
 </div>
 
 <script>
-  // 後端 API base URL
   const API_URL = "https://003-v2.onrender.com/api";
 
   const DB_KEY = "korea_stock_v13_sync";
@@ -661,14 +647,14 @@
   let profiles = {};
   let autoTimer = null;
 
-  // 建立 / 讀取本機 userId
+  // 1. 初始化用戶代碼 (可自訂跨電腦同步)
   let userId = localStorage.getItem("app_user_id");
   if (!userId) {
-    userId = "user_" + Date.now() + "_" + Math.random().toString(36).substr(2, 9);
+    userId = "user_" + Math.random().toString(36).substr(2, 6);
     localStorage.setItem("app_user_id", userId);
   }
 
-  // 從 localStorage 初始化
+  // 讀取本地快取
   try {
     holdings = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
     profiles = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
@@ -687,11 +673,23 @@
     return n > 0 ? "+" + s : s;
   };
 
-  function getProfileForClient(name) {
-    return profiles[name] || null;
+  // 綁定 / 切換雲端帳號
+  async function switchUserAccount() {
+    const newAccount = document.getElementById("customUserIdInput").value.trim();
+    if (!newAccount) {
+      alert("請輸入有效的同步帳號！");
+      return;
+    }
+
+    if (confirm(`確定要切換至帳號「${newAccount}」並載入該帳號的雲端持倉嗎？`)) {
+      userId = newAccount;
+      localStorage.setItem("app_user_id", userId);
+      alert(`已切換帳號為: ${userId}，正在載入雲端數據...`);
+      await loadFromCloud();
+    }
   }
 
-  // ---- 雲端 API：新增 / 更新 / 刪除 ----
+  // 雲端儲存
   async function apiSaveData(data) {
     try {
       await fetch(`${API_URL}/save_data`, {
@@ -704,14 +702,14 @@
     }
   }
 
-  // ---- 搜尋 ----
+  // 搜尋過濾
   let filterText = "";
   searchInput.addEventListener('input', (e) => {
     filterText = e.target.value.trim().toLowerCase();
     render();
   });
 
-  // ---- 主畫面渲染 ----
+  // 主畫面渲染
   function render() {
     const groups = {};
     let hasData = false;
@@ -726,10 +724,7 @@
 
       if (!groups[client]) groups[client] = { items: [], cost:0, val:0, qty:0, count:0 };
 
-      // 嚴格轉型與 fallback
-      const cur = (h.currentPrice !== null && h.currentPrice !== undefined)
-        ? Number(h.currentPrice)
-        : Number(h.cost);
+      const cur = (h.currentPrice !== null && h.currentPrice !== undefined) ? Number(h.currentPrice) : Number(h.cost);
       const qty = Number(h.quantity) || 0;
       const cost = Number(h.cost) || 0;
 
@@ -748,7 +743,7 @@
     }
     emptyTip.style.display = "none";
 
-    // ---- 客戶卡片 ----
+    // 客戶卡片
     cardsContainer.innerHTML = "";
     Object.keys(groups).sort().forEach(client => {
       const g = groups[client];
@@ -791,7 +786,7 @@
       cardsContainer.appendChild(card);
     });
 
-    // ---- 詳細表格 ----
+    // 表格
     tableBody.innerHTML = "";
     Object.keys(groups).sort().forEach(client => {
       const g = groups[client];
@@ -843,7 +838,7 @@
     });
   }
 
-  // ---- 自動刷新 ----
+  // 自動刷新
   function toggleAutoRefresh() {
     const checkbox = document.getElementById('autoRefreshCheck');
     if(checkbox.checked) {
@@ -854,7 +849,7 @@
     }
   }
 
-  // ==== 抓價：呼叫後端 /api/prices ====
+  // 抓即時股價
   window.realRefresh = async () => {
     if (!holdings.length) {
       render();
@@ -866,11 +861,7 @@
     refreshBtn.disabled = true;
 
     try {
-      const codes = [...new Set(
-        holdings
-          .map(h => String(h.code || '').trim())
-          .filter(Boolean)
-      )];
+      const codes = [...new Set(holdings.map(h => String(h.code || '').trim()).filter(Boolean))];
 
       if (!codes.length) {
         refreshBtn.innerText = originalText;
@@ -911,7 +902,7 @@
     }
   };
 
-  // ---- 從雲端載入初始資料 ----
+  // 從雲端載入
   async function loadFromCloud() {
     try {
       const res = await fetch(`${API_URL}/get_data?customId=${encodeURIComponent(userId)}`);
@@ -926,14 +917,14 @@
         localStorage.setItem(DB_KEY, JSON.stringify(holdings));
       }
       render();
-      realRefresh(); // 初始化載入後自動刷新一次最新股價
+      realRefresh();
     } catch (err) {
       console.error('載入雲端資料異常', err);
       render();
     }
   }
 
-  // ---- 表單提交：新增 / 加倉 / 編輯 ----
+  // 表單送出
   form.addEventListener("submit", async e => {
     e.preventDefault();
     const clientVal = document.getElementById("client").value.trim();
@@ -969,13 +960,10 @@
         holdings[idx] = newItem;
       }
     } else {
-      const existingIndex = holdings.findIndex(
-        h => h.client === newItem.client && h.code === newItem.code
-      );
+      const existingIndex = holdings.findIndex(h => h.client === newItem.client && h.code === newItem.code);
 
       if (existingIndex > -1) {
         const old = holdings[existingIndex];
-
         const oldQty = Number(old.quantity) || 0;
         const oldCost = Number(old.cost) || 0;
         const addQty = Number(newItem.quantity) || 0;
@@ -1008,7 +996,7 @@
     }
   });
 
-  // ---- 刪除 / 編輯 ----
+  // 刪除 / 編輯
   window.delItem = async (id) => {
     if(!confirm("確定刪除？")) return;
     holdings = holdings.filter(h => h.id !== id);
@@ -1023,7 +1011,7 @@
     document.getElementById("stockName").value = h.stockName;
     document.getElementById("code").value = h.code;
     
-    // 帶入股數並自動算出張數
+    // 自動連動張數
     document.getElementById("quantity").value = h.quantity;
     document.getElementById("lots").value = h.quantity ? (h.quantity / 1000) : "";
 
@@ -1034,7 +1022,7 @@
     document.getElementById("submitBtn").innerText = "更新持倉";
   };
 
-  // ---- 張數與股數雙向自動連動 ----
+  // 張數與股數雙向連動
   function syncQuantityFromLots() {
     const lotsVal = parseFloat(document.getElementById("lots").value);
     if (!isNaN(lotsVal)) {
@@ -1053,13 +1041,12 @@
     }
   }
 
-  // ---- 儲存到 localStorage 並同步至雲端 ----
+  // 儲存至本地與雲端
   async function save() {
     localStorage.setItem(DB_KEY, JSON.stringify(holdings));
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
     render();
 
-    // 同步到 DB
     await apiSaveData({
       customId: userId,
       holdings: holdings
@@ -1084,7 +1071,7 @@
     }
   }
 
-  // ---- 客戶檔案 ----
+  // 客戶檔案
   window.openProfile = (client) => {
     const p = profiles[client] || {};
     document.getElementById("p_clientName").value = client;
@@ -1108,7 +1095,7 @@
       return;
     }
 
-    const profileData = {
+    profiles[name] = {
       gender: document.getElementById("p_gender").value,
       age: document.getElementById("p_age").value,
       experience: document.getElementById("p_experience").value,
@@ -1118,14 +1105,12 @@
       note: document.getElementById("p_note").value
     };
 
-    profiles[name] = profileData;
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
-
     document.getElementById("profileModal").style.display = "none";
     render();
   };
 
-  // ---- AI 實時分析 (呼叫後端 API /api/ai_diagnose) ----
+  // AI 診斷
   async function callGeminiAI(clientData) {
     try {
       const response = await fetch(`${API_URL}/ai_diagnose`, {
@@ -1135,18 +1120,16 @@
       });
       
       if (!response.ok) throw new Error('Backend API Error');
-      
       const data = await response.json();
       if (!data.success) throw new Error(data.diagnosis || '解析失敗');
 
       return data.diagnosis;
     } catch (error) {
       console.error('AI Request Error:', error);
-      return `AI 診斷暫時無法使用，請檢查後端連線或金鑰配置。`;
+      return `AI 診斷暫時無法使用，請檢查後端連線。`;
     }
   }
 
-  // 單一個股分析
   window.aiAnalyzeStock = async (id) => {
     const h = holdings.find(i => i.id === id);
     if (!h) return;
@@ -1161,15 +1144,10 @@
     `;
     document.getElementById("aiModal").style.display = "flex";
 
-    const aiResponse = await callGeminiAI({
-      targetStock: h,
-      type: "single_stock_analysis"
-    });
-
+    const aiResponse = await callGeminiAI({ targetStock: h, type: "single_stock_analysis" });
     modalContent.innerHTML = `<div class="ai-box"><div class="ai-content">${aiResponse}</div></div>`;
   };
 
-  // 投資組合分析
   window.aiAnalyzePortfolio = async (client) => {
     const items = holdings.filter(h => h.client === client);
     if(!items.length) return;
@@ -1194,7 +1172,7 @@
     modalContent.innerHTML = `<div class="ai-box"><div class="ai-content">${aiResponse}</div></div>`;
   };
 
-  // ---- 匯出 CSV ----
+  // 匯出 CSV
   window.exportCSV = () => {
     if(!holdings.length) {
       alert("無數據");
@@ -1215,12 +1193,17 @@
     a.click();
   };
 
-  // 點擊空白區關閉 modal
   window.onclick = (e) => {
     if(e.target.className === "modal-overlay") e.target.style.display = "none";
   };
 
-  // ---- 初始化 ----
+  // 初始化時將帳號帶入右上角
+  document.addEventListener("DOMContentLoaded", () => {
+    const userInp = document.getElementById("customUserIdInput");
+    if (userInp) userInp.value = userId;
+  });
+
+  // 啟動載入
   loadFromCloud();
 </script>
 </body>
