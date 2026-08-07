@@ -989,29 +989,31 @@
         const pnlTextClass = itemPnl >= 0 ? "color-up" : "color-down";
         const isRec = item.recommendType === 'yes';
 
-        const tr = document.createElement("tr");
-        if(isRec) tr.className = "is-recommend";
-        tr.innerHTML = `
-          <td class="t-left">
-            ${isRec ? '<span class="tag-recommend">推薦</span>' : ''}
-            <a href="https://statementdog.com/analysis/tse/${item.code}" target="_blank" class="stock-link">${item.stockName}</a>
-          </td>
-          <td>${item.code}</td>
-          <td>${fmtMoney(item.quantity)}</td>
-          <td>${fmtMoney(item.cost)}</td>
-          <td style="font-size:12px;color:#9ca3af;">${item.stopLoss ? '損:'+item.stopLoss : '-'} / ${item.takeProfit ? '盈:'+item.takeProfit : '-'}</td>
-          <td style="font-weight:600">${fmtMoney(item.cur)}</td>
-          <td>${fmtMoney(val)}</td>
-          <td class="${pnlTextClass}">${fmtMoney(itemPnl)}</td>
-          <td><span class="${itemClass}">${fmtPct(itemRate)}</span></td>
-          <td style="padding-right:24px;">
-            <div class="action-group">
-              <button class="icon-btn" onclick="aiAnalyzeStock('${item.id}')" title="AI解析">🤖</button>
-              <button class="icon-btn" onclick="editItem('${item.id}')" title="編輯">✏️</button>
-              <button class="icon-btn del" onclick="delItem('${item.id}')" title="刪除">🗑️</button>
-            </div>
-          </td>
-        `;
+const cleanCode = item.code.toString().replace(/[^0-9]/g, '');
+
+const tr = document.createElement("tr");
+if(isRec) tr.className = "is-recommend";
+tr.innerHTML = `
+  <td class="t-left">
+    ${isRec ? '<span class="tag-recommend">推薦</span>' : ''}
+    <a href="https://statementdog.com/analysis/tse/${cleanCode}" target="_blank" class="stock-link">${item.stockName}</a>
+  </td>
+  <td>${item.code}</td>
+  <td>${fmtMoney(item.quantity)}</td>
+  <td>${fmtMoney(item.cost)}</td>
+  <td style="font-size:12px;color:#9ca3af;">${item.stopLoss ? '損:'+item.stopLoss : '-'} / ${item.takeProfit ? '盈:'+item.takeProfit : '-'}</td>
+  <td style="font-weight:600">${fmtMoney(item.cur)}</td>
+  <td>${fmtMoney(val)}</td>
+  <td class="${pnlTextClass}">${fmtMoney(itemPnl)}</td>
+  <td><span class="${itemClass}">${fmtPct(itemRate)}</span></td>
+  <td style="padding-right:24px;">
+    <div class="action-group">
+      <button class="icon-btn" onclick="aiAnalyzeStock('${item.id}')" title="AI解析">🤖</button>
+      <button class="icon-btn" onclick="editItem('${item.id}')" title="編輯">✏️</button>
+      <button class="icon-btn del" onclick="delItem('${item.id}')" title="刪除">🗑️</button>
+    </div>
+  </td>
+`;
         tableBody.appendChild(tr);
       });
     });
