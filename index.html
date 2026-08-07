@@ -989,14 +989,20 @@
         const pnlTextClass = itemPnl >= 0 ? "color-up" : "color-down";
         const isRec = item.recommendType === 'yes';
 
-const cleanCode = item.code.toString().replace(/[^0-9]/g, '');
+const rawCode = item.code || item.stockCode || item.symbol || '';
+const cleanCode = String(rawCode).replace(/[^0-9]/g, '');
+
+// 2. 如果成功拿到數字代碼，拼接財報狗網址；否則不跳轉或跳轉到搜尋頁
+const stockUrl = cleanCode 
+  ? `https://statementdog.com/analysis/tse/${cleanCode}` 
+  : `https://statementdog.com/analysis/tse`;
 
 const tr = document.createElement("tr");
 if(isRec) tr.className = "is-recommend";
 tr.innerHTML = `
   <td class="t-left">
     ${isRec ? '<span class="tag-recommend">推薦</span>' : ''}
-    <a href="https://statementdog.com/analysis/tse/${cleanCode}" target="_blank" class="stock-link">${item.stockName}</a>
+    <a href="${stockUrl}" target="_blank" class="stock-link">${item.stockName}</a>
   </td>
   <td>${item.code}</td>
   <td>${fmtMoney(item.quantity)}</td>
