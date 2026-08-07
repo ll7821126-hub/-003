@@ -997,12 +997,14 @@ const stockUrl = cleanCode
   ? `https://statementdog.com/analysis/tse/${cleanCode}` 
   : `https://statementdog.com/analysis/tse`;
 
+const cleanCode = item.code ? String(item.code).replace(/[^0-9]/g, '') : '';
+
 const tr = document.createElement("tr");
 if(isRec) tr.className = "is-recommend";
 tr.innerHTML = `
   <td class="t-left">
     ${isRec ? '<span class="tag-recommend">推薦</span>' : ''}
-    <a href="${stockUrl}" target="_blank" class="stock-link">${item.stockName}</a>
+    <a href="https://statementdog.com/analysis/tse/${cleanCode}" target="_blank" class="stock-link">${item.stockName}</a>
   </td>
   <td>${item.code}</td>
   <td>${fmtMoney(item.quantity)}</td>
