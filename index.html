@@ -991,8 +991,10 @@
 
 const rawCode = item.code || item.stockCode || item.symbol || '';
     const cleanCode = String(rawCode).replace(/[^0-9]/g, '');
+
+    // 移除多餘的 /tse/，直接拼接股票代碼
     const stockUrl = cleanCode 
-      ? `https://statementdog.com/analysis/tse/${cleanCode}` 
+      ? `https://statementdog.com/analysis/${cleanCode}` 
       : '#';
 
     const tr = document.createElement("tr");
