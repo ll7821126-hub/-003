@@ -990,38 +990,34 @@
         const isRec = item.recommendType === 'yes';
 
 const rawCode = item.code || item.stockCode || item.symbol || '';
-const cleanCode = String(rawCode).replace(/[^0-9]/g, '');
+    const cleanCode = String(rawCode).replace(/[^0-9]/g, '');
+    const stockUrl = cleanCode 
+      ? `https://statementdog.com/analysis/tse/${cleanCode}` 
+      : '#';
 
-// 2. 如果成功拿到數字代碼，拼接財報狗網址；否則不跳轉或跳轉到搜尋頁
-const stockUrl = cleanCode 
-  ? `https://statementdog.com/analysis/tse/${cleanCode}` 
-  : `https://statementdog.com/analysis/tse`;
-
-const cleanCode = item.code ? String(item.code).replace(/[^0-9]/g, '') : '';
-
-const tr = document.createElement("tr");
-if(isRec) tr.className = "is-recommend";
-tr.innerHTML = `
-  <td class="t-left">
-    ${isRec ? '<span class="tag-recommend">推薦</span>' : ''}
-    <a href="https://statementdog.com/analysis/tse/${cleanCode}" target="_blank" class="stock-link">${item.stockName}</a>
-  </td>
-  <td>${item.code}</td>
-  <td>${fmtMoney(item.quantity)}</td>
-  <td>${fmtMoney(item.cost)}</td>
-  <td style="font-size:12px;color:#9ca3af;">${item.stopLoss ? '損:'+item.stopLoss : '-'} / ${item.takeProfit ? '盈:'+item.takeProfit : '-'}</td>
-  <td style="font-weight:600">${fmtMoney(item.cur)}</td>
-  <td>${fmtMoney(val)}</td>
-  <td class="${pnlTextClass}">${fmtMoney(itemPnl)}</td>
-  <td><span class="${itemClass}">${fmtPct(itemRate)}</span></td>
-  <td style="padding-right:24px;">
-    <div class="action-group">
-      <button class="icon-btn" onclick="aiAnalyzeStock('${item.id}')" title="AI解析">🤖</button>
-      <button class="icon-btn" onclick="editItem('${item.id}')" title="編輯">✏️</button>
-      <button class="icon-btn del" onclick="delItem('${item.id}')" title="刪除">🗑️</button>
-    </div>
-  </td>
-`;
+    const tr = document.createElement("tr");
+    if(isRec) tr.className = "is-recommend";
+    tr.innerHTML = `
+      <td class="t-left">
+        ${isRec ? '<span class="tag-recommend">推薦</span>' : ''}
+        <a href="${stockUrl}" target="_blank" class="stock-link">${item.stockName}</a>
+      </td>
+      <td>${item.code}</td>
+      <td>${fmtMoney(item.quantity)}</td>
+      <td>${fmtMoney(item.cost)}</td>
+      <td style="font-size:12px;color:#9ca3af;">${item.stopLoss ? '損:'+item.stopLoss : '-'} / ${item.takeProfit ? '盈:'+item.takeProfit : '-'}</td>
+      <td style="font-weight:600">${fmtMoney(item.cur)}</td>
+      <td>${fmtMoney(val)}</td>
+      <td class="${pnlTextClass}">${fmtMoney(itemPnl)}</td>
+      <td><span class="${itemClass}">${fmtPct(itemRate)}</span></td>
+      <td style="padding-right:24px;">
+        <div class="action-group">
+          <button class="icon-btn" onclick="aiAnalyzeStock('${item.id}')" title="AI解析">🤖</button>
+          <button class="icon-btn" onclick="editItem('${item.id}')" title="編輯">✏️</button>
+          <button class="icon-btn del" onclick="delItem('${item.id}')" title="刪除">🗑️</button>
+        </div>
+      </td>
+    `;
         tableBody.appendChild(tr);
       });
     });
