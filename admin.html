@@ -21,6 +21,8 @@
     .btn-primary:hover { background: #059669; }
     .btn-secondary { background: #e5e7eb; color: #374151; }
     .btn-secondary:hover { background: #d1d5db; }
+    .btn-danger { background: #ef4444; color: #fff; }
+    .btn-danger:hover { background: #dc2626; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
     .login-box { background: #fff; padding: 30px; border-radius: 16px; width: 360px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
     input[type="password"] { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; margin-top: 6px; margin-bottom: 16px; box-sizing: border-box; }
@@ -238,10 +240,14 @@
           if (pnl > 0) pnlClass = "pnl-pos";
           else if (pnl < 0) pnlClass = "pnl-neg";
 
+          // 清理代碼並產生正確的財報狗網址 (不含 /tse/)
+          const cleanCode = h.code ? String(h.code).replace(/[^0-9]/g, '') : '';
+          const stockUrl = cleanCode ? `https://statementdog.com/analysis/${cleanCode}` : '#';
+
           tableRows += `
             <tr>
               <td>
-                <a href="https://statementdog.com/analysis/${h.code}" target="_blank" class="stock-link">
+                <a href="${stockUrl}" target="_blank" class="stock-link">
                   ${h.stockName} (${h.code})
                 </a>
               </td>
@@ -292,7 +298,10 @@
             <span class="tag" style="margin-left:8px;">密碼: ${user.password || '無'}</span>
             <span class="tag" style="background:#fef3c7;color:#92400e;margin-left:4px;">顯示筆數: ${user.holdings.length}</span>
           </div>
-          <button class="btn btn-secondary" onclick="toggleDetail('detail-${index}')">查看詳細內容</button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary" onclick="toggleDetail('detail-${index}')">查看詳細內容</button>
+            <button class="btn btn-danger" onclick="deleteAccount('${user.userId}')">刪除帳號</button>
+          </div>
         </div>
 
         <div id="detail-${index}" class="detail-section" style="display: ${displayStyle}">
@@ -302,6 +311,37 @@
 
       container.appendChild(card);
     });
+  }
+
+  async function deleteAccount(userId) {
+    if (!confirm(`⚠️ 警告：確定要刪除帳號「${userId}」及其所有持倉資料嗎？此操作無法復原！`)) {
+      return;
+    }
+
+    try {
+      // 呼叫後端 API 刪除用戶
+      const res = await fetch(`${API_URL}/admin/delete_user`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminPassword: currentAdminPwd,
+          userId: userId
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        alert(`帳號「${userId}」已成功刪除！`);
+        // 本地過濾並重新渲染
+        globalUsersData = globalUsersData.filter(u => u.userId !== userId);
+        renderUsers(globalUsersData);
+      } else {
+        alert('刪除失敗：' + (data.message || '請確認後端是否支援該操作'));
+      }
+    } catch (err) {
+      console.error(err);
+      alert('請求失敗，請檢查網路連線或 Server 狀態');
+    }
   }
 
   function toggleDetail(id) {
