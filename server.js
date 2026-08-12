@@ -125,6 +125,8 @@ app.post('/api/save_data', async (req, res) => {
 });
 
 // ==================== 2. 管理員後台 API (MongoDB 版) ====================
+
+// 讀取所有用戶數據
 app.post('/api/admin/all_data', async (req, res) => {
   const { adminPassword } = req.body;
   const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "Qq112233.";
@@ -149,6 +151,34 @@ app.post('/api/admin/all_data', async (req, res) => {
       users: allUserData
     });
   } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 刪除用戶帳號 API
+app.post('/api/admin/delete_user', async (req, res) => {
+  const { adminPassword, userId } = req.body;
+  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "Qq112233.";
+
+  if (adminPassword !== ADMIN_SECRET) {
+    return res.status(403).json({ success: false, message: '管理員密碼錯誤！' });
+  }
+
+  if (!userId) {
+    return res.status(400).json({ success: false, message: '缺少要刪除的帳號 ID (userId)' });
+  }
+
+  try {
+    const deletedUser = await User.findOneAndDelete({ customId: userId });
+    
+    if (!deletedUser) {
+      return res.status(404).json({ success: false, message: '找不到該帳號，可能已被刪除' });
+    }
+
+    console.log(`[Admin] 帳號已成功從 MongoDB 刪除: ${userId}`);
+    return res.json({ success: true, message: `帳號 ${userId} 已成功刪除` });
+  } catch (err) {
+    console.error("刪除帳號失敗:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
