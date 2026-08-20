@@ -68,6 +68,46 @@ async function callGeminiApi(prompt) {
 // 全局根目錄健康檢查
 app.get('/', (req, res) => res.send('Server is running normally!'));
 
+// ==================== 全台股清單與搜尋 API ====================
+let allTaiwanStocks = [];
+
+// 伺服器啟動時抓取全台股清單（上市 + 上櫃）
+async function loadAllTaiwanStocks() {
+  try {
+    const twseRes = await axios.get('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', { timeout: 8000 });
+    const twseList = (twseRes.data || []).map(item => ({
+      code: String(item.Code).trim(),
+      name: String(item.Name).trim()
+    }));
+
+    const tpexRes = await axios.get('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes', { timeout: 8000 });
+    const tpexList = (tpexRes.data || []).map(item => ({
+      code: String(item.SecuritiesCompanyCode || item.Code).trim(),
+      name: String(item.CompanyName || item.Name).trim()
+    }));
+
+    allTaiwanStocks = [...twseList, ...tpexList].filter(s => s.code && s.name && !s.code.startsWith('00'));
+    console.log(`✅ 已成功載入全台股數據庫，共 ${allTaiwanStocks.length} 檔標的`);
+  } catch (err) {
+    console.warn("⚠️ 台股清單初始化失敗，使用基礎備用清單:", err.message);
+  }
+}
+loadAllTaiwanStocks();
+
+// 前端即時搜尋 API
+app.get('/api/search_stocks', (req, res) => {
+  const q = (req.query.q || '').trim().toLowerCase();
+  if (!q) return res.json({ success: true, list: [] });
+
+  const cleanQ = q.replace(/臺/g, '台');
+  const matched = allTaiwanStocks.filter(s => 
+    s.code.includes(cleanQ) || 
+    s.name.toLowerCase().replace(/臺/g, '台').includes(cleanQ)
+  ).slice(0, 15);
+
+  return res.json({ success: true, list: matched });
+});
+
 // ==================== 1. 帳號與持倉數據 API (MongoDB 版) ====================
 
 // 讀取用戶資料
