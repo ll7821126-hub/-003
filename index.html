@@ -109,7 +109,6 @@
       color:#9ca3af;
     }
 
-    /* === 優化：橫向單行平滑滾動卡片列 === */
     .cards-wrapper {
       position: relative;
       flex-shrink: 0;
@@ -153,7 +152,7 @@
       padding: 12px 14px;
       border: 1.5px solid #e2e8f0;
       transition: .2s;
-      flex: 0 0 240px; /* 固定寬度，橫向排列 */
+      flex: 0 0 240px;
       display: flex;
       flex-direction: column;
       cursor: pointer;
@@ -737,10 +736,6 @@
   const DB_KEY = "korea_stock_v13_sync";
   const PROFILE_KEY = "korea_profile_v13_sync";
 
-  const COMMON_STOCKS = [
-    { code: "1101", name: "台泥" }, { code: "1102", name: "亞泥" }, { code: "1216", name: "統一" }, { code: "1301", name: "台塑" }, { code: "1303", name: "南亞" }, { code: "1326", name: "台化" }, { code: "1402", name: "遠東新" }, { code: "1444", name: "東華" }, { code: "1447", name: "力鵬" }, { code: "2002", name: "中鋼" }, { code: "2301", name: "光寶科" }, { code: "2303", name: "聯電" }, { code: "2308", name: "台達電" }, { code: "2317", name: "鴻海" }, { code: "2330", name: "台積電" }, { code: "2356", name: "英業達" }, { code: "2357", name: "華碩" }, { code: "2376", name: "技嘉" }, { code: "2379", name: "瑞昱" }, { code: "2382", name: "廣達" }, { code: "2412", name: "中華電" }, { code: "2454", name: "聯發科" }, { code: "2603", name: "長榮" }, { code: "2609", name: "陽明" }, { code: "2615", name: "萬海" }, { code: "2881", name: "富邦金" }, { code: "2882", name: "國泰金" }, { code: "2884", name: "玉山金" }, { code: "2886", name: "兆豐金" }, { code: "2891", name: "中信金" }, { code: "2892", name: "第一金" }, { code: "3008", name: "大立光" }, { code: "3034", name: "聯詠" }, { code: "3037", name: "欣興" }, { code: "3231", name: "緯創" }, { code: "3236", name: "千如" }, { code: "3532", name: "台勝科" }, { code: "5274", name: "信華" }, { code: "5351", name: "鈺創" }, { code: "6269", name: "台郡" }, { code: "6505", name: "台塑化" }, { code: "6669", name: "緯穎" }, { code: "6770", name: "力積電" }, { code: "8069", name: "元太" }
-  ];
-
   const form = document.getElementById("holdForm");
   const tableBody = document.getElementById("tableBody");
   const cardsContainer = document.getElementById("clientCards");
@@ -752,7 +747,7 @@
   let profiles = {};
   let autoTimer = null;
   let searchDebounce = null;
-  let selectedClient = null; // 用於選取單個客戶篩選
+  let selectedClient = null;
 
   let userId = localStorage.getItem("app_user_id") || "";
   let currentPassword = localStorage.getItem("app_user_password") || "";
@@ -784,51 +779,35 @@
     if (el) el.innerText = `👤 已登入: ${userId}`;
   }
 
+  // 自動調用後端即時全台股 API 進行精準搜尋
   function handleStockInput(type) {
     const nameInput = document.getElementById("stockName");
     const codeInput = document.getElementById("code");
-    const nameSug = document.getElementById("nameSuggestions");
-    const codeSug = document.getElementById("codeSuggestions");
-
     const query = (type === 'name' ? nameInput.value : codeInput.value).trim();
+
     if (!query) {
-      nameSug.style.display = "none";
-      codeSug.style.display = "none";
+      document.getElementById("nameSuggestions").style.display = "none";
+      document.getElementById("codeSuggestions").style.display = "none";
       return;
     }
-
-    const cleanQ = query.toLowerCase().replace(/臺/g, '台');
-    const matches = COMMON_STOCKS.filter(s => 
-      s.name.toLowerCase().replace(/臺/g, '台').includes(cleanQ) || 
-      s.code.includes(cleanQ)
-    );
-
-    showSuggestions(type, matches);
 
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(async () => {
       try {
-        const res = await fetch(`https://query1-api.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=6&country=Taiwan`);
+        const res = await fetch(`${API_URL}/search_stocks?q=${encodeURIComponent(query)}`);
         const data = await res.json();
-        if (data && data.quotes) {
-          const apiMatches = data.quotes
-            .filter(q => q.symbol && (q.symbol.endsWith('.TW') || q.symbol.endsWith('.TWO')))
-            .map(q => ({
-              code: q.symbol.replace(/\.(TW|TWO)$/, ''),
-              name: q.shortname || q.longname || q.symbol
-            }));
-          
-          const combined = [...matches, ...apiMatches];
-          const unique = Array.from(new Map(combined.map(item => [item.code, item])).values());
-          showSuggestions(type, unique);
+        if (data && data.success) {
+          showSuggestions(type, data.list);
         }
-      } catch (err) {}
-    }, 300);
+      } catch (err) {
+        console.error("搜尋股票失敗:", err);
+      }
+    }, 200);
   }
 
   function showSuggestions(type, items) {
     const container = type === 'name' ? document.getElementById("nameSuggestions") : document.getElementById("codeSuggestions");
-    if (!items.length) {
+    if (!items || !items.length) {
       container.style.display = "none";
       return;
     }
@@ -939,14 +918,14 @@
 
   searchInput.addEventListener('input', (e) => {
     filterText = e.target.value.trim().toLowerCase();
-    selectedClient = null; // 搜尋時重設單選
+    selectedClient = null;
     render();
   });
   let filterText = "";
 
   function selectClientFilter(client) {
     if (selectedClient === client) {
-      selectedClient = null; // 再次點擊取消篩選
+      selectedClient = null;
     } else {
       selectedClient = client;
     }
@@ -1038,7 +1017,7 @@
     tableBody.innerHTML = "";
     Object.keys(groups).sort().forEach(client => {
       const g = groups[client];
-      if (!g.items.length) return; // 被單選篩選時若無項目則略過
+      if (!g.items.length) return;
 
       const pnl = g.val - g.cost;
       const rate = g.cost ? (pnl/g.cost)*100 : 0;
@@ -1057,7 +1036,6 @@
         const pnlTextClass = itemPnl >= 0 ? "color-up" : "color-down";
         const isRec = item.recommendType === 'yes';
 
-        // 提取純數字代碼並組裝財報狗直連網址
         const cleanCode = item.code ? String(item.code).replace(/[^0-9]/g, '') : '';
         const stockUrl = cleanCode ? `https://statementdog.com/analysis/${cleanCode}` : '#';
 
