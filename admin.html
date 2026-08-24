@@ -2,370 +2,321 @@
 <html lang="zh-TW">
 <head>
   <meta charset="utf-8" />
-  <title>系統管理員後台 - 客戶持倉總控</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio OS · 管理中心</title>
   <style>
-    body { font-family: 'Inter', sans-serif; background: #f3f4f6; margin: 0; padding: 20px; color: #1f2937; }
-    .container { max-width: 1280px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 20px 30px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    .search-bar-box { background: #fff; padding: 16px 24px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 24px; display: flex; gap: 12px; align-items: center; }
-    .search-input { flex: 1; padding: 10px 14px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 15px; outline: none; margin: 0; }
-    .search-input:focus { border-color: #10b981; box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
-    .card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
-    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e5e7eb; font-size: 14px; }
-    th { background: #f9fafb; font-weight: 600; color: #4b5563; }
-    .btn { cursor: pointer; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; transition: .2s; }
-    .btn-primary { background: #10b981; color: #fff; }
-    .btn-primary:hover { background: #059669; }
-    .btn-secondary { background: #e5e7eb; color: #374151; }
-    .btn-secondary:hover { background: #d1d5db; }
-    .btn-danger { background: #ef4444; color: #fff; }
-    .btn-danger:hover { background: #dc2626; }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-    .login-box { background: #fff; padding: 30px; border-radius: 16px; width: 360px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); }
-    input[type="password"] { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; margin-top: 6px; margin-bottom: 16px; box-sizing: border-box; }
-    .tag { font-size: 12px; padding: 3px 8px; border-radius: 99px; background: #dbeafe; color: #1e40af; font-weight: 600; }
-    .detail-section { background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 12px; display: none; }
-    .client-group { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px; margin-top: 12px; }
-    .client-title { font-weight: 700; color: #111827; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
-    .pnl-pos { color: #dc2626; font-weight: 600; }
-    .pnl-neg { color: #16a34a; font-weight: 600; }
-    .pnl-zero { color: #4b5563; }
-    .stock-link { text-decoration: none; color: #2563eb; font-weight: 600; }
-    .stock-link:hover { text-decoration: underline; }
+    :root{
+      --ink:#172033;--muted:#758094;--line:#dfe5ec;--soft:#f4f7f9;--paper:#fff;
+      --navy:#101a2d;--navy-2:#18243a;--teal:#0d8f86;--teal-dark:#08736d;
+      --up:#c23c48;--down:#14877c;--amber:#c58624;--shadow:0 12px 34px rgba(24,38,61,.08)
+    }
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;color:var(--ink);background:#eef2f5}
+    button,input{font:inherit}button{cursor:pointer}.app{min-width:1180px;min-height:100vh}
+    .topbar{height:76px;background:linear-gradient(115deg,#0d1729,#17243b);color:#fff;display:flex;align-items:center;padding:0 34px;box-shadow:0 8px 24px rgba(13,23,41,.18);position:sticky;top:0;z-index:30}
+    .brand{display:flex;align-items:center;gap:13px;min-width:330px}.brand-mark{width:36px;height:36px;border:1px solid rgba(255,255,255,.22);border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(22,180,166,.22),rgba(255,255,255,.04));font-weight:900;color:#55d8cb}.brand strong{display:block;font-size:15px;letter-spacing:.08em}.brand span{display:block;font-size:10px;color:#9cabc0;letter-spacing:.13em;margin-top:2px}
+    .top-status{margin-left:auto;display:flex;align-items:center;gap:18px}.sync{font-size:11px;color:#9dabc0;text-align:right}.sync strong{display:block;color:#e9f0f7;font-size:12px;margin-bottom:2px}.online-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ed0a9;margin-right:6px;box-shadow:0 0 0 4px rgba(62,208,169,.12)}
+    .btn{border:1px solid transparent;border-radius:9px;height:36px;padding:0 14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.18s}.btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--teal);color:#fff;box-shadow:0 7px 16px rgba(13,143,134,.22)}.btn-primary:hover{background:var(--teal-dark)}.btn-light{background:#fff;color:#344054;border-color:#d7dee7}.btn-ghost{color:#d4deeb;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.13)}.btn-danger{color:#b52e3c;background:#fff3f4;border-color:#f2cbd0}.btn-small{height:30px;padding:0 10px;font-size:11px}
+    main{padding:24px 30px 30px;max-width:1920px;margin:0 auto}.eyebrow{font-size:10px;letter-spacing:.14em;color:var(--teal);font-weight:800;text-transform:uppercase}.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}.page-head h1{font-size:23px;margin:4px 0 1px;letter-spacing:-.04em}.page-head p{margin:0;color:var(--muted);font-size:12px}
+    .kpis{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-bottom:16px}.kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 5px 18px rgba(20,34,55,.04);min-height:83px}.kpi span{color:#7c8798;font-size:10px;letter-spacing:.06em}.kpi strong{display:block;font-size:19px;margin-top:8px;letter-spacing:-.03em}.kpi small{font-size:10px;color:#98a2b3;margin-left:5px;font-weight:500}
+    .toolbar{height:62px;background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;padding:0 12px;margin-bottom:14px;box-shadow:0 5px 18px rgba(20,34,55,.04)}.tabs{display:flex;gap:4px}.tab{height:36px;border:0;background:transparent;color:#667085;padding:0 15px;border-radius:8px;font-size:12px;font-weight:700}.tab.active{background:#e8f6f4;color:#08756e}.search-wrap{margin-left:18px;width:400px;position:relative}.search-wrap:before{content:"⌕";position:absolute;left:12px;top:7px;color:#8b96a8;font-size:18px}.search-wrap input{width:100%;height:38px;border:1px solid #d8e0e8;border-radius:9px;padding:0 13px 0 36px;background:#f8fafb;color:#263247;outline:none;font-size:12px}.search-wrap input:focus{border-color:#4bb8b0;box-shadow:0 0 0 3px rgba(13,143,134,.09);background:#fff}.toolbar-actions{display:flex;gap:8px;margin-left:auto}
+    .client-workspace{display:grid;grid-template-columns:385px minmax(0,1fr);height:calc(100vh - 298px);min-height:570px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}.directory{border-right:1px solid var(--line);background:#f8fafb;min-height:0;display:flex;flex-direction:column}.account-scope{display:none;margin:10px 10px 0;padding:11px 12px;border-radius:10px;background:linear-gradient(135deg,#10243a,#17344a);color:#fff;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 8px 18px rgba(16,36,58,.13)}.account-scope.show{display:flex}.account-scope span{display:block;color:#8fb2c4;font-size:9px;letter-spacing:.08em}.account-scope strong{display:block;font-size:12px;margin:2px 0}.account-scope small{display:block;color:#b9ccda;font-size:9px}.scope-clear{height:28px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;padding:0 9px;font-size:9px;font-weight:700}.directory-head{padding:15px 16px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.directory-head strong{font-size:12px}.directory-head span{font-size:10px;color:#8b95a4}.directory-list{overflow:auto;padding:9px;scrollbar-width:thin}.client-item{width:100%;border:1px solid transparent;background:transparent;text-align:left;border-radius:10px;padding:12px;margin-bottom:5px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;color:inherit}.client-item:hover{background:#fff;border-color:#e2e7ec}.client-item.active{background:#fff;border-color:#9bd3ce;box-shadow:0 7px 17px rgba(26,56,78,.07)}.client-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.client-account{font-size:10px;color:#8893a3;margin-top:3px}.client-mini{text-align:right;font-size:10px;color:#768194}.client-mini strong{display:block;font-size:11px;margin-bottom:3px}.gain{color:var(--up)!important}.loss{color:var(--down)!important}.neutral{color:#667085!important}
+    .detail{overflow:auto;min-width:0;background:#fff}.detail-empty{height:100%;display:grid;place-items:center;text-align:center;color:#8d97a7}.detail-empty strong{display:block;color:#475467;font-size:14px;margin-bottom:5px}.detail-inner{padding:20px 22px 28px}.detail-head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:1px solid var(--line)}.identity{display:flex;gap:12px;align-items:center}.avatar{width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#15314a,#0d8f86);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:900}.identity h2{font-size:19px;margin:0 0 4px}.identity p{margin:0;color:#7a8595;font-size:11px}.client-chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:20px;background:#edf7f6;color:#08766f;font-size:10px;font-weight:700;margin-left:7px}.detail-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:15px 0}.detail-kpi{border:1px solid #e2e7ed;background:#fafcfd;border-radius:9px;padding:10px 11px}.detail-kpi span{font-size:9px;color:#8490a1}.detail-kpi strong{display:block;font-size:14px;margin-top:4px}
+    .section{margin-top:18px}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.section-title h3{font-size:12px;margin:0;display:flex;gap:7px;align-items:center}.section-title h3:before{content:"";width:3px;height:13px;border-radius:3px;background:var(--teal)}.section-title span{font-size:10px;color:#8b95a3}.profile{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.profile-box{border:1px solid #e2e7ed;border-radius:8px;padding:9px 10px;min-height:54px}.profile-box span{font-size:9px;color:#8a95a5;display:block;margin-bottom:4px}.profile-box strong{font-size:11px;font-weight:650}.profile-box.wide{grid-column:span 2}.profile-box.note{grid-column:1/-1;min-height:58px;background:#fafcfd}
+    .table-shell{border:1px solid #dfe5eb;border-radius:9px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:10.5px;min-width:850px}th{position:sticky;top:0;z-index:2;text-align:left;background:#f2f5f7;color:#667085;font-size:9.5px;padding:8px 9px;border-bottom:1px solid #dce3e9;white-space:nowrap}td{padding:9px;border-bottom:1px solid #e8ecf0;white-space:nowrap;vertical-align:top}tr:last-child td{border-bottom:0}.num{text-align:right}.stock{font-weight:800}.stock small{display:block;color:#8b95a4;font-weight:500;margin-top:2px}.stock a{color:#172033;text-decoration:none}.stock a:hover{color:var(--teal)}.tag{display:inline-flex;border-radius:20px;padding:3px 7px;background:#edf2f6;color:#617084;font-size:9px;font-weight:700}.risk-tag{color:#a96f16;background:#fff6e5}.empty-row{text-align:center;color:#98a2b3;padding:22px}
+    .accounts-view{display:none}.account-grid{display:grid;grid-template-columns:repeat(2,minmax(480px,1fr));gap:12px}.account-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 17px;box-shadow:0 5px 18px rgba(20,34,55,.04)}.account-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.account-head h3{font-size:14px;margin:0 0 4px}.account-head p{font-size:10px;color:#8792a2;margin:0}.account-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:13px}.account-stat{background:#f6f8fa;border-radius:8px;padding:8px}.account-stat span{font-size:9px;color:#8c96a6}.account-stat strong{font-size:11px;display:block;margin-top:3px}.account-client-preview{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:11px;min-height:25px}.account-client-preview>span:first-child{font-size:9px;color:#8b95a4;margin-right:2px}.account-client-chip{display:inline-flex;height:23px;align-items:center;padding:0 8px;border-radius:20px;background:#eef7f6;color:#08756e;font-size:9px;font-weight:700}.account-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #edf0f3;margin-top:11px;padding-top:11px}.password{font-family:Consolas,monospace;font-size:10px;color:#778294}.password code{background:#f1f4f6;border-radius:5px;padding:4px 7px;color:#526071}.account-actions{display:flex;gap:6px}
+    .overlay{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#203d4f 0,#111a2b 52%,#0b1322 100%);z-index:100;display:flex;align-items:center;justify-content:center}.login-card{width:390px;background:#fff;border-radius:16px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.34)}.login-mark{width:46px;height:46px;border-radius:12px;background:linear-gradient(145deg,#132c46,#0d8f86);color:#fff;display:grid;place-items:center;font-weight:900;margin-bottom:20px}.login-card h2{font-size:22px;margin:0 0 6px}.login-card p{font-size:12px;color:#7a8494;margin:0 0 22px}.login-card label{font-size:10px;color:#677386;font-weight:700;display:block;margin-bottom:7px}.login-card input{width:100%;height:43px;border:1px solid #d4dce5;border-radius:9px;padding:0 12px;outline:none;margin-bottom:12px}.login-card input:focus{border-color:#35a99f;box-shadow:0 0 0 3px rgba(13,143,134,.1)}.login-card .btn{width:100%;height:43px}.login-error{font-size:10px;color:#b52e3c;min-height:17px;margin-top:8px}
+    .toast{position:fixed;right:24px;bottom:22px;z-index:120;background:#172236;color:#fff;border-radius:10px;padding:11px 15px;font-size:11px;box-shadow:0 12px 30px rgba(15,25,42,.24);opacity:0;transform:translateY(12px);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:translateY(0)}
+    @media(max-width:1400px){main{padding-left:20px;padding-right:20px}.client-workspace{grid-template-columns:330px minmax(0,1fr)}.profile{grid-template-columns:repeat(3,1fr)}.account-grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
-
-<!-- 管理員登入彈窗 -->
-<div id="loginModal" class="modal-overlay">
-  <div class="login-box">
-    <h2 style="margin-top:0;text-align:center;">🛡️ 管理員後台登入</h2>
-    <form onsubmit="handleAdminLogin(event)">
-      <label style="font-size:13px;color:#4b5563;">管理員金鑰 / 密碼</label>
-      <input type="password" id="adminPwdInput" placeholder="請輸入管理員密碼" required />
-      <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;">驗證登入</button>
-    </form>
-  </div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">OS</div><div><strong>PORTFOLIO OS</strong><span>ADMINISTRATION CONSOLE</span></div></div>
+    <div class="top-status"><div class="sync"><strong><span class="online-dot"></span>管理端已連線</strong><span id="lastSync">尚未同步資料</span></div><button class="btn btn-ghost" onclick="showLogin()">切換管理員</button></div>
+  </header>
+  <main>
+    <div class="page-head"><div><div class="eyebrow">Client Intelligence</div><h1>客戶與資產管理中心</h1><p>按客戶直接檢視完整檔案、持倉、損益與交易紀錄。</p></div><div id="statusText" style="font-size:11px;color:#7d8898;">等待載入資料</div></div>
+    <section class="kpis">
+      <div class="kpi"><span>註冊帳號</span><strong id="kpiAccounts">0 <small>個</small></strong></div>
+      <div class="kpi"><span>登記客戶</span><strong id="kpiClients">0 <small>位</small></strong></div>
+      <div class="kpi"><span>持倉筆數</span><strong id="kpiHoldings">0 <small>筆</small></strong></div>
+      <div class="kpi"><span>總市值</span><strong id="kpiValue">NT$ 0</strong></div>
+      <div class="kpi"><span>預估總損益</span><strong id="kpiPnl">NT$ 0</strong></div>
+    </section>
+    <div class="toolbar">
+      <div class="tabs"><button id="clientsTab" class="tab active" onclick="setView('clients')">客戶目錄</button><button id="accountsTab" class="tab" onclick="setView('accounts')">帳號管理</button></div>
+      <div class="search-wrap"><input id="searchInput" placeholder="搜尋客戶姓名、帳號、股票或代碼" oninput="applySearch()" /></div>
+      <div class="toolbar-actions"><button class="btn btn-light" onclick="exportCSV()">匯出客戶 CSV</button><button id="refreshBtn" class="btn btn-primary" onclick="loadAdminData()">更新資料與行情</button></div>
+    </div>
+    <section id="clientsView" class="client-workspace">
+      <aside class="directory"><div id="accountScope" class="account-scope"><div><span>目前業務員／帳號</span><strong id="accountScopeName">—</strong><small id="accountScopeCount">0 位客戶</small></div><button class="scope-clear" onclick="clearAccountFilter()">顯示全部</button></div><div class="directory-head"><strong id="directoryTitle">全部客戶</strong><span id="directoryCount">0 位</span></div><div id="clientList" class="directory-list"></div></aside>
+      <div id="clientDetail" class="detail"><div class="detail-empty"><div><strong>選擇一位客戶</strong>即可查看完整資料與持倉紀錄</div></div></div>
+    </section>
+    <section id="accountsView" class="accounts-view"><div id="accountGrid" class="account-grid"></div></section>
+  </main>
 </div>
 
-<div class="container">
-  <div class="header">
-    <div>
-      <h2 style="margin:0;">📊 全系統數據總控後台</h2>
-      <span id="userCount" style="font-size:14px;color:#6b7280;">請先完成管理員驗證</span>
-    </div>
-    <div>
-      <button class="btn btn-secondary" onclick="loadAdminData()">🔄 重新整理 / 更新股價</button>
-      <button class="btn btn-primary" onclick="exportAllCSV()">📥 匯出全系統 CSV</button>
-    </div>
-  </div>
-
-  <!-- 全局關鍵字與股票搜索框 -->
-  <div class="search-bar-box">
-    <span style="font-weight:600;color:#374151;">🔍 快速搜尋：</span>
-    <input type="text" id="searchInput" class="search-input" placeholder="輸入股票名稱、代碼 (如 2330)、客戶姓名、或帳號 ID..." oninput="filterData()" />
-  </div>
-
-  <div id="usersList"></div>
+<div id="loginModal" class="overlay">
+  <form class="login-card" onsubmit="handleAdminLogin(event)">
+    <div class="login-mark">OS</div><h2>管理員登入</h2><p>進入客戶資料與資產管理控制台</p>
+    <label for="adminPwdInput">管理員密碼</label><input type="password" id="adminPwdInput" autocomplete="current-password" placeholder="請輸入管理員密碼" required />
+    <button id="loginBtn" class="btn btn-primary" type="submit">安全登入</button><div id="loginError" class="login-error"></div>
+  </form>
 </div>
+<div id="toast" class="toast"></div>
 
 <script>
   const API_URL = "https://003-v2.onrender.com/api";
   let currentAdminPwd = "";
-  let globalUsersData = [];
+  let users = [];
+  let clients = [];
+  let filteredClients = [];
   let priceMap = {};
+  let activeView = "clients";
+  let selectedClientKey = "";
+  let activeAccountFilter = "";
 
-  function fmtMoney(num) {
-    if (num === null || num === undefined || isNaN(num)) return "-";
-    return Number(num).toLocaleString('zh-TW', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const money = value => Number(value || 0).toLocaleString("zh-TW", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pct = value => `${Number(value || 0) >= 0 ? "+" : ""}${Number(value || 0).toFixed(2)}%`;
+  const esc = value => String(value ?? "").replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
+  const pnlClass = value => Number(value) > 0 ? "gain" : Number(value) < 0 ? "loss" : "neutral";
+  const currentPrice = holding => Number(priceMap[String(holding.code || "").trim()] ?? holding.currentPrice ?? holding.cost ?? 0);
+  const keyFor = (account, client) => `${account}::${client}`;
+  const urlToken = value => encodeURIComponent(String(value)).replaceAll("'", "%27");
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message; toast.classList.add("show");
+    clearTimeout(showToast.timer); showToast.timer = setTimeout(() => toast.classList.remove("show"), 2400);
   }
 
-  async function handleAdminLogin(e) {
-    e.preventDefault();
-    const pwd = document.getElementById("adminPwdInput").value.trim();
-    if (!pwd) return;
-
-    currentAdminPwd = pwd;
-    const success = await loadAdminData();
-    if (success) {
-      document.getElementById("loginModal").style.display = "none";
-    }
+  function showLogin() {
+    document.getElementById("loginModal").style.display = "flex";
+    document.getElementById("adminPwdInput").focus();
   }
 
-  async function fetchRealTimePrices(codes) {
-    if (!codes || codes.length === 0) return;
+  async function handleAdminLogin(event) {
+    event.preventDefault();
+    currentAdminPwd = document.getElementById("adminPwdInput").value.trim();
+    if (!currentAdminPwd) return;
+    const button = document.getElementById("loginBtn");
+    button.disabled = true; button.textContent = "驗證中...";
+    const success = await loadAdminData(true);
+    button.disabled = false; button.textContent = "安全登入";
+    if (success) document.getElementById("loginModal").style.display = "none";
+  }
+
+  async function fetchPrices(codes) {
+    if (!codes.length) return;
     try {
-      const res = await fetch(`${API_URL}/prices`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codes: codes })
-      });
-      const data = await res.json();
-      if (data.success && data.prices) {
-        priceMap = data.prices;
-      }
-    } catch (e) {
-      console.warn("無法抓取最新股價:", e);
-    }
+      const response = await fetch(`${API_URL}/prices`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ codes }) });
+      const data = await response.json();
+      if (data.success && data.prices) priceMap = data.prices;
+    } catch (error) { console.warn("行情讀取失敗", error); }
   }
 
-  async function loadAdminData() {
+  async function loadAdminData(fromLogin = false) {
+    if (!currentAdminPwd) { showLogin(); return false; }
+    const refresh = document.getElementById("refreshBtn");
+    refresh.disabled = true; refresh.textContent = "同步中...";
+    document.getElementById("statusText").textContent = "正在讀取帳號與客戶資料";
     try {
-      const res = await fetch(`${API_URL}/admin/all_data`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminPassword: currentAdminPwd })
-      });
-
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        alert(data.message || "管理員密碼錯誤！");
-        return false;
-      }
-
-      globalUsersData = data.users;
-
-      const allCodes = new Set();
-      globalUsersData.forEach(u => {
-        (u.holdings || []).forEach(h => {
-          if (h.code) allCodes.add(String(h.code).trim());
-        });
-      });
-
-      if (allCodes.size > 0) {
-        document.getElementById("userCount").innerText = `當前系統共 ${data.totalUsers} 位用戶，正在更新實時股價...`;
-        await fetchRealTimePrices(Array.from(allCodes));
-      }
-
-      document.getElementById("userCount").innerText = `當前系統共有 ${data.totalUsers} 位用戶註冊/使用中 (實時股價已更新)`;
-      renderUsers(globalUsersData);
+      const response = await fetch(`${API_URL}/admin/all_data`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ adminPassword:currentAdminPwd }) });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "管理員密碼錯誤");
+      users = Array.isArray(data.users) ? data.users : [];
+      const codes = [...new Set(users.flatMap(user => (user.holdings || []).map(item => String(item.code || "").trim()).filter(Boolean)))];
+      await fetchPrices(codes);
+      clients = buildClientDirectory(users);
+      updateKpis();
+      applySearch();
+      const time = new Date().toLocaleString("zh-TW");
+      document.getElementById("lastSync").textContent = `最後同步 ${time}`;
+      document.getElementById("statusText").textContent = `${users.length} 個帳號 · ${clients.length} 位客戶 · 行情已更新`;
+      if (!fromLogin) showToast("客戶資料與行情已更新");
+      document.getElementById("loginError").textContent = "";
       return true;
-    } catch (err) {
-      alert("連線失敗，請檢查 Render 後端服務狀態");
+    } catch (error) {
+      document.getElementById("loginError").textContent = error.message || "連線失敗，請檢查後端服務";
+      if (!fromLogin) showToast(error.message || "資料讀取失敗");
       return false;
+    } finally {
+      refresh.disabled = false; refresh.textContent = "更新資料與行情";
     }
   }
 
-  function filterData() {
-    const keyword = document.getElementById("searchInput").value.toLowerCase().trim();
-    if (!keyword) {
-      renderUsers(globalUsersData);
-      return;
-    }
-
-    const filtered = globalUsersData.map(user => {
-      const userMatch = user.userId.toLowerCase().includes(keyword);
-      const filteredHoldings = (user.holdings || []).filter(h => 
-        (h.client && h.client.toLowerCase().includes(keyword)) ||
-        (h.stockName && h.stockName.toLowerCase().includes(keyword)) ||
-        (h.code && String(h.code).toLowerCase().includes(keyword))
-      );
-
-      if (userMatch || filteredHoldings.length > 0) {
-        return {
-          ...user,
-          holdings: userMatch ? user.holdings : filteredHoldings
-        };
-      }
-      return null;
-    }).filter(Boolean);
-
-    renderUsers(filtered, true);
-  }
-
-  function renderUsers(users, isSearching = false) {
-    const container = document.getElementById("usersList");
-    if (!users || users.length === 0) {
-      container.innerHTML = `<div class="card" style="text-align:center;color:#9ca3af;">未找到符合條件的持倉或客戶資料</div>`;
-      return;
-    }
-
-    container.innerHTML = "";
-    users.forEach((user, index) => {
-      const card = document.createElement("div");
-      card.className = "card";
-
-      // 依據「客戶名稱」對持倉進行歸類分組
-      const groupedHoldings = {};
-      (user.holdings || []).forEach(h => {
-        const clientName = h.client || '未分類客戶';
-        if (!groupedHoldings[clientName]) {
-          groupedHoldings[clientName] = [];
-        }
-        groupedHoldings[clientName].push(h);
+  function buildClientDirectory(allUsers) {
+    const result = [];
+    allUsers.forEach(user => {
+      const names = new Set([
+        ...Object.keys(user.profiles || {}),
+        ...(user.holdings || []).map(item => item.client || "未命名客戶"),
+        ...(user.transactions || []).map(item => item.client).filter(Boolean)
+      ]);
+      names.forEach(name => {
+        const holdings = (user.holdings || []).filter(item => (item.client || "未命名客戶") === name);
+        const transactions = (user.transactions || []).filter(item => item.client === name).sort((a,b) => String(b.date || "").localeCompare(String(a.date || "")));
+        const totals = holdings.reduce((acc, item) => {
+          const quantity = Number(item.quantity) || 0, cost = Number(item.cost) || 0, price = currentPrice(item);
+          acc.cost += quantity * cost; acc.value += quantity * price; return acc;
+        }, { cost:0, value:0 });
+        result.push({ key:keyFor(user.userId, name), userId:user.userId, name, profile:(user.profiles || {})[name] || {}, holdings, transactions, cost:totals.cost, value:totals.value, pnl:totals.value - totals.cost, realized:transactions.reduce((sum, tx) => sum + (Number(tx.realizedPnl) || 0), 0) });
       });
-
-      let clientGroupsHTML = "";
-      Object.keys(groupedHoldings).forEach(clientName => {
-        const clientHoldings = groupedHoldings[clientName];
-        const profile = (user.profiles && user.profiles[clientName]) || {};
-
-        let profileBadge = "";
-        if (profile.gender || profile.age || profile.experience || profile.style || profile.note) {
-          profileBadge = `<span style="font-size:12px;font-weight:normal;color:#6b7280;margin-left:8px;">
-            (${profile.gender || '性別未填'} | ${profile.age ? profile.age+'歲' : '年齡未填'} | 股齡:${profile.experience || '未填'} | 風格:${profile.style || '未填'})
-          </span>`;
-        }
-
-        // 計算該客戶的總持倉成本與總收益百分點
-        let totalClientCost = 0;
-        let totalClientMarketValue = 0;
-        clientHoldings.forEach(h => {
-          const curPrice = priceMap[h.code] || h.cost || 0;
-          const qty = Number(h.quantity) || 0;
-          const cost = Number(h.cost) || 0;
-          totalClientCost += cost * qty;
-          totalClientMarketValue += curPrice * qty;
-        });
-        const totalClientPnl = totalClientMarketValue - totalClientCost;
-        const totalClientPnlRate = totalClientCost > 0 ? (totalClientPnl / totalClientCost) * 100 : 0;
-        
-        let totalPnlClass = "pnl-zero";
-        if (totalClientPnl > 0) totalPnlClass = "pnl-pos";
-        else if (totalClientPnl < 0) totalPnlClass = "pnl-neg";
-
-        let tableRows = "";
-        clientHoldings.forEach(h => {
-          const curPrice = priceMap[h.code] || h.cost || 0;
-          const qty = Number(h.quantity) || 0;
-          const cost = Number(h.cost) || 0;
-          const totalValue = curPrice * qty;
-          const pnl = (curPrice - cost) * qty;
-          const pnlRate = cost > 0 ? ((curPrice - cost) / cost) * 100 : 0;
-
-          let pnlClass = "pnl-zero";
-          if (pnl > 0) pnlClass = "pnl-pos";
-          else if (pnl < 0) pnlClass = "pnl-neg";
-
-          // 清理代碼並產生正確的財報狗網址 (不含 /tse/)
-          const cleanCode = h.code ? String(h.code).replace(/[^0-9]/g, '') : '';
-          const stockUrl = cleanCode ? `https://statementdog.com/analysis/${cleanCode}` : '#';
-
-          tableRows += `
-            <tr>
-              <td>
-                <a href="${stockUrl}" target="_blank" class="stock-link">
-                  ${h.stockName} (${h.code})
-                </a>
-              </td>
-              <td>${fmtMoney(qty)} 股</td>
-              <td>NT$ ${fmtMoney(cost)}</td>
-              <td style="font-weight:600;color:#2563eb;">NT$ ${fmtMoney(curPrice)}</td>
-              <td>NT$ ${fmtMoney(totalValue)}</td>
-              <td class="${pnlClass}">NT$ ${fmtMoney(pnl)} (${pnlRate >= 0 ? '+' : ''}${pnlRate.toFixed(2)}%)</td>
-              <td style="font-size:12px;color:#9ca3af;">${h.stopLoss || '-'} / ${h.takeProfit || '-'}</td>
-            </tr>
-          `;
-        });
-
-        clientGroupsHTML += `
-          <div class="client-group">
-            <div class="client-title">
-              <span>👤 客戶：${clientName}</span>
-              ${profileBadge}
-              <span style="font-size:12px;font-weight:normal;color:#4b5563;margin-left:auto;">
-                總持倉成本: <strong>NT$ ${fmtMoney(totalClientCost)}</strong> ｜ 
-                總預估盈虧: <span class="${totalPnlClass}">NT$ ${fmtMoney(totalClientPnl)} (${totalClientPnlRate >= 0 ? '+' : ''}${totalClientPnlRate.toFixed(2)}%)</span>
-              </span>
-            </div>
-            <table>
-              <thead>
-                <tr>
-                  <th>股票名稱 (代碼)</th>
-                  <th>持股數量</th>
-                  <th>買入成本</th>
-                  <th>當前現價</th>
-                  <th>即時市值</th>
-                  <th>預估盈虧</th>
-                  <th>止損 / 止盈</th>
-                </tr>
-              </thead>
-              <tbody>${tableRows}</tbody>
-            </table>
-          </div>
-        `;
-      });
-
-      const displayStyle = isSearching ? 'block' : 'none';
-
-      card.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <h3 style="margin:0;display:inline-block;">👤 帳號自訂ID: ${user.userId}</h3>
-            <span class="tag" style="margin-left:8px;">密碼: ${user.password || '無'}</span>
-            <span class="tag" style="background:#fef3c7;color:#92400e;margin-left:4px;">顯示筆數: ${user.holdings.length}</span>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-secondary" onclick="toggleDetail('detail-${index}')">查看詳細內容</button>
-            <button class="btn btn-danger" onclick="deleteAccount('${user.userId}')">刪除帳號</button>
-          </div>
-        </div>
-
-        <div id="detail-${index}" class="detail-section" style="display: ${displayStyle}">
-          ${clientGroupsHTML || '<div style="font-size:13px;color:#9ca3af;margin-top:8px;">無持倉資料</div>'}
-        </div>
-      `;
-
-      container.appendChild(card);
     });
+    return result.sort((a,b) => a.name.localeCompare(b.name, "zh-TW") || a.userId.localeCompare(b.userId));
   }
 
-  async function deleteAccount(userId) {
-    if (!confirm(`⚠️ 警告：確定要刪除帳號「${userId}」及其所有持倉資料嗎？此操作無法復原！`)) {
+  function updateKpis() {
+    const holdings = users.flatMap(user => user.holdings || []);
+    const totals = holdings.reduce((acc, item) => { const qty=Number(item.quantity)||0, cost=Number(item.cost)||0, price=currentPrice(item); acc.cost += qty*cost; acc.value += qty*price; return acc; }, {cost:0,value:0});
+    document.getElementById("kpiAccounts").innerHTML = `${users.length} <small>個</small>`;
+    document.getElementById("kpiClients").innerHTML = `${clients.length} <small>位</small>`;
+    document.getElementById("kpiHoldings").innerHTML = `${holdings.length} <small>筆</small>`;
+    document.getElementById("kpiValue").textContent = `NT$ ${money(totals.value)}`;
+    const pnl = totals.value - totals.cost, pnlEl = document.getElementById("kpiPnl");
+    pnlEl.textContent = `${pnl >= 0 ? "+" : "−"}NT$ ${money(Math.abs(pnl))}`; pnlEl.className = pnlClass(pnl);
+  }
+
+  window.setView = (view, preserveAccountFilter = false) => {
+    activeView = view === "accounts" ? "accounts" : "clients";
+    if (activeView === "clients" && !preserveAccountFilter) activeAccountFilter = "";
+    document.getElementById("clientsView").style.display = activeView === "clients" ? "grid" : "none";
+    document.getElementById("accountsView").style.display = activeView === "accounts" ? "block" : "none";
+    document.getElementById("clientsTab").classList.toggle("active", activeView === "clients");
+    document.getElementById("accountsTab").classList.toggle("active", activeView === "accounts");
+    updateAccountScope();
+    applySearch();
+  };
+
+  function updateAccountScope() {
+    const scope = document.getElementById("accountScope");
+    const scopedClients = activeAccountFilter ? clients.filter(client => client.userId === activeAccountFilter) : clients;
+    scope.classList.toggle("show", Boolean(activeAccountFilter));
+    document.getElementById("accountScopeName").textContent = activeAccountFilter || "—";
+    document.getElementById("accountScopeCount").textContent = `${scopedClients.length} 位名下客戶`;
+    document.getElementById("directoryTitle").textContent = activeAccountFilter ? "名下客戶清單" : "全部客戶";
+    document.getElementById("searchInput").placeholder = activeAccountFilter ? `搜尋 ${activeAccountFilter} 名下客戶` : "搜尋客戶姓名、帳號、股票或代碼";
+  }
+
+  window.clearAccountFilter = () => {
+    activeAccountFilter = "";
+    selectedClientKey = "";
+    document.getElementById("searchInput").value = "";
+    updateAccountScope();
+    applySearch();
+    showToast("已顯示全部業務員的客戶");
+  };
+
+  window.applySearch = () => {
+    const query = document.getElementById("searchInput").value.trim().toLowerCase();
+    filteredClients = clients.filter(client => {
+      if (activeAccountFilter && client.userId !== activeAccountFilter) return false;
+      const profile = client.profile || {};
+      const text = [client.name, client.userId, profile.gender, profile.age, profile.experience, profile.style, profile.hobbies, profile.family, profile.note, ...client.holdings.flatMap(h => [h.stockName,h.code])].join(" ").toLowerCase();
+      return !query || text.includes(query);
+    });
+    renderClientList();
+    if (activeView === "accounts") renderAccounts(query);
+  };
+
+  function renderClientList() {
+    const list = document.getElementById("clientList");
+    document.getElementById("directoryCount").textContent = `${filteredClients.length} 位`;
+    if (!filteredClients.length) {
+      list.innerHTML = `<div class="detail-empty" style="height:220px"><div><strong>找不到客戶</strong>請嘗試其他關鍵字</div></div>`;
+      document.getElementById("clientDetail").innerHTML = `<div class="detail-empty"><div><strong>沒有相符資料</strong>調整搜尋條件後再試</div></div>`;
       return;
     }
+    if (!filteredClients.some(item => item.key === selectedClientKey)) selectedClientKey = filteredClients[0].key;
+    list.innerHTML = filteredClients.map(client => `<button class="client-item ${client.key === selectedClientKey ? "active" : ""}" onclick="selectClient(decodeURIComponent('${urlToken(client.key)}'))">
+      <div><div class="client-name">${esc(client.name)}</div><div class="client-account">帳號 ${esc(client.userId)} · ${client.holdings.length} 檔持倉</div></div>
+      <div class="client-mini"><strong>NT$ ${money(client.value)}</strong><span class="${pnlClass(client.pnl)}">${pct(client.cost ? client.pnl/client.cost*100 : 0)}</span></div>
+    </button>`).join("");
+    renderClientDetail(selectedClientKey);
+  }
 
+  window.selectClient = key => { selectedClientKey = key; renderClientList(); };
+
+  function renderClientDetail(key) {
+    const client = clients.find(item => item.key === key);
+    const host = document.getElementById("clientDetail");
+    if (!client) { host.innerHTML = `<div class="detail-empty"><div><strong>選擇一位客戶</strong>即可查看完整資料</div></div>`; return; }
+    const profile = client.profile || {};
+    const riskCount = client.holdings.filter(item => { const price=currentPrice(item), stop=Number(item.stopLoss)||0, take=Number(item.takeProfit)||0; return (stop && price <= stop) || (take && price >= take); }).length;
+    const holdingRows = client.holdings.map(item => {
+      const qty=Number(item.quantity)||0, cost=Number(item.cost)||0, price=currentPrice(item), value=qty*price, pnl=value-qty*cost, rate=cost ? (price-cost)/cost*100 : 0;
+      const code=String(item.code||"").replace(/[^0-9]/g,"");
+      return `<tr><td class="stock"><a href="${code ? `https://statementdog.com/analysis/${code}` : "#"}" target="_blank" rel="noopener">${esc(item.stockName || "未命名股票")}</a><small>${esc(item.code)}</small></td>
+        <td class="num">${money(qty)}</td><td class="num">${money(cost)}</td><td class="num">${money(price)}</td><td class="num">NT$ ${money(value)}</td><td class="num ${pnlClass(pnl)}">${pnl>=0?"+":"−"}NT$ ${money(Math.abs(pnl))}<small>${pct(rate)}</small></td>
+        <td><span class="tag ${((Number(item.stopLoss)||0)&&price<=Number(item.stopLoss))||((Number(item.takeProfit)||0)&&price>=Number(item.takeProfit)) ? "risk-tag" : ""}">止損 ${item.stopLoss ? money(item.stopLoss) : "—"} / 止盈 ${item.takeProfit ? money(item.takeProfit) : "—"}</span></td></tr>`;
+    }).join("") || `<tr><td colspan="7" class="empty-row">此客戶目前沒有持倉</td></tr>`;
+    const typeLabel={buy:"買入",sell:"賣出",opening:"期初",adjustment:"調整"};
+    const transactionRows = client.transactions.slice(0,10).map(tx => `<tr><td>${tx.date ? esc(new Date(tx.date).toLocaleString("zh-TW")) : "—"}</td><td><span class="tag">${esc(typeLabel[tx.type]||"紀錄")}</span></td><td class="stock">${esc(tx.stockName)}<small>${esc(tx.code)}</small></td><td class="num">${money(tx.quantity)}</td><td class="num">${tx.price ? money(tx.price) : "—"}</td><td class="num ${pnlClass(tx.realizedPnl)}">${tx.type === "sell" ? `${Number(tx.realizedPnl)>=0?"+":"−"}NT$ ${money(Math.abs(Number(tx.realizedPnl)||0))}` : "—"}</td></tr>`).join("") || `<tr><td colspan="6" class="empty-row">尚無交易紀錄</td></tr>`;
+    host.innerHTML = `<div class="detail-inner">
+      <header class="detail-head"><div class="identity"><div class="avatar">${esc(client.name.slice(0,1).toUpperCase())}</div><div><h2>${esc(client.name)}<span class="client-chip">客戶檔案</span></h2><p>所屬帳號 ${esc(client.userId)} · ${client.holdings.length} 檔持倉 · ${client.transactions.length} 筆交易</p></div></div><button class="btn btn-light btn-small" onclick="focusAccount(decodeURIComponent('${urlToken(client.userId)}'))">查看帳號</button></header>
+      <div class="detail-kpis"><div class="detail-kpi"><span>持倉成本</span><strong>NT$ ${money(client.cost)}</strong></div><div class="detail-kpi"><span>目前市值</span><strong>NT$ ${money(client.value)}</strong></div><div class="detail-kpi"><span>未實現損益</span><strong class="${pnlClass(client.pnl)}">${client.pnl>=0?"+":"−"}NT$ ${money(Math.abs(client.pnl))}</strong></div><div class="detail-kpi"><span>累計已實現</span><strong class="${pnlClass(client.realized)}">${client.realized>=0?"+":"−"}NT$ ${money(Math.abs(client.realized))}</strong></div></div>
+      <section class="section"><div class="section-title"><h3>客戶完整資料</h3><span>${riskCount ? `${riskCount} 筆風險水位已觸發` : "目前無已觸發風險"}</span></div><div class="profile">
+        <div class="profile-box"><span>性別</span><strong>${esc(profile.gender || "未填寫")}</strong></div><div class="profile-box"><span>年齡</span><strong>${esc(profile.age ? profile.age+" 歲" : "未填寫")}</strong></div><div class="profile-box"><span>投資經驗</span><strong>${esc(profile.experience || "未填寫")}</strong></div><div class="profile-box"><span>投資風格</span><strong>${esc(profile.style || "未填寫")}</strong></div>
+        <div class="profile-box wide"><span>興趣與偏好</span><strong>${esc(profile.hobbies || "未填寫")}</strong></div><div class="profile-box wide"><span>家庭狀況</span><strong>${esc(profile.family || "未填寫")}</strong></div><div class="profile-box note"><span>客戶備註</span><strong>${esc(profile.note || "尚無備註")}</strong></div></div></section>
+      <section class="section"><div class="section-title"><h3>目前持倉</h3><span>行情以本次同步結果為準</span></div><div class="table-shell"><table><thead><tr><th>股票</th><th class="num">股數</th><th class="num">成本</th><th class="num">現價</th><th class="num">市值</th><th class="num">預估損益</th><th>風控水位</th></tr></thead><tbody>${holdingRows}</tbody></table></div></section>
+      <section class="section"><div class="section-title"><h3>最近交易紀錄</h3><span>顯示最近 10 筆</span></div><div class="table-shell"><table><thead><tr><th>時間</th><th>類型</th><th>股票</th><th class="num">股數</th><th class="num">成交價</th><th class="num">已實現損益</th></tr></thead><tbody>${transactionRows}</tbody></table></div></section>
+    </div>`;
+  }
+
+  function renderAccounts(query = "") {
+    const filtered = users.filter(user => {
+      const names = clients.filter(client => client.userId === user.userId).map(client => client.name);
+      return !query || [user.userId,...names,...(user.holdings||[]).flatMap(item=>[item.stockName,item.code])].join(" ").toLowerCase().includes(query);
+    });
+    const grid = document.getElementById("accountGrid");
+    if (!filtered.length) { grid.innerHTML = `<div class="account-card" style="text-align:center;color:#8b95a4">找不到相符帳號</div>`; return; }
+    grid.innerHTML = filtered.map((user, index) => {
+      const accountClients = clients.filter(client => client.userId === user.userId);
+      const holdings = user.holdings || [];
+      const value = accountClients.reduce((sum,client)=>sum+client.value,0), pnl=accountClients.reduce((sum,client)=>sum+client.pnl,0), cost=accountClients.reduce((sum,client)=>sum+client.cost,0);
+      const passwordId = `account-password-${index}`;
+      const clientPreview = accountClients.length ? accountClients.slice(0, 5).map(client => `<span class="account-client-chip">${esc(client.name)}</span>`).join("") + (accountClients.length > 5 ? `<span class="account-client-chip">+${accountClients.length - 5}</span>` : "") : `<span class="account-client-chip" style="color:#7b8798;background:#f1f4f6;">尚無登記客戶</span>`;
+      return `<article class="account-card" data-user="${esc(user.userId.toLowerCase())}"><div class="account-head"><div><h3>${esc(user.userId)}</h3><p>註冊帳號 · ${accountClients.length} 位登記客戶</p></div><span class="tag">使用中</span></div>
+        <div class="account-stats"><div class="account-stat"><span>客戶</span><strong>${accountClients.length} 位</strong></div><div class="account-stat"><span>持倉</span><strong>${holdings.length} 筆</strong></div><div class="account-stat"><span>總市值</span><strong>NT$ ${money(value)}</strong></div><div class="account-stat"><span>預估損益</span><strong class="${pnlClass(pnl)}">${pct(cost?pnl/cost*100:0)}</strong></div></div>
+        <div class="account-client-preview"><span>名下客戶</span>${clientPreview}</div>
+        <div class="account-footer"><div class="password">登入密碼 <code id="${passwordId}" data-password="${esc(user.password || "")}">••••••••</code> <button class="btn btn-light btn-small" onclick="togglePassword('${passwordId}',this)">顯示</button></div><div class="account-actions"><button class="btn btn-light btn-small" onclick="focusFirstClient(decodeURIComponent('${urlToken(user.userId)}'))">查看旗下客戶</button><button class="btn btn-danger btn-small" onclick="deleteAccount(decodeURIComponent('${urlToken(user.userId)}'))">刪除帳號</button></div></div></article>`;
+    }).join("");
+  }
+
+  window.togglePassword = (id, button) => {
+    const el=document.getElementById(id), revealed=el.textContent!=="••••••••"; el.textContent=revealed?"••••••••":el.dataset.password; button.textContent=revealed?"顯示":"隱藏";
+  };
+  window.focusAccount = userId => { setView("accounts"); document.getElementById("searchInput").value=userId; applySearch(); };
+  window.focusFirstClient = userId => {
+    const accountClients = clients.filter(item => item.userId === userId);
+    if (!accountClients.length) { showToast(`帳號 ${userId} 目前沒有登記客戶`); return; }
+    activeAccountFilter = userId;
+    selectedClientKey = accountClients[0].key;
+    document.getElementById("searchInput").value = "";
+    setView("clients", true);
+    showToast(`已顯示 ${userId} 名下 ${accountClients.length} 位客戶`);
+  };
+
+  window.deleteAccount = async userId => {
+    if (!confirm(`確定刪除帳號「${userId}」及其全部客戶、持倉與交易資料？\n\n此操作無法復原。`)) return;
     try {
-      // 呼叫後端 API 刪除用戶
-      const res = await fetch(`${API_URL}/admin/delete_user`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          adminPassword: currentAdminPwd,
-          userId: userId
-        })
-      });
+      const response = await fetch(`${API_URL}/admin/delete_user`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({adminPassword:currentAdminPwd,userId}) });
+      const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.message || "刪除失敗");
+      showToast(`帳號 ${userId} 已刪除`); selectedClientKey=""; await loadAdminData();
+    } catch(error) { showToast(error.message || "刪除失敗"); }
+  };
 
-      const data = await res.json();
-      if (res.ok && data.success) {
-        alert(`帳號「${userId}」已成功刪除！`);
-        // 本地過濾並重新渲染
-        globalUsersData = globalUsersData.filter(u => u.userId !== userId);
-        renderUsers(globalUsersData);
-      } else {
-        alert('刪除失敗：' + (data.message || '請確認後端是否支援該操作'));
-      }
-    } catch (err) {
-      console.error(err);
-      alert('請求失敗，請檢查網路連線或 Server 狀態');
-    }
-  }
-
-  function toggleDetail(id) {
-    const el = document.getElementById(id);
-    el.style.display = el.style.display === "block" ? "none" : "block";
-  }
-
-  function exportAllCSV() {
-    if (!globalUsersData.length) return alert("無資料可導出");
-    let csv = "用戶帳號,客戶姓名,股票名稱,股票代碼,數量,成本價,當前現價,預估盈虧,止損價,止盈價\n";
-    globalUsersData.forEach(user => {
-      user.holdings.forEach(h => {
-        const curPrice = priceMap[h.code] || h.cost || 0;
-        const pnl = (curPrice - h.cost) * h.quantity;
-        csv += `${user.userId},${h.client||''},${h.stockName},${h.code},${h.quantity},${h.cost},${curPrice},${pnl},${h.stopLoss||''},${h.takeProfit||''}\n`;
-      });
+  window.exportCSV = () => {
+    if (!clients.length) { showToast("目前沒有可匯出的客戶資料"); return; }
+    const cell = value => { let text=String(value??""); if(/^[=+\-@]/.test(text)) text=`'${text}`; return `"${text.replaceAll('"','""')}"`; };
+    const rows=[["帳號","客戶","性別","年齡","投資經驗","投資風格","興趣","家庭狀況","客戶備註","股票","代碼","股數","成本","現價","市值","未實現損益"]];
+    clients.forEach(client => {
+      const source=client.holdings.length?client.holdings:[{}];
+      source.forEach(item=>{const qty=Number(item.quantity)||0,cost=Number(item.cost)||0,price=item.code?currentPrice(item):0;rows.push([client.userId,client.name,client.profile.gender||"",client.profile.age||"",client.profile.experience||"",client.profile.style||"",client.profile.hobbies||"",client.profile.family||"",client.profile.note||"",item.stockName||"",item.code||"",item.quantity||"",item.cost||"",item.code?price:"",item.code?qty*price:"",item.code?qty*(price-cost):""]);});
     });
-    const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "全系統客戶持倉總表.csv";
-    a.click();
-  }
+    const blob=new Blob(["\uFEFF"+rows.map(row=>row.map(cell).join(",")).join("\n")],{type:"text/csv;charset=utf-8"}); const url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url;a.download=`Portfolio-OS-客戶資料-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);showToast("客戶資料 CSV 已匯出");
+  };
 </script>
 </body>
 </html>

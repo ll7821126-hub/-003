@@ -484,6 +484,21 @@
     .sidebar .btn-clear{background:rgba(15,159,143,.13);color:#86e6d9}
     .sidebar .btn-clear:hover{background:rgba(15,159,143,.2)}
     .sidebar .btn-reset:hover{background:rgba(255,255,255,.1);color:#fff}
+    .danger-zone{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.07)}
+    .btn-danger-clear{
+      width:100%;
+      padding:9px 12px;
+      border:1px solid rgba(251,113,133,.22);
+      border-radius:9px;
+      background:rgba(217,71,92,.1);
+      color:#fda4af;
+      font-size:11px;
+      font-weight:700;
+      cursor:pointer;
+      transition:.18s ease;
+    }
+    .btn-danger-clear:hover{background:rgba(217,71,92,.2);border-color:rgba(251,113,133,.38);color:#fff}
+    .btn-danger-clear:disabled{opacity:.55;cursor:not-allowed}
 
     .action-group{display:flex;gap:6px;justify-content:flex-end}
     .icon-btn{
@@ -649,6 +664,50 @@
     .toast.show{opacity:1;transform:translateY(0)}
     .toast-dot{width:8px;height:8px;border-radius:50%;background:#2dd4bf;flex:none}
     .toast.error .toast-dot{background:#fb7185}
+    .action-with-badge{position:relative}
+    .alert-count{position:absolute;right:-5px;top:-7px;min-width:17px;height:17px;padding:0 4px;border-radius:99px;display:none;place-items:center;background:#d83a52;color:#fff;border:2px solid #fff;font-size:8px;font-weight:800}
+    .alert-count.show{display:grid}
+    .data-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0;background:#fff;border:1px solid var(--border);border-radius:13px;padding:7px 9px;box-shadow:var(--shadow)}
+    .view-tabs{display:flex;align-items:center;gap:4px;padding:3px;background:#f1f4f7;border-radius:9px}
+    .view-tab{border:0;background:transparent;color:#667085;padding:6px 13px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;transition:.18s}
+    .view-tab.active{background:#fff;color:#142033;box-shadow:0 2px 8px rgba(16,24,40,.08)}
+    .toolbar-stats{display:flex;align-items:center;gap:14px;font-size:10px;color:#8792a2;padding-right:6px}
+    .toolbar-stats strong{font-size:11px;color:#344054}
+    .transaction-empty{padding:60px 20px;text-align:center;color:#98a2b3}
+    .type-badge{display:inline-flex;align-items:center;justify-content:center;min-width:42px;padding:3px 8px;border-radius:99px;font-size:9px;font-weight:800}
+    .type-buy{background:#e9f8f4;color:#087e72}
+    .type-sell{background:#fff0f2;color:#c72f48}
+    .type-opening,.type-adjustment{background:#eef2f6;color:#667085}
+    .modal-wide{width:min(960px,94vw)}
+    .modal-subtitle{font-size:11px;color:#8a95a6;margin-top:4px}
+    .modal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+    .filter-pills{display:flex;gap:5px;flex-wrap:wrap}
+    .filter-pill{border:1px solid var(--border);background:#fff;color:#667085;padding:6px 10px;border-radius:99px;font-size:10px;font-weight:700;cursor:pointer}
+    .filter-pill.active{background:#142033;color:#fff;border-color:#142033}
+    .insight-list{display:flex;flex-direction:column;gap:9px;max-height:66vh;overflow:auto;padding-right:4px}
+    .insight-item{display:grid;grid-template-columns:90px minmax(0,1fr) auto;align-items:center;gap:14px;padding:13px 14px;border:1px solid var(--border);border-radius:12px;background:#fff}
+    .insight-item:hover{border-color:#ccd5df;background:#fbfcfd}
+    .insight-code{display:flex;flex-direction:column;gap:3px}
+    .insight-code strong{font-size:13px;color:#142033}
+    .insight-code span{font-size:9px;color:#98a2b3}
+    .insight-main{min-width:0}
+    .insight-main strong{display:block;font-size:12px;color:#283548;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .insight-main p{margin:5px 0 0;font-size:10px;line-height:1.5;color:#7b8798;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .insight-meta{text-align:right;font-size:9px;color:#98a2b3;white-space:nowrap}
+    .event-type{display:inline-flex;margin-bottom:5px;padding:3px 7px;border-radius:99px;font-size:8px;font-weight:800}
+    .event-announcement{background:#edf2ff;color:#365da8}
+    .event-revenue{background:#e9f8f4;color:#087e72}
+    .event-dividend{background:#fff7e6;color:#9a6700}
+    .risk-triggered{border-left:4px solid #d83a52}
+    .risk-near{border-left:4px solid #e9a23b}
+    .risk-safe{border-left:4px solid #0f9f8f}
+    .risk-price{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+    .risk-status{padding:4px 8px;border-radius:99px;font-size:9px;font-weight:800}
+    .risk-status.triggered{background:#fff0f2;color:#c72f48}
+    .risk-status.near{background:#fff7e6;color:#9a6700}
+    .loading-state{padding:54px 20px;text-align:center;color:#7b8798;font-size:12px}
+    .loading-state .ai-loading-spinner{display:block;margin:0 auto 12px}
+    .report-source{position:fixed;inset:0;overflow:auto;background:rgba(12,22,38,.78);z-index:10020;padding:28px;display:flex;justify-content:center;align-items:flex-start;color:#142033}
     @media(max-width:1250px){
       .layout-container{grid-template-columns:300px minmax(0,1fr)}
       .summary-grid{grid-template-columns:1fr 1fr}
@@ -807,6 +866,9 @@
         <button type="button" class="btn btn-reset" onclick="resetForm()">重設</button>
         <button type="button" class="btn btn-clear" onclick="exportCSV()">匯出備份</button>
       </div>
+      <div class="danger-zone">
+        <button type="button" id="clearAllBtn" class="btn-danger-clear" onclick="clearAllData()">一鍵清除所有資料</button>
+      </div>
     </form>
     <div class="sidebar-note">投資資訊僅供研究與客戶溝通使用，不構成任何形式的投資保證或交易承諾。</div>
   </aside>
@@ -836,6 +898,8 @@
           <input type="checkbox" id="autoRefreshCheck" onchange="toggleAutoRefresh()">
           <span>10 秒自動更新</span>
         </label>
+        <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
+        <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
         <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="realRefresh()">更新行情</button>
         <button class="btn btn-ghost btn-sm" onclick="exportCSV()">匯出 CSV</button>
       </div>
@@ -872,7 +936,18 @@
       <div id="clientCards" class="cards-container"></div>
     </div>
 
-    <div class="table-container">
+    <div class="data-toolbar">
+      <div class="view-tabs">
+        <button id="holdingsTab" class="view-tab active" onclick="switchDataView('holdings')">持倉明細</button>
+        <button id="transactionsTab" class="view-tab" onclick="switchDataView('transactions')">交易紀錄</button>
+      </div>
+      <div class="toolbar-stats">
+        <span>累計已實現 <strong id="realizedPnlTotal">NT$ 0.00</strong></span>
+        <span><strong id="transactionCount">0</strong> 筆交易</span>
+      </div>
+    </div>
+
+    <div id="holdingsView" class="table-container">
       <table>
         <thead>
           <tr>
@@ -896,7 +971,54 @@
         <div style="font-size:11px;margin-top:5px;">請從交易工作台新增第一筆紀錄</div>
       </div>
     </div>
+    <div id="transactionsView" class="table-container" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th class="t-left">日期</th>
+            <th class="t-left">客戶</th>
+            <th>類型</th>
+            <th class="t-left">股票</th>
+            <th>數量</th>
+            <th>成交價</th>
+            <th>交易金額</th>
+            <th>已實現盈虧</th>
+            <th class="t-left">備註</th>
+          </tr>
+        </thead>
+        <tbody id="transactionsBody"></tbody>
+      </table>
+      <div id="transactionEmpty" class="transaction-empty" style="display:none;">尚無交易紀錄，新版上線後的買入與賣出會自動保留。</div>
+    </div>
   </main>
+</div>
+
+<!-- 風險提醒 Modal -->
+<div id="riskAlertModal" class="modal-overlay">
+  <div class="modal modal-wide">
+    <div class="modal-toolbar">
+      <div><div class="profile-title">風險提醒中心</div><div class="modal-subtitle" id="riskAlertSubtitle">依最新行情檢查止損與止盈水位</div></div>
+      <button class="btn-close" onclick="document.getElementById('riskAlertModal').style.display='none'">關閉</button>
+    </div>
+    <div id="riskAlertList" class="insight-list"></div>
+  </div>
+</div>
+
+<!-- 持倉公司資訊 Modal -->
+<div id="marketEventModal" class="modal-overlay">
+  <div class="modal modal-wide">
+    <div class="modal-toolbar">
+      <div><div class="profile-title">持倉公司資訊日曆</div><div class="modal-subtitle" id="marketEventSubtitle">依日期彙整重大訊息、月營收與股利資料</div></div>
+      <div style="display:flex;gap:7px;"><button class="btn btn-ghost" onclick="loadMarketEvents(true)">重新整理</button><button class="btn-close" onclick="document.getElementById('marketEventModal').style.display='none'">關閉</button></div>
+    </div>
+    <div class="filter-pills" style="margin-bottom:12px;">
+      <button class="filter-pill active" data-event-filter="all" onclick="setEventFilter('all')">全部</button>
+      <button class="filter-pill" data-event-filter="announcement" onclick="setEventFilter('announcement')">重大訊息</button>
+      <button class="filter-pill" data-event-filter="revenue" onclick="setEventFilter('revenue')">月營收</button>
+      <button class="filter-pill" data-event-filter="dividend" onclick="setEventFilter('dividend')">股利</button>
+    </div>
+    <div id="marketEventList" class="insight-list"><div class="loading-state">開啟後載入持倉公司官方資訊</div></div>
+  </div>
 </div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"><span class="toast-dot"></span><span id="toastText"></span></div>
@@ -940,10 +1062,12 @@
   </div>
 </div>
 
+<script src="assets/html2pdf.bundle.min.js"></script>
 <script>
   const API_URL = "https://003-v2.onrender.com/api";
   const DB_KEY = "korea_stock_v13_sync";
   const PROFILE_KEY = "korea_profile_v13_sync";
+  const TX_KEY = "korea_transactions_v14_sync";
 
   const form = document.getElementById("holdForm");
   const tableBody = document.getElementById("tableBody");
@@ -951,12 +1075,18 @@
   const emptyTip = document.getElementById("emptyTip");
   const searchInput = document.getElementById("searchInput");
   const lastUpdateEl = document.getElementById("lastUpdate");
+  const transactionsBody = document.getElementById("transactionsBody");
+  const transactionEmpty = document.getElementById("transactionEmpty");
 
   let holdings = [];
   let profiles = {};
+  let transactions = [];
   let autoTimer = null;
   let searchDebounce = null;
   let selectedClient = null;
+  let currentDataView = "holdings";
+  let marketEvents = [];
+  let marketEventFilter = "all";
 
   let userId = localStorage.getItem("app_user_id") || "";
   let currentPassword = localStorage.getItem("app_user_password") || "";
@@ -964,9 +1094,11 @@
   try {
     holdings = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
     profiles = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
+    transactions = JSON.parse(localStorage.getItem(TX_KEY) || "[]");
   } catch (e) {
     holdings = [];
     profiles = {};
+    transactions = [];
   }
 
   // 啟用橫向滾輪支持
@@ -1118,8 +1250,11 @@
       if (resData.success && resData.data && resData.data.holdings) {
         holdings = resData.data.holdings;
         profiles = resData.data.profiles || {};
+        transactions = Array.isArray(resData.data.transactions) ? resData.data.transactions : [];
+        migrateLegacyTransactions();
         localStorage.setItem(DB_KEY, JSON.stringify(holdings));
         localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+        localStorage.setItem(TX_KEY, JSON.stringify(transactions));
       }
       render();
       realRefresh();
@@ -1132,7 +1267,7 @@
     if (confirm("確定要退出登入嗎？")) {
       localStorage.removeItem("app_user_id");
       localStorage.removeItem("app_user_password");
-      userId = ""; currentPassword = ""; holdings = []; profiles = {};
+      userId = ""; currentPassword = ""; holdings = []; profiles = {}; transactions = [];
       render();
       document.getElementById("loginModal").style.display = "flex";
     }
@@ -1170,6 +1305,214 @@
       selectedClient = client;
     }
     render();
+  }
+
+  function makeTransaction(type, data) {
+    const quantity = Number(data.quantity) || 0;
+    const price = Number(data.price) || 0;
+    return {
+      id: `tx-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type,
+      date: data.date || new Date().toISOString(),
+      client: data.client || "",
+      stockName: data.stockName || "",
+      code: String(data.code || ""),
+      quantity,
+      price,
+      amount: Number.isFinite(Number(data.amount)) ? Number(data.amount) : quantity * price,
+      avgCost: Number(data.avgCost) || 0,
+      costBasis: Number(data.costBasis) || 0,
+      realizedPnl: Number(data.realizedPnl) || 0,
+      note: data.note || ""
+    };
+  }
+
+  function migrateLegacyTransactions() {
+    if (transactions.length || !holdings.length) return false;
+    transactions = holdings.map(h => makeTransaction("opening", {
+      date: h.createdAt || new Date().toISOString(),
+      client: h.client,
+      stockName: h.stockName,
+      code: h.code,
+      quantity: h.quantity,
+      price: h.cost,
+      costBasis: Number(h.cost) * Number(h.quantity),
+      note: "舊版持倉期初導入"
+    }));
+    localStorage.setItem(TX_KEY, JSON.stringify(transactions));
+    return true;
+  }
+
+  window.switchDataView = view => {
+    currentDataView = view === "transactions" ? "transactions" : "holdings";
+    document.getElementById("holdingsView").style.display = currentDataView === "holdings" ? "block" : "none";
+    document.getElementById("transactionsView").style.display = currentDataView === "transactions" ? "block" : "none";
+    document.getElementById("holdingsTab").classList.toggle("active", currentDataView === "holdings");
+    document.getElementById("transactionsTab").classList.toggle("active", currentDataView === "transactions");
+    if (currentDataView === "transactions") renderTransactions();
+  };
+
+  function renderTransactions() {
+    const visible = transactions
+      .filter(tx => !selectedClient || tx.client === selectedClient)
+      .filter(tx => {
+        const haystack = `${tx.client || ""} ${tx.stockName || ""} ${tx.code || ""} ${tx.note || ""}`.toLowerCase();
+        return !filterText || haystack.includes(filterText);
+      })
+      .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+
+    const realized = visible.reduce((sum, tx) => sum + (Number(tx.realizedPnl) || 0), 0);
+    const realizedEl = document.getElementById("realizedPnlTotal");
+    realizedEl.textContent = `NT$ ${realized >= 0 ? "+" : ""}${fmtMoney(realized)}`;
+    realizedEl.className = realized >= 0 ? "color-up" : "color-down";
+    document.getElementById("transactionCount").textContent = visible.length;
+    transactionsBody.innerHTML = "";
+    transactionEmpty.style.display = visible.length ? "none" : "block";
+
+    const typeMap = {
+      buy: ["買入", "type-buy"],
+      sell: ["賣出", "type-sell"],
+      opening: ["期初", "type-opening"],
+      adjustment: ["調整", "type-adjustment"]
+    };
+    visible.forEach(tx => {
+      const [label, badgeClass] = typeMap[tx.type] || ["紀錄", "type-adjustment"];
+      const realizedClass = Number(tx.realizedPnl) >= 0 ? "color-up" : "color-down";
+      const dateText = tx.date ? new Date(tx.date).toLocaleString("zh-TW", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" }) : "-";
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="t-left" style="white-space:nowrap;color:#667085;">${escapeHtml(dateText)}</td>
+        <td class="t-left"><strong>${escapeHtml(tx.client)}</strong></td>
+        <td><span class="type-badge ${badgeClass}">${label}</span></td>
+        <td class="t-left"><strong>${escapeHtml(tx.stockName)}</strong> <span style="color:#98a2b3;">${escapeHtml(tx.code)}</span></td>
+        <td>${fmtMoney(tx.quantity)}</td>
+        <td>${tx.price ? fmtMoney(tx.price) : "-"}</td>
+        <td>${tx.amount ? `NT$ ${fmtMoney(tx.amount)}` : "-"}</td>
+        <td class="${tx.type === "sell" ? realizedClass : ""}">${tx.type === "sell" ? `NT$ ${fmtMoney(tx.realizedPnl)}` : "-"}</td>
+        <td class="t-left" style="color:#7b8798;max-width:240px;">${escapeHtml(tx.note || "-")}</td>`;
+      transactionsBody.appendChild(tr);
+    });
+  }
+
+  function getRiskAlerts(clientName = null) {
+    const alerts = [];
+    holdings.filter(h => !clientName || h.client === clientName).forEach(h => {
+      const price = Number(h.currentPrice ?? h.cost);
+      const stopLoss = Number(h.stopLoss) || 0;
+      const takeProfit = Number(h.takeProfit) || 0;
+      if (!price || (!stopLoss && !takeProfit)) return;
+
+      let status = "safe";
+      let message = "價格仍在設定區間內";
+      let distance = Infinity;
+      if (stopLoss && price <= stopLoss) {
+        status = "triggered";
+        message = `已跌破止損價 NT$ ${fmtMoney(stopLoss)}`;
+        distance = 0;
+      } else if (takeProfit && price >= takeProfit) {
+        status = "triggered";
+        message = `已達止盈價 NT$ ${fmtMoney(takeProfit)}`;
+        distance = 0;
+      } else {
+        const stopDistance = stopLoss ? Math.abs(price - stopLoss) / price : Infinity;
+        const profitDistance = takeProfit ? Math.abs(takeProfit - price) / price : Infinity;
+        distance = Math.min(stopDistance, profitDistance);
+        if (distance <= 0.03) {
+          status = "near";
+          message = stopDistance <= profitDistance ? `距止損價約 ${(stopDistance * 100).toFixed(1)}%` : `距止盈價約 ${(profitDistance * 100).toFixed(1)}%`;
+        }
+      }
+      alerts.push({ ...h, price, stopLoss, takeProfit, status, message, distance });
+    });
+    const order = { triggered: 0, near: 1, safe: 2 };
+    return alerts.sort((a, b) => order[a.status] - order[b.status] || a.distance - b.distance);
+  }
+
+  function renderRiskAlerts() {
+    const alerts = getRiskAlerts();
+    const active = alerts.filter(a => a.status !== "safe").length;
+    const badge = document.getElementById("riskAlertCount");
+    badge.textContent = active;
+    badge.classList.toggle("show", active > 0);
+    document.getElementById("riskAlertSubtitle").textContent = `${active} 筆需留意 · 共檢查 ${alerts.length} 筆已設定風控的持倉`;
+    const list = document.getElementById("riskAlertList");
+    if (!alerts.length) {
+      list.innerHTML = `<div class="loading-state">尚未設定止損或止盈價格。</div>`;
+      return;
+    }
+    const statusLabel = { triggered: "已觸發", near: "接近水位", safe: "區間內" };
+    list.innerHTML = alerts.map(alert => `
+      <div class="insight-item risk-${alert.status}">
+        <div class="insight-code"><strong>${escapeHtml(alert.stockName)}</strong><span>${escapeHtml(alert.code)} · ${escapeHtml(alert.client)}</span></div>
+        <div class="insight-main"><strong>${escapeHtml(alert.message)}</strong><p>止損 ${alert.stopLoss ? `NT$ ${fmtMoney(alert.stopLoss)}` : "未設定"} · 止盈 ${alert.takeProfit ? `NT$ ${fmtMoney(alert.takeProfit)}` : "未設定"}</p></div>
+        <div class="insight-meta"><div class="risk-price">NT$ ${fmtMoney(alert.price)}</div><span class="risk-status ${alert.status}">${statusLabel[alert.status]}</span></div>
+      </div>`).join("");
+  }
+
+  window.openRiskAlerts = () => {
+    renderRiskAlerts();
+    document.getElementById("riskAlertModal").style.display = "flex";
+  };
+
+  window.openMarketEvents = () => {
+    document.getElementById("marketEventModal").style.display = "flex";
+    if (!marketEvents.length) loadMarketEvents();
+    else renderMarketEvents();
+  };
+
+  window.loadMarketEvents = async () => {
+    const codes = [...new Set(holdings.map(h => String(h.code || "").trim()).filter(Boolean))];
+    const list = document.getElementById("marketEventList");
+    if (!codes.length) {
+      list.innerHTML = `<div class="loading-state">目前沒有持倉，無法載入公司資訊。</div>`;
+      return;
+    }
+    list.innerHTML = `<div class="loading-state"><span class="ai-loading-spinner"></span>正在讀取證交所與櫃買中心官方資料...</div>`;
+    try {
+      const response = await fetch(`${API_URL}/market_events`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codes })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "資訊載入失敗");
+      marketEvents = data.events || [];
+      document.getElementById("marketEventSubtitle").textContent = `涵蓋 ${codes.length} 檔持倉 · 更新於 ${new Date(data.updatedAt).toLocaleString("zh-TW")}`;
+      renderMarketEvents();
+    } catch (error) {
+      list.innerHTML = `<div class="loading-state">官方資訊暫時無法取得，請稍後重新整理。</div>`;
+    }
+  };
+
+  window.setEventFilter = filter => {
+    marketEventFilter = filter;
+    document.querySelectorAll("[data-event-filter]").forEach(button => button.classList.toggle("active", button.dataset.eventFilter === filter));
+    renderMarketEvents();
+  };
+
+  function renderMarketEvents() {
+    const list = document.getElementById("marketEventList");
+    const visible = marketEvents.filter(event => marketEventFilter === "all" || event.category === marketEventFilter);
+    if (!visible.length) {
+      list.innerHTML = `<div class="loading-state">此分類目前沒有持倉公司的最新資訊。</div>`;
+      return;
+    }
+    const categoryMap = {
+      announcement: ["重大訊息", "event-announcement"],
+      revenue: ["月營收", "event-revenue"],
+      dividend: ["股利", "event-dividend"]
+    };
+    list.innerHTML = visible.map(event => {
+      const [label, tagClass] = categoryMap[event.category] || ["資訊", "event-announcement"];
+      let detail = event.detail || "";
+      if (event.category === "revenue") detail = `當月營收 NT$ ${fmtMoney((Number(event.revenue) || 0) * 1000)} · 月增 ${fmtPct(event.mom || 0)} · 年增 ${fmtPct(event.yoy || 0)}`;
+      if (event.category === "dividend") detail = `${event.progress || "董事會通過"} · 股利年度 ${event.dividendYear || "-"}`;
+      return `<a class="insight-item" href="${escapeHtml(event.sourceUrl || "https://mops.twse.com.tw/")}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
+        <div class="insight-code"><strong>${escapeHtml(event.companyName)}</strong><span>${escapeHtml(event.code)} · ${escapeHtml(event.market)}</span></div>
+        <div class="insight-main"><span class="event-type ${tagClass}">${label}</span><strong>${escapeHtml(event.title)}</strong><p>${escapeHtml(detail)}</p></div>
+        <div class="insight-meta">${escapeHtml(event.date || "-")}<br>${escapeHtml(event.time || "")}</div>
+      </a>`;
+    }).join("");
   }
 
   function render() {
@@ -1234,6 +1577,8 @@
       emptyTip.style.display = "block";
       cardsContainer.innerHTML = "";
       tableBody.innerHTML = "";
+      renderTransactions();
+      renderRiskAlerts();
       return;
     }
     emptyTip.style.display = "none";
@@ -1251,6 +1596,7 @@
       const isActive = selectedClient === client ? "active-card" : "";
       const safeClient = escapeHtml(client);
       const encodedClient = encodeURIComponent(client).replaceAll("'", "%27");
+      const clientRealized = transactions.filter(tx => tx.client === client).reduce((sum, tx) => sum + (Number(tx.realizedPnl) || 0), 0);
 
       const card = document.createElement("div");
       card.className = `client-card ${isActive}`;
@@ -1269,10 +1615,12 @@
           <div class="cc-row"><span class="cc-label">投入</span><span class="cc-value">NT$ ${fmtMoney(g.cost)}</span></div>
           <div class="cc-row"><span class="cc-label">市值</span><span class="cc-value">NT$ ${fmtMoney(g.val)}</span></div>
           <div class="cc-row"><span class="cc-label">盈虧</span><span class="cc-value ${pnlClass}">NT$ ${fmtMoney(pnl)}</span></div>
+          <div class="cc-row"><span class="cc-label">已實現</span><span class="cc-value ${clientRealized >= 0 ? "color-up" : "color-down"}">NT$ ${fmtMoney(clientRealized)}</span></div>
         </div>
         <div class="cc-actions">
           <button class="cc-btn" onclick="openProfile(decodeURIComponent('${encodedClient}'))">客戶檔案</button>
           <button class="cc-btn ai" onclick="aiAnalyzePortfolio(decodeURIComponent('${encodedClient}'))">AI 洞察</button>
+          <button class="cc-btn" onclick="generateClientReport(decodeURIComponent('${encodedClient}'))">月報</button>
         </div>
       `;
       cardsContainer.appendChild(card);
@@ -1331,6 +1679,8 @@
         tableBody.appendChild(tr);
       });
     });
+    renderTransactions();
+    renderRiskAlerts();
   }
 
   function toggleAutoRefresh() {
@@ -1366,6 +1716,7 @@
           const key = String(h.code || '').trim();
           if (priceMap[key] !== undefined && priceMap[key] !== null) {
             h.currentPrice = Number(priceMap[key]);
+            h.lastPriceAt = new Date().toISOString();
           }
         });
         await save();
@@ -1387,8 +1738,11 @@
       if (resData.success && resData.data && resData.data.holdings) {
         holdings = resData.data.holdings;
         profiles = resData.data.profiles || {};
+        transactions = Array.isArray(resData.data.transactions) ? resData.data.transactions : [];
+        migrateLegacyTransactions();
         localStorage.setItem(DB_KEY, JSON.stringify(holdings));
         localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+        localStorage.setItem(TX_KEY, JSON.stringify(transactions));
       }
       render();
       realRefresh();
@@ -1426,6 +1780,18 @@
       } else {
         holdings[existingIndex].quantity = currentQty - qtyVal;
       }
+      transactions.unshift(makeTransaction("sell", {
+        client: clientVal,
+        stockName: currentItem.stockName || stockVal,
+        code: currentItem.code || codeVal,
+        quantity: qtyVal,
+        price: costVal,
+        amount: qtyVal * costVal,
+        avgCost: Number(currentItem.cost) || 0,
+        costBasis: qtyVal * (Number(currentItem.cost) || 0),
+        realizedPnl: qtyVal * (costVal - (Number(currentItem.cost) || 0)),
+        note: qtyVal === currentQty ? "全部出清" : `部分賣出，剩餘 ${currentQty - qtyVal} 股`
+      }));
     } else {
       const id = document.getElementById("editId").value;
       const newItem = {
@@ -1444,8 +1810,21 @@
       if (id) {
         const idx = holdings.findIndex(h => h.id === id);
         if (idx > -1) {
-          newItem.currentPrice = holdings[idx].currentPrice ?? newItem.currentPrice;
+          const previousItem = { ...holdings[idx] };
+          newItem.currentPrice = previousItem.currentPrice ?? newItem.currentPrice;
+          newItem.lastPriceAt = previousItem.lastPriceAt || "";
           holdings[idx] = newItem;
+          transactions.unshift(makeTransaction("adjustment", {
+            client: clientVal,
+            stockName: stockVal,
+            code: codeVal,
+            quantity: qtyVal,
+            price: costVal,
+            amount: qtyVal * costVal,
+            avgCost: costVal,
+            costBasis: qtyVal * costVal,
+            note: `手動調整：${previousItem.quantity} 股／NT$ ${Number(previousItem.cost).toLocaleString("zh-TW")} → ${qtyVal} 股／NT$ ${costVal.toLocaleString("zh-TW")}`
+          }));
         }
       } else {
         const existingIndex = holdings.findIndex(h => h.client === newItem.client && h.code === newItem.code);
@@ -1465,6 +1844,17 @@
         } else {
           holdings.push(newItem);
         }
+        transactions.unshift(makeTransaction("buy", {
+          client: clientVal,
+          stockName: stockVal,
+          code: codeVal,
+          quantity: qtyVal,
+          price: costVal,
+          amount: qtyVal * costVal,
+          avgCost: costVal,
+          costBasis: qtyVal * costVal,
+          note: existingIndex > -1 ? "加碼買進，持倉成本已重新加權" : "建立新持倉"
+        }));
       }
     }
 
@@ -1476,6 +1866,20 @@
 
   window.delItem = async (id) => {
     if(!confirm("確定刪除？")) return;
+    const deleted = holdings.find(h => h.id === id);
+    if (deleted) {
+      transactions.unshift(makeTransaction("adjustment", {
+        client: deleted.client,
+        stockName: deleted.stockName,
+        code: deleted.code,
+        quantity: Number(deleted.quantity) || 0,
+        price: Number(deleted.cost) || 0,
+        amount: (Number(deleted.quantity) || 0) * (Number(deleted.cost) || 0),
+        avgCost: Number(deleted.cost) || 0,
+        costBasis: (Number(deleted.quantity) || 0) * (Number(deleted.cost) || 0),
+        note: "手動刪除持倉（不計入已實現損益）"
+      }));
+    }
     holdings = holdings.filter(h => h.id !== id);
     await save();
     showToast("持倉紀錄已刪除");
@@ -1512,8 +1916,9 @@
   async function save() {
     localStorage.setItem(DB_KEY, JSON.stringify(holdings));
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+    localStorage.setItem(TX_KEY, JSON.stringify(transactions));
     render();
-    return await apiSaveData({ customId: userId, holdings: holdings, profiles: profiles });
+    return await apiSaveData({ customId: userId, holdings: holdings, profiles: profiles, transactions: transactions });
   }
 
   function resetForm() {
@@ -1523,6 +1928,69 @@
     document.getElementById("tradeType").value = "buy";
     toggleTradeType();
   }
+
+  function downloadFullBackup(snapshot) {
+    const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const stamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+    a.href = url;
+    a.download = `完整資料備份-${userId || "account"}-${stamp}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  window.clearAllData = async () => {
+    if (!holdings.length && !Object.keys(profiles).length && !transactions.length) {
+      showToast("目前沒有可清除的資料");
+      return;
+    }
+
+    const confirmed = confirm(`確定永久清空帳號「${userId}」的全部持倉、客戶檔案與交易紀錄？\n\n系統會先自動下載完整備份；清除後無法從雲端復原。`);
+    if (!confirmed) return;
+
+    const snapshot = {
+      exportedAt: new Date().toISOString(),
+      account: userId,
+      holdings: JSON.parse(JSON.stringify(holdings)),
+      profiles: JSON.parse(JSON.stringify(profiles)),
+      transactions: JSON.parse(JSON.stringify(transactions))
+    };
+    downloadFullBackup(snapshot);
+
+    const button = document.getElementById("clearAllBtn");
+    button.disabled = true;
+    button.textContent = "正在清除...";
+
+    holdings = [];
+    profiles = {};
+    transactions = [];
+    selectedClient = null;
+    filterText = "";
+    searchInput.value = "";
+
+    const synced = await apiSaveData({ customId: userId, holdings: [], profiles: {}, transactions: [] });
+    if (synced) {
+      localStorage.setItem(DB_KEY, "[]");
+      localStorage.setItem(PROFILE_KEY, "{}");
+      localStorage.setItem(TX_KEY, "[]");
+      render();
+      resetForm();
+      showToast("所有持倉、客戶檔案與交易紀錄已清除");
+    } else {
+      holdings = snapshot.holdings;
+      profiles = snapshot.profiles;
+      transactions = snapshot.transactions;
+      localStorage.setItem(DB_KEY, JSON.stringify(holdings));
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
+      localStorage.setItem(TX_KEY, JSON.stringify(transactions));
+      render();
+      showToast("清除失敗，原資料已自動恢復", "error");
+    }
+
+    button.disabled = false;
+    button.textContent = "一鍵清除所有資料";
+  };
 
   window.openProfile = (client) => {
     const p = profiles[client] || {};
@@ -1593,6 +2061,115 @@
     const aiResponse = await callGeminiAI({ clientName: client, holdings: items, profile: profiles[client] || {}, type: "portfolio_diagnosis" });
     modalContent.innerHTML = `<div class="ai-box"><div class="ai-content"></div></div>`;
     modalContent.querySelector(".ai-content").textContent = aiResponse;
+  };
+
+  window.generateClientReport = async client => {
+    const clientHoldings = holdings.filter(h => h.client === client);
+    if (!clientHoldings.length) {
+      showToast("此客戶目前沒有可製作月報的持倉", "error");
+      return;
+    }
+    if (typeof html2pdf !== "function") {
+      showToast("月報元件尚未載入，請重新整理頁面", "error");
+      return;
+    }
+
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const monthLabel = `${now.getFullYear()} 年 ${now.getMonth() + 1} 月`;
+    const clientTransactions = transactions
+      .filter(tx => tx.client === client && String(tx.date || "").startsWith(monthKey))
+      .sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
+    const profile = profiles[client] || {};
+    const summary = clientHoldings.reduce((acc, h) => {
+      const quantity = Number(h.quantity) || 0;
+      const cost = Number(h.cost) || 0;
+      const price = Number(h.currentPrice ?? cost) || cost;
+      acc.cost += cost * quantity;
+      acc.value += price * quantity;
+      return acc;
+    }, { cost: 0, value: 0 });
+    const unrealized = summary.value - summary.cost;
+    const unrealizedRate = summary.cost ? unrealized / summary.cost * 100 : 0;
+    const realized = clientTransactions.reduce((sum, tx) => sum + (Number(tx.realizedPnl) || 0), 0);
+    const risks = getRiskAlerts(client).filter(item => item.status !== "safe");
+    const display = value => escapeHtml(value || "—");
+    const signedMoney = value => `${Number(value) >= 0 ? "+" : "−"}NT$ ${fmtMoney(Math.abs(Number(value) || 0))}`;
+    const typeLabel = { buy: "買入", sell: "賣出", opening: "期初", adjustment: "調整" };
+    const holdingRows = clientHoldings.map(h => {
+      const quantity = Number(h.quantity) || 0;
+      const cost = Number(h.cost) || 0;
+      const price = Number(h.currentPrice ?? cost) || cost;
+      const pnl = (price - cost) * quantity;
+      const rate = cost ? (price - cost) / cost * 100 : 0;
+      return `<tr>
+        <td><strong>${display(h.stockName)}</strong><small>${display(h.code)}</small></td>
+        <td class="num">${fmtMoney(quantity)}</td><td class="num">${fmtMoney(cost)}</td><td class="num">${fmtMoney(price)}</td>
+        <td class="num ${pnl >= 0 ? "gain" : "loss"}">${signedMoney(pnl)}<small>${fmtPct(rate)}</small></td>
+        <td class="num"><small>止損 ${h.stopLoss ? fmtMoney(h.stopLoss) : "—"}<br>止盈 ${h.takeProfit ? fmtMoney(h.takeProfit) : "—"}</small></td>
+      </tr>`;
+    }).join("");
+    const transactionRows = clientTransactions.slice(0, 12).map(tx => `<tr>
+      <td>${display(new Date(tx.date).toLocaleDateString("zh-TW"))}</td><td>${display(typeLabel[tx.type] || "紀錄")}</td>
+      <td><strong>${display(tx.stockName)}</strong><small>${display(tx.code)}</small></td><td class="num">${fmtMoney(tx.quantity)}</td>
+      <td class="num">${tx.price ? fmtMoney(tx.price) : "—"}</td><td class="num ${Number(tx.realizedPnl) >= 0 ? "gain" : "loss"}">${tx.type === "sell" ? signedMoney(tx.realizedPnl) : "—"}</td>
+    </tr>`).join("") || `<tr><td colspan="6" class="empty-cell">本月尚無交易紀錄</td></tr>`;
+    const riskRows = risks.length ? risks.map(risk => `<div class="risk-row">
+      <span class="risk-dot"></span><div><strong>${display(risk.stockName)} <small>${display(risk.code)}</small></strong><p>${display(risk.message)} · 現價 NT$ ${fmtMoney(risk.price)}</p></div>
+    </div>`).join("") : `<div class="risk-clear">本月檢視時，沒有已觸發或接近水位的風險提醒。</div>`;
+
+    const report = document.createElement("section");
+    report.className = "report-source";
+    report.innerHTML = `
+      <style>
+        .pdf-report{width:740px;flex:0 0 740px;font-family:"Microsoft JhengHei","Noto Sans TC",Arial,sans-serif;color:#162033;background:#fff;padding:32px 30px 26px;box-sizing:border-box;font-size:11px;line-height:1.55}
+        .pdf-report *{box-sizing:border-box}.pdf-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0d8f86;padding-bottom:18px;margin-bottom:20px}
+        .pdf-brand{font-size:11px;letter-spacing:.18em;color:#0d8f86;font-weight:800}.pdf-title{font-size:27px;margin:4px 0 3px;letter-spacing:-.04em}.pdf-sub{color:#7a8494}
+        .pdf-account{text-align:right;color:#667085}.pdf-account strong{display:block;color:#172133;font-size:14px}.pdf-account span{font-family:Consolas,monospace;font-size:10px}
+        .pdf-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px}.pdf-kpi{border:1px solid #dce3ea;border-radius:10px;padding:13px;background:#f8fafc}
+        .pdf-kpi span{color:#7a8494;font-size:9px;letter-spacing:.08em}.pdf-kpi strong{font-size:16px;display:block;margin-top:4px}.gain{color:#c43c48!important}.loss{color:#14877c!important}
+        .pdf-section{margin-top:20px;break-inside:avoid}.pdf-section h2{font-size:14px;margin:0 0 10px;display:flex;align-items:center;gap:8px}.pdf-section h2:before{content:"";width:4px;height:15px;border-radius:3px;background:#0d8f86}
+        .profile-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border:1px solid #e2e7ed;border-radius:10px;padding:12px}.profile-item span{display:block;color:#8a94a4;font-size:9px}.profile-item strong{font-size:11px}.profile-note{grid-column:1/-1;border-top:1px solid #edf0f3;padding-top:8px}
+        table{width:100%;border-collapse:collapse;font-size:9.5px}thead{display:table-header-group}tr{break-inside:avoid}th{text-align:left;color:#667085;background:#f1f5f7;border-bottom:1px solid #dce3ea;padding:8px 7px}td{padding:8px 7px;border-bottom:1px solid #e8ecf0;vertical-align:top}td small{display:block;color:#8993a2;font-weight:400}.num{text-align:right;white-space:nowrap}
+        .risk-row{display:flex;gap:9px;padding:9px 11px;background:#fff8eb;border:1px solid #f0dfb6;border-radius:8px;margin-bottom:7px}.risk-dot{width:7px;height:7px;background:#d99d32;border-radius:50%;margin-top:5px}.risk-row p{margin:1px 0 0;color:#6d7787}.risk-clear{padding:12px;background:#eff9f6;color:#14776f;border-radius:8px}
+        .empty-cell{text-align:center;color:#98a2b3;padding:18px}.pdf-foot{margin-top:24px;padding-top:12px;border-top:1px solid #dfe5eb;color:#8a94a4;font-size:8.5px;display:flex;justify-content:space-between;gap:20px}.pdf-foot p{margin:0;max-width:70%}
+      </style>
+      <div class="pdf-report">
+        <header class="pdf-head"><div><div class="pdf-brand">PORTFOLIO OS · CLIENT REPORT</div><h1 class="pdf-title">${display(client)} 投資組合月報</h1><div class="pdf-sub">${monthLabel} · 產出日期 ${now.toLocaleDateString("zh-TW")}</div></div><div class="pdf-account"><strong>客戶資產管理中心</strong><span>${display(userId)}</span></div></header>
+        <div class="pdf-kpis">
+          <div class="pdf-kpi"><span>目前市值</span><strong>NT$ ${fmtMoney(summary.value)}</strong></div>
+          <div class="pdf-kpi"><span>未實現損益</span><strong class="${unrealized >= 0 ? "gain" : "loss"}">${signedMoney(unrealized)}</strong></div>
+          <div class="pdf-kpi"><span>投資報酬率</span><strong class="${unrealized >= 0 ? "gain" : "loss"}">${fmtPct(unrealizedRate)}</strong></div>
+          <div class="pdf-kpi"><span>本月已實現</span><strong class="${realized >= 0 ? "gain" : "loss"}">${signedMoney(realized)}</strong></div>
+        </div>
+        <section class="pdf-section"><h2>客戶摘要</h2><div class="profile-grid">
+          <div class="profile-item"><span>性別</span><strong>${display(profile.gender)}</strong></div><div class="profile-item"><span>年齡</span><strong>${display(profile.age)}</strong></div><div class="profile-item"><span>投資經驗</span><strong>${display(profile.experience)}</strong></div>
+          <div class="profile-item"><span>投資風格</span><strong>${display(profile.style)}</strong></div><div class="profile-item"><span>興趣</span><strong>${display(profile.hobbies)}</strong></div><div class="profile-item"><span>家庭狀況</span><strong>${display(profile.family)}</strong></div>
+          <div class="profile-item profile-note"><span>客戶備註</span><strong>${display(profile.note)}</strong></div></div></section>
+        <section class="pdf-section"><h2>目前持倉</h2><table><thead><tr><th>股票</th><th class="num">股數</th><th class="num">成本</th><th class="num">現價</th><th class="num">損益</th><th class="num">風控</th></tr></thead><tbody>${holdingRows}</tbody></table></section>
+        <section class="pdf-section"><h2>風險提醒</h2>${riskRows}</section>
+        <section class="pdf-section"><h2>本月交易紀錄</h2><table><thead><tr><th>日期</th><th>類型</th><th>股票</th><th class="num">股數</th><th class="num">成交價</th><th class="num">已實現</th></tr></thead><tbody>${transactionRows}</tbody></table></section>
+        <footer class="pdf-foot"><p>本報告依系統目前資料自動產生，僅供投資追蹤與客戶溝通使用，不構成任何投資建議。行情與公司資訊請以證交所、櫃買中心及公開資訊觀測站公告為準。</p><div>Portfolio OS<br>${display(userId)}</div></footer>
+      </div>`;
+    document.body.appendChild(report);
+    showToast(`正在產生 ${client} 的月報...`);
+    const safeClient = client.replace(/[\\/:*?"<>|]/g, "-");
+    try {
+      await html2pdf().set({
+        margin: [7, 7, 7, 7],
+        filename: `${safeClient}-${monthKey}-投資組合月報.pdf`,
+        image: { type: "jpeg", quality: 0.96 },
+        html2canvas: { scale: 2, useCORS: true, backgroundColor: "#ffffff" },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"], avoid: ["tr", ".pdf-kpi", ".risk-row"] }
+      }).from(report.querySelector(".pdf-report")).save();
+      showToast("客戶月報已下載");
+    } catch (error) {
+      console.error(error);
+      showToast("月報產生失敗，請稍後再試", "error");
+    } finally {
+      report.remove();
+    }
   };
 
   window.exportCSV = () => {

@@ -35,7 +35,8 @@ const userSchema = new mongoose.Schema({
   customId: { type: String, required: true, unique: true },
   password: { type: String, default: "" },
   holdings: { type: Array, default: [] },
-  profiles: { type: Object, default: {} }
+  profiles: { type: Object, default: {} },
+  transactions: { type: Array, default: [] }
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
@@ -124,7 +125,7 @@ app.get('/api/get_data', async (req, res) => {
     } else {
       return res.json({
         success: true,
-        data: { password: "", holdings: [], profiles: {} }
+        data: { password: "", holdings: [], profiles: {}, transactions: [] }
       });
     }
   } catch (err) {
@@ -134,7 +135,7 @@ app.get('/api/get_data', async (req, res) => {
 
 // 儲存用戶資料
 app.post('/api/save_data', async (req, res) => {
-  const { customId, password, holdings, profiles } = req.body;
+  const { customId, password, holdings, profiles, transactions } = req.body;
 
   if (!customId) {
     return res.status(400).json({ success: false, message: '缺少 customId' });
@@ -150,11 +151,12 @@ app.post('/api/save_data', async (req, res) => {
     }
 
     if (!userData) {
-      userData = new User({ customId, password, holdings, profiles });
+      userData = new User({ customId, password, holdings, profiles, transactions });
     } else {
       userData.password = password || userData.password;
-      userData.holdings = holdings || [];
-      userData.profiles = profiles || {};
+      if (Array.isArray(holdings)) userData.holdings = holdings;
+      if (profiles && typeof profiles === 'object') userData.profiles = profiles;
+      if (Array.isArray(transactions)) userData.transactions = transactions;
     }
 
     await userData.save();
@@ -182,7 +184,8 @@ app.post('/api/admin/all_data', async (req, res) => {
       password: u.password,
       holdingsCount: (u.holdings || []).length,
       holdings: u.holdings || [],
-      profiles: u.profiles || {}
+      profiles: u.profiles || {},
+      transactions: u.transactions || []
     }));
 
     return res.json({
@@ -301,6 +304,179 @@ app.post('/api/prices', async (req, res) => {
     return res.json({ success: true, prices: priceMap });
   } catch (err) {
     return res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ==================== 5. 持倉公司官方資訊 API ====================
+// 資料來源：臺灣證券交易所與櫃買中心 OpenAPI。結果快取 30 分鐘，避免重複抓取大型資料集。
+const marketDatasetCache = new Map();
+const MARKET_CACHE_TTL = 30 * 60 * 1000;
+
+async function fetchMarketDataset(cacheKey, url) {
+  const cached = marketDatasetCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.data;
+
+  const response = await axios.get(url, {
+    timeout: 15000,
+    headers: {
+      'Accept': 'application/json',
+      'User-Agent': 'PortfolioOS/2.0 market-calendar'
+    }
+  });
+  const data = Array.isArray(response.data) ? response.data : [];
+  marketDatasetCache.set(cacheKey, { data, expiresAt: Date.now() + MARKET_CACHE_TTL });
+  return data;
+}
+
+function normalizeStockCode(value) {
+  return String(value || '').trim().replace(/[^0-9A-Za-z]/g, '');
+}
+
+function rocDateToIso(value, monthOnly = false) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (digits.length < 5) return '';
+  const rocYear = Number(digits.slice(0, 3));
+  const year = rocYear + 1911;
+  const month = digits.slice(3, 5);
+  if (monthOnly || digits.length < 7) return `${year}-${month}`;
+  const day = digits.slice(5, 7);
+  return `${year}-${month}-${day}`;
+}
+
+function cleanNumber(value) {
+  const parsed = Number(String(value ?? '').replace(/,/g, ''));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function groupLatestByCode(rows, getCode, getSortValue) {
+  const latest = new Map();
+  rows.forEach(row => {
+    const code = normalizeStockCode(getCode(row));
+    if (!code) return;
+    const sortValue = String(getSortValue(row) || '');
+    const current = latest.get(code);
+    if (!current || sortValue > current.sortValue) latest.set(code, { row, sortValue });
+  });
+  return latest;
+}
+
+app.post('/api/market_events', async (req, res) => {
+  const codes = [...new Set((req.body?.codes || []).map(normalizeStockCode).filter(code => /^\d{4,6}$/.test(code)))].slice(0, 80);
+  if (!codes.length) return res.json({ success: true, events: [], updatedAt: new Date().toISOString() });
+  const codeSet = new Set(codes);
+
+  const sources = [
+    ['twse_announcements', 'https://openapi.twse.com.tw/v1/opendata/t187ap04_L'],
+    ['twse_revenue', 'https://openapi.twse.com.tw/v1/opendata/t187ap05_L'],
+    ['twse_dividends', 'https://openapi.twse.com.tw/v1/opendata/t187ap45_L'],
+    ['tpex_announcements', 'https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap04_O'],
+    ['tpex_revenue', 'https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap05_O'],
+    ['tpex_dividends', 'https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap39_O']
+  ];
+
+  try {
+    const settled = await Promise.allSettled(sources.map(([key, url]) => fetchMarketDataset(key, url)));
+    const datasets = Object.fromEntries(settled.map((result, index) => [sources[index][0], result.status === 'fulfilled' ? result.value : []]));
+    const sourceStatus = Object.fromEntries(settled.map((result, index) => [sources[index][0], result.status]));
+    const events = [];
+
+    const appendAnnouncements = (rows, market) => {
+      rows
+        .filter(row => codeSet.has(normalizeStockCode(row['公司代號'] || row.SecuritiesCompanyCode)))
+        .sort((a, b) => String(b['發言日期'] || '').localeCompare(String(a['發言日期'] || '')))
+        .slice(0, 30)
+        .forEach(row => {
+          const code = normalizeStockCode(row['公司代號'] || row.SecuritiesCompanyCode);
+          const rawTime = String(row['發言時間'] || '').padStart(6, '0');
+          events.push({
+            id: `announcement-${market}-${code}-${row['發言日期'] || ''}-${rawTime}`,
+            category: 'announcement',
+            market,
+            code,
+            companyName: row['公司名稱'] || row.CompanyName || code,
+            date: rocDateToIso(row['發言日期']),
+            time: `${rawTime.slice(0, 2)}:${rawTime.slice(2, 4)}`,
+            title: String(row['主旨 '] || row['主旨'] || '重大訊息').replace(/\s+/g, ' ').trim(),
+            detail: String(row['說明'] || '').slice(0, 1200),
+            sourceUrl: 'https://mops.twse.com.tw/'
+          });
+        });
+    };
+
+    appendAnnouncements(datasets.twse_announcements, '上市');
+    appendAnnouncements(datasets.tpex_announcements, '上櫃');
+
+    const appendRevenue = (rows, market) => {
+      const latest = groupLatestByCode(rows, row => row['公司代號'], row => row['資料年月']);
+      codes.forEach(code => {
+        const entry = latest.get(code);
+        if (!entry) return;
+        const row = entry.row;
+        events.push({
+          id: `revenue-${market}-${code}-${row['資料年月'] || ''}`,
+          category: 'revenue',
+          market,
+          code,
+          companyName: row['公司名稱'] || code,
+          date: rocDateToIso(row['出表日期']),
+          period: rocDateToIso(row['資料年月'], true),
+          title: `${rocDateToIso(row['資料年月'], true)} 月營收`,
+          revenue: cleanNumber(row['營業收入-當月營收']),
+          mom: cleanNumber(row['營業收入-上月比較增減(%)']),
+          yoy: cleanNumber(row['營業收入-去年同月增減(%)']),
+          sourceUrl: 'https://mops.twse.com.tw/'
+        });
+      });
+    };
+
+    appendRevenue(datasets.twse_revenue, '上市');
+    appendRevenue(datasets.tpex_revenue, '上櫃');
+
+    const appendDividends = (rows, market) => {
+      const latest = groupLatestByCode(
+        rows,
+        row => row['公司代號'],
+        row => row['董事會（擬議）股利分派日'] || row['董事會決議通過股利分派日'] || row['出表日期']
+      );
+      codes.forEach(code => {
+        const entry = latest.get(code);
+        if (!entry) return;
+        const row = entry.row;
+        const dateValue = row['董事會（擬議）股利分派日'] || row['董事會決議通過股利分派日'] || row['出表日期'];
+        const cashDividend = market === '上市'
+          ? [
+              row['股東配發-盈餘分配之現金股利(元/股)'],
+              row['股東配發-法定盈餘公積發放之現金(元/股)'],
+              row['股東配發-資本公積發放之現金(元/股)']
+            ].reduce((sum, value) => sum + (cleanNumber(value) || 0), 0)
+          : [
+              row['股東配發內容-盈餘分配之現金股利(元/股)'],
+              row['股東配發內容-法定盈餘公積、資本公積發放之現金(元/股)']
+            ].reduce((sum, value) => sum + (cleanNumber(value) || 0), 0);
+        events.push({
+          id: `dividend-${market}-${code}-${row['股利年度'] || ''}-${row['期別'] || ''}`,
+          category: 'dividend',
+          market,
+          code,
+          companyName: row['公司名稱'] || code,
+          date: rocDateToIso(dateValue),
+          title: cashDividend > 0 ? `現金股利 ${cashDividend.toFixed(2)} 元/股` : '股利分派資訊更新',
+          cashDividend,
+          dividendYear: row['股利年度'] || '',
+          progress: row['決議（擬議）進度'] || '董事會通過',
+          sourceUrl: 'https://mops.twse.com.tw/'
+        });
+      });
+    };
+
+    appendDividends(datasets.twse_dividends, '上市');
+    appendDividends(datasets.tpex_dividends, '上櫃');
+
+    events.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || a.code.localeCompare(b.code));
+    return res.json({ success: true, events: events.slice(0, 80), sourceStatus, updatedAt: new Date().toISOString() });
+  } catch (err) {
+    console.error('官方市場資訊抓取失敗:', err.message);
+    return res.status(502).json({ success: false, events: [], message: '官方市場資訊暫時無法取得' });
   }
 });
 
