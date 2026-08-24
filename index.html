@@ -102,6 +102,13 @@
     .live-dot{width:6px;height:6px;border-radius:50%;background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.1);animation:pulse 2s infinite}
     @keyframes pulse{50%{box-shadow:0 0 0 7px rgba(52,211,153,0)}}
     .sidebar-note{margin-top:auto;padding-top:16px;font-size:10px;line-height:1.55;color:#71829b;border-top:1px solid rgba(255,255,255,.07)}
+    .smart-entry{position:relative;overflow:hidden;margin:0 0 16px;padding:13px;border:1px solid rgba(68,216,198,.2);border-radius:13px;background:linear-gradient(135deg,rgba(15,159,143,.18),rgba(43,67,99,.2));box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+    .smart-entry::after{content:"AI";position:absolute;right:-7px;top:-12px;font-size:54px;font-weight:900;color:rgba(255,255,255,.035);letter-spacing:-.08em}
+    .smart-entry-head{display:flex;align-items:center;gap:9px;position:relative;z-index:1}.smart-entry-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#1bc0ad;color:#07241f;font-size:10px;font-weight:900;box-shadow:0 7px 16px rgba(15,159,143,.22)}
+    .smart-entry strong{font-size:12px;color:#f3fffd;display:block}.smart-entry p{font-size:9px;line-height:1.45;color:#9dc0c4;margin:3px 0 0}
+    .smart-entry-button{position:relative;z-index:1;width:100%;height:33px;margin-top:10px;border:1px solid rgba(105,230,214,.28);border-radius:8px;background:rgba(9,33,46,.55);color:#87f1e2;font-size:10px;font-weight:800;letter-spacing:.02em}.smart-entry-button:hover{background:rgba(15,159,143,.22);border-color:#47d1c0;color:#fff}
+    .btn-smart{background:#e5f7f4!important;color:#087e72!important;border-color:#b9e7e1!important;font-weight:800!important}.btn-smart:hover{background:#d7f2ed!important;border-color:#86d6cc!important}
+    .manual-label{display:flex;align-items:center;gap:8px;color:#71839b;font-size:9px;letter-spacing:.08em;margin:0 1px 11px}.manual-label::before,.manual-label::after{content:"";height:1px;flex:1;background:rgba(255,255,255,.08)}
     .sidebar .form-group label{color:#91a1b9}
     .sidebar input,.sidebar select,.sidebar textarea{
       color:#f8fafc;
@@ -708,12 +715,25 @@
     .loading-state{padding:54px 20px;text-align:center;color:#7b8798;font-size:12px}
     .loading-state .ai-loading-spinner{display:block;margin:0 auto 12px}
     .report-source{position:fixed;inset:0;overflow:auto;background:rgba(12,22,38,.78);z-index:10020;padding:28px;display:flex;justify-content:center;align-items:flex-start;color:#142033}
+    .ocr-modal{width:min(1180px,95vw);height:min(850px,92vh);padding:0;overflow:hidden;display:flex;flex-direction:column;background:#f7f9fb}
+    .ocr-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:20px 22px 16px;background:#fff;border-bottom:1px solid var(--border)}
+    .ocr-title-wrap{display:flex;align-items:center;gap:12px}.ocr-title-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(145deg,#0b766e,#18b7a5);color:#fff;font-size:11px;font-weight:900;box-shadow:0 8px 18px rgba(15,159,143,.23)}
+    .ocr-title{font-size:17px;font-weight:850;letter-spacing:-.02em;color:#142033}.ocr-title-wrap p{margin:3px 0 0;font-size:10px;color:#7e8a9b}.ocr-header-actions{display:flex;align-items:center;gap:8px}
+    .ocr-steps{display:flex;align-items:center;gap:7px;padding:11px 22px;background:#fff;border-bottom:1px solid var(--border)}.ocr-step{display:flex;align-items:center;gap:6px;color:#98a2b3;font-size:9px;font-weight:700}.ocr-step b{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;background:#edf1f5;color:#7c8796;font-size:8px}.ocr-step.active{color:#087e72}.ocr-step.active b{background:#dff5f1;color:#087e72}.ocr-step-divider{height:1px;width:30px;background:#dde3e9}
+    .ocr-body{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;padding:14px;min-height:0;flex:1}.ocr-panel{background:#fff;border:1px solid var(--border);border-radius:13px;min-height:0;box-shadow:0 5px 16px rgba(19,34,54,.035)}.ocr-upload-panel{padding:15px;overflow:auto}.ocr-result-panel{display:flex;flex-direction:column;overflow:hidden}
+    .ocr-label{display:block;font-size:10px;color:#667085;font-weight:750;margin-bottom:6px}.ocr-client-input{width:100%;height:39px;border:1px solid #d9e0e8;border-radius:9px;padding:0 11px;color:#273548;outline:none;background:#fbfcfd}.ocr-client-input:focus{border-color:#38b6a8;box-shadow:0 0 0 3px rgba(15,159,143,.09)}
+    .ocr-dropzone{margin-top:13px;border:1.5px dashed #b9c6d2;border-radius:12px;padding:21px 14px;text-align:center;background:#f8fafb;cursor:pointer;transition:.18s}.ocr-dropzone:hover,.ocr-dropzone.dragover{border-color:#1cae9d;background:#effaf8}.ocr-drop-icon{width:42px;height:42px;margin:0 auto 9px;border-radius:12px;display:grid;place-items:center;background:#e3f6f3;color:#087e72;font-size:18px;font-weight:900}.ocr-dropzone strong{display:block;font-size:12px;color:#344054}.ocr-dropzone span{display:block;font-size:9px;line-height:1.5;color:#8b96a7;margin-top:4px}
+    .ocr-previews{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:10px}.ocr-preview{position:relative;height:88px;border:1px solid #dfe5eb;border-radius:9px;overflow:hidden;background:#eef2f5}.ocr-preview img{width:100%;height:100%;object-fit:cover}.ocr-preview-meta{position:absolute;inset:auto 0 0;padding:18px 6px 5px;background:linear-gradient(transparent,rgba(9,18,31,.78));color:#fff;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ocr-preview button{position:absolute;right:4px;top:4px;width:21px;height:21px;border:0;border-radius:6px;background:rgba(9,18,31,.76);color:#fff;font-size:11px}.ocr-help{margin-top:11px;padding:9px 10px;border-radius:9px;background:#fff8e9;color:#8c651e;font-size:9px;line-height:1.55}
+    .ocr-result-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 14px;border-bottom:1px solid var(--border)}.ocr-result-head strong{font-size:12px}.ocr-result-head span{font-size:9px;color:#8a95a5}.ocr-result-scroll{min-height:0;overflow:auto;flex:1}.ocr-table{min-width:790px;font-size:10px}.ocr-table th{position:sticky;top:0;z-index:3;background:#f1f4f7}.ocr-table td{padding:7px 6px}.ocr-field{width:100%;min-width:72px;height:31px;border:1px solid #dde4eb;border-radius:7px;padding:0 7px;font-size:10px;color:#263548;background:#fff;outline:none}.ocr-field:focus{border-color:#31ae9f;box-shadow:0 0 0 2px rgba(15,159,143,.08)}.ocr-field.invalid{border-color:#e25a6c;background:#fff6f7}.ocr-check{width:15px;height:15px;accent-color:#0f9f8f}.ocr-remove{width:27px;height:27px;border:1px solid #efd6da;border-radius:7px;background:#fff5f6;color:#c7384d}.ocr-confidence{display:flex;flex-direction:column;gap:4px;min-width:55px}.ocr-confidence-bar{height:4px;background:#edf1f4;border-radius:4px;overflow:hidden}.ocr-confidence-bar i{display:block;height:100%;background:#14a894}.ocr-confidence span{font-size:8px;color:#7e8999}
+    .ocr-empty{height:100%;min-height:310px;display:grid;place-items:center;text-align:center;color:#8b96a6}.ocr-empty strong{display:block;color:#4a5668;font-size:13px;margin-bottom:4px}.ocr-loading{height:100%;min-height:310px;display:grid;place-items:center;text-align:center;color:#687588}.ocr-loading p{font-size:10px;margin:8px 0 0}.ocr-warnings{display:none;margin:10px 14px 0;padding:9px 11px;border-radius:9px;background:#fff7e6;color:#8c651e;font-size:9px;line-height:1.55}.ocr-warnings.show{display:block}
+    .ocr-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:#fff;border-top:1px solid var(--border)}.ocr-footer-note{font-size:9px;color:#8b96a7}.ocr-footer-actions{display:flex;gap:7px}.ocr-import-btn{height:36px;padding:0 15px;border:0;border-radius:9px;background:#0f9f8f;color:#fff;font-size:10px;font-weight:800;box-shadow:0 7px 16px rgba(15,159,143,.18)}.ocr-import-btn:disabled{background:#c5ced7;box-shadow:none;cursor:not-allowed}.ocr-scan-btn{height:36px;padding:0 15px;border:1px solid #99d8d0;border-radius:9px;background:#e9f8f5;color:#087e72;font-size:10px;font-weight:800}.ocr-scan-btn:disabled{opacity:.5;cursor:not-allowed}
     @media(max-width:1250px){
       .layout-container{grid-template-columns:300px minmax(0,1fr)}
       .summary-grid{grid-template-columns:1fr 1fr}
       .summary-card{min-height:82px}
       .sync-meta{display:none}
       .search-wrapper{width:210px}
+      .ocr-body{grid-template-columns:290px minmax(0,1fr)}
     }
     @media(max-width:900px){
       body{height:auto;min-height:100vh;overflow:auto;padding:12px}
@@ -795,6 +815,11 @@
       <h2>交易工作台</h2>
       <span class="market-live"><span class="live-dot"></span>TW 市場</span>
     </div>
+    <div class="smart-entry">
+      <div class="smart-entry-head"><span class="smart-entry-icon">AI</span><div><strong>截圖批量建倉</strong><p>上傳多張客戶截圖，一次辨識多檔股票</p></div></div>
+      <button type="button" class="smart-entry-button" onclick="openHoldingScanner()">開啟智慧辨識</button>
+    </div>
+    <div class="manual-label">或手動登記單筆交易</div>
     
     <div class="form-group">
       <label>操作類型</label>
@@ -898,6 +923,7 @@
           <input type="checkbox" id="autoRefreshCheck" onchange="toggleAutoRefresh()">
           <span>10 秒自動更新</span>
         </label>
+        <button class="btn btn-ghost btn-sm btn-smart" onclick="openHoldingScanner()">截圖辨識</button>
         <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
         <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
         <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="realRefresh()">更新行情</button>
@@ -1021,6 +1047,35 @@
   </div>
 </div>
 
+<!-- 持倉截圖批量辨識 Modal -->
+<div id="ocrModal" class="modal-overlay">
+  <div class="modal ocr-modal" role="dialog" aria-modal="true" aria-labelledby="ocrModalTitle">
+    <header class="ocr-header">
+      <div class="ocr-title-wrap"><div class="ocr-title-icon">AI</div><div><div class="ocr-title" id="ocrModalTitle">持倉截圖批量建倉</div><p>一次上傳最多 6 張截圖，辨識後可逐欄修改，再一次性登記。</p></div></div>
+      <div class="ocr-header-actions"><button class="btn btn-ghost" onclick="resetOcrWorkflow()">重新開始</button><button class="btn-close" onclick="closeHoldingScanner()">關閉</button></div>
+    </header>
+    <div class="ocr-steps"><span id="ocrStepUpload" class="ocr-step active"><b>1</b>上傳截圖</span><i class="ocr-step-divider"></i><span id="ocrStepRead" class="ocr-step"><b>2</b>AI 辨識</span><i class="ocr-step-divider"></i><span id="ocrStepConfirm" class="ocr-step"><b>3</b>核對登記</span></div>
+    <div class="ocr-body">
+      <section class="ocr-panel ocr-upload-panel">
+        <label class="ocr-label" for="ocrClientName">登記到哪位客戶</label>
+        <input id="ocrClientName" class="ocr-client-input" placeholder="輸入客戶姓名" />
+        <input id="ocrFileInput" type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onchange="handleOcrFileInput(event)" />
+        <div id="ocrDropzone" class="ocr-dropzone" onclick="document.getElementById('ocrFileInput').click()">
+          <div class="ocr-drop-icon">＋</div><strong>拖入或選擇持倉截圖</strong><span>支援 JPG、PNG、WebP<br>最多 6 張，系統會自動壓縮</span>
+        </div>
+        <div id="ocrPreviews" class="ocr-previews"></div>
+        <div class="ocr-help">建議截圖包含股票名稱、代碼、持有股數與平均成本。辨識結果不會直接寫入，請先核對紅框欄位。</div>
+      </section>
+      <section class="ocr-panel ocr-result-panel">
+        <div class="ocr-result-head"><div><strong>辨識結果</strong><span id="ocrResultSummary" style="display:block;margin-top:3px;">尚未開始辨識</span></div><span id="ocrImageCount">0 / 6 張</span></div>
+        <div id="ocrWarnings" class="ocr-warnings"></div>
+        <div id="ocrResultScroll" class="ocr-result-scroll"><div class="ocr-empty"><div><strong>等待持倉截圖</strong>上傳圖片並點擊「開始辨識」</div></div></div>
+      </section>
+    </div>
+    <footer class="ocr-footer"><div class="ocr-footer-note">AI 可能誤讀數字；系統只會匯入已勾選且資料完整的項目。</div><div class="ocr-footer-actions"><button id="ocrScanBtn" class="ocr-scan-btn" onclick="recognizeOcrScreenshots()" disabled>開始辨識</button><button id="ocrImportBtn" class="ocr-import-btn" onclick="importRecognizedHoldings()" disabled>一次登記 0 筆</button></div></footer>
+  </div>
+</div>
+
 <div id="toast" class="toast" role="status" aria-live="polite"><span class="toast-dot"></span><span id="toastText"></span></div>
 
 <!-- AI 分析 Modal -->
@@ -1087,6 +1142,9 @@
   let currentDataView = "holdings";
   let marketEvents = [];
   let marketEventFilter = "all";
+  let ocrFiles = [];
+  let ocrResults = [];
+  let ocrBusy = false;
 
   let userId = localStorage.getItem("app_user_id") || "";
   let currentPassword = localStorage.getItem("app_user_password") || "";
@@ -1136,6 +1194,310 @@
     const el = document.getElementById("userStatusDisplay");
     if (el) el.innerText = userId || "未登入";
   }
+
+  function setOcrStep(step) {
+    document.getElementById("ocrStepUpload").classList.toggle("active", step === "upload");
+    document.getElementById("ocrStepRead").classList.toggle("active", step === "read");
+    document.getElementById("ocrStepConfirm").classList.toggle("active", step === "confirm");
+  }
+
+  window.openHoldingScanner = () => {
+    if (!userId || !currentPassword) {
+      showToast("請先登入帳號再使用截圖辨識", "error");
+      return;
+    }
+    const clientInput = document.getElementById("ocrClientName");
+    if (!clientInput.value.trim()) clientInput.value = document.getElementById("client").value.trim() || selectedClient || "";
+    document.getElementById("ocrModal").style.display = "flex";
+    updateOcrControls();
+    setTimeout(() => clientInput.focus(), 80);
+  };
+
+  window.closeHoldingScanner = () => {
+    if (ocrBusy) {
+      showToast("正在辨識圖片，請稍候", "error");
+      return;
+    }
+    document.getElementById("ocrModal").style.display = "none";
+  };
+
+  window.resetOcrWorkflow = () => {
+    if (ocrBusy) return;
+    ocrFiles.forEach(item => URL.revokeObjectURL(item.previewUrl));
+    ocrFiles = [];
+    ocrResults = [];
+    document.getElementById("ocrFileInput").value = "";
+    document.getElementById("ocrWarnings").className = "ocr-warnings";
+    document.getElementById("ocrWarnings").innerHTML = "";
+    document.getElementById("ocrResultScroll").innerHTML = `<div class="ocr-empty"><div><strong>等待持倉截圖</strong>上傳圖片並點擊「開始辨識」</div></div>`;
+    document.getElementById("ocrResultSummary").textContent = "尚未開始辨識";
+    setOcrStep("upload");
+    renderOcrPreviews();
+    updateOcrControls();
+  };
+
+  function addOcrFiles(fileList) {
+    const allowed = new Set(["image/jpeg", "image/png", "image/webp"]);
+    let rejected = 0;
+    [...fileList].forEach(file => {
+      const duplicate = ocrFiles.some(item => item.file.name === file.name && item.file.size === file.size && item.file.lastModified === file.lastModified);
+      if (duplicate) return;
+      if (!allowed.has(file.type) || file.size > 10 * 1024 * 1024 || ocrFiles.length >= 6) { rejected += 1; return; }
+      ocrFiles.push({ id:`ocr-file-${Date.now()}-${Math.random().toString(36).slice(2,7)}`, file, previewUrl:URL.createObjectURL(file) });
+    });
+    if (rejected) showToast("部分圖片格式不符、過大，或已超過 6 張限制", "error");
+    ocrResults = [];
+    document.getElementById("ocrResultScroll").innerHTML = `<div class="ocr-empty"><div><strong>${ocrFiles.length ? "圖片已就緒" : "等待持倉截圖"}</strong>${ocrFiles.length ? "點擊「開始辨識」讀取持倉" : "請選擇 JPG、PNG 或 WebP 圖片"}</div></div>`;
+    document.getElementById("ocrResultSummary").textContent = ocrFiles.length ? `已選擇 ${ocrFiles.length} 張圖片` : "尚未開始辨識";
+    setOcrStep("upload");
+    renderOcrPreviews();
+    updateOcrControls();
+  }
+
+  window.handleOcrFileInput = event => addOcrFiles(event.target.files || []);
+
+  function renderOcrPreviews() {
+    document.getElementById("ocrImageCount").textContent = `${ocrFiles.length} / 6 張`;
+    document.getElementById("ocrPreviews").innerHTML = ocrFiles.map((item, index) => `<div class="ocr-preview"><img src="${item.previewUrl}" alt="截圖 ${index + 1}"><div class="ocr-preview-meta">${index + 1}. ${escapeHtml(item.file.name)}</div><button type="button" onclick="removeOcrFile(${index})" title="移除">×</button></div>`).join("");
+  }
+
+  window.removeOcrFile = index => {
+    if (ocrBusy || !ocrFiles[index]) return;
+    URL.revokeObjectURL(ocrFiles[index].previewUrl);
+    ocrFiles.splice(index, 1);
+    ocrResults = [];
+    renderOcrPreviews();
+    document.getElementById("ocrResultScroll").innerHTML = `<div class="ocr-empty"><div><strong>${ocrFiles.length ? "圖片已更新" : "等待持倉截圖"}</strong>${ocrFiles.length ? "請重新開始辨識" : "請選擇要辨識的圖片"}</div></div>`;
+    document.getElementById("ocrResultSummary").textContent = ocrFiles.length ? `已選擇 ${ocrFiles.length} 張圖片` : "尚未開始辨識";
+    updateOcrControls();
+  };
+
+  function updateOcrControls() {
+    const clientName = document.getElementById("ocrClientName").value.trim();
+    document.getElementById("ocrScanBtn").disabled = ocrBusy || !ocrFiles.length || !clientName;
+    syncOcrImportState();
+  }
+
+  function readFileDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("圖片讀取失敗"));
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function compressOcrImage(file) {
+    const bitmap = await createImageBitmap(file);
+    const maxSide = 2400;
+    const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d", { alpha:false });
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = "high";
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("圖片壓縮失敗")), "image/jpeg", 0.9));
+    const dataUrl = await readFileDataUrl(blob);
+    return { mimeType:"image/jpeg", data:String(dataUrl).split(",")[1] };
+  }
+
+  window.recognizeOcrScreenshots = async () => {
+    const clientName = document.getElementById("ocrClientName").value.trim();
+    if (!clientName || !ocrFiles.length || ocrBusy) return;
+    ocrBusy = true;
+    updateOcrControls();
+    setOcrStep("read");
+    document.getElementById("ocrResultSummary").textContent = `正在辨識 ${ocrFiles.length} 張圖片`;
+    document.getElementById("ocrResultScroll").innerHTML = `<div class="ocr-loading"><div><span class="ai-loading-spinner"></span><strong style="display:block;">AI 正在讀取持倉欄位</strong><p>圖片越多，處理時間可能越長</p></div></div>`;
+    document.getElementById("ocrWarnings").className = "ocr-warnings";
+    try {
+      const accountReady = await apiSaveData({ customId:userId, holdings, profiles, transactions });
+      if (!accountReady) throw new Error("帳號資料尚未完成雲端同步");
+      const images = await Promise.all(ocrFiles.map(item => compressOcrImage(item.file)));
+      const response = await fetch(`${API_URL}/ocr_holdings`, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({ customId:userId, password:currentPassword, clientName, images })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "持倉辨識失敗");
+      ocrResults = (data.holdings || []).map((item, index) => ({
+        ...item,
+        id:item.id || `ocr-result-${Date.now()}-${index}`,
+        selected:true,
+        quantity:Number(item.quantity) || 0,
+        cost:Number(item.cost) || 0,
+        currentPrice:Number(item.currentPrice) || 0,
+        stopLoss:Number(item.stopLoss) || 0,
+        takeProfit:Number(item.takeProfit) || 0,
+        confidence:Number(item.confidence) || 0
+      }));
+      renderOcrResults();
+      const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+      const warningBox = document.getElementById("ocrWarnings");
+      if (warnings.length) {
+        warningBox.innerHTML = `<strong>請留意：</strong>${warnings.map(escapeHtml).join(" · ")}`;
+        warningBox.className = "ocr-warnings show";
+      }
+      setOcrStep("confirm");
+      showToast(`已辨識 ${ocrResults.length} 筆持倉，請核對後登記`);
+    } catch (error) {
+      console.error(error);
+      ocrResults = [];
+      document.getElementById("ocrResultSummary").textContent = "辨識未完成";
+      document.getElementById("ocrResultScroll").innerHTML = `<div class="ocr-empty"><div><strong>辨識失敗</strong>${escapeHtml(error.message || "請稍後再試")}</div></div>`;
+      setOcrStep("upload");
+      showToast(error.message || "持倉辨識失敗", "error");
+    } finally {
+      ocrBusy = false;
+      updateOcrControls();
+    }
+  };
+
+  function isValidOcrHolding(item) {
+    return Boolean(String(item.stockName || "").trim() && /^\d{4,6}$/.test(String(item.code || "").trim()) && Number(item.quantity) > 0 && Number(item.cost) > 0);
+  }
+
+  function renderOcrResults() {
+    const host = document.getElementById("ocrResultScroll");
+    if (!ocrResults.length) {
+      host.innerHTML = `<div class="ocr-empty"><div><strong>沒有辨識到持倉</strong>請換一張更清晰、包含持倉明細的截圖</div></div>`;
+      document.getElementById("ocrResultSummary").textContent = "0 筆辨識結果";
+      syncOcrImportState();
+      return;
+    }
+    host.innerHTML = `<table class="ocr-table"><thead><tr><th style="width:34px;"><input class="ocr-check" type="checkbox" checked onchange="toggleAllOcrResults(this.checked)"></th><th>股票名稱</th><th>代碼</th><th class="num">股數</th><th class="num">平均成本</th><th class="num">畫面現價</th><th>可信度</th><th>來源</th><th></th></tr></thead><tbody>${ocrResults.map((item, index) => {
+      const validName = String(item.stockName || "").trim();
+      const validCode = /^\d{4,6}$/.test(String(item.code || "").trim());
+      return `<tr><td><input class="ocr-check" type="checkbox" ${item.selected ? "checked" : ""} onchange="toggleOcrResult(${index},this.checked)"></td>
+        <td><input class="ocr-field ${validName ? "" : "invalid"}" value="${escapeHtml(item.stockName)}" onchange="updateOcrResult(${index},'stockName',this.value)"></td>
+        <td><input class="ocr-field ${validCode ? "" : "invalid"}" style="min-width:64px;width:74px;" value="${escapeHtml(item.code)}" inputmode="numeric" onchange="updateOcrResult(${index},'code',this.value)"></td>
+        <td><input class="ocr-field ${Number(item.quantity)>0 ? "" : "invalid"}" style="width:88px;" type="number" min="1" value="${Number(item.quantity)||""}" onchange="updateOcrResult(${index},'quantity',this.value)"></td>
+        <td><input class="ocr-field ${Number(item.cost)>0 ? "" : "invalid"}" style="width:88px;" type="number" min="0" step="0.01" value="${Number(item.cost)||""}" onchange="updateOcrResult(${index},'cost',this.value)"></td>
+        <td><input class="ocr-field" style="width:88px;" type="number" min="0" step="0.01" value="${Number(item.currentPrice)||""}" onchange="updateOcrResult(${index},'currentPrice',this.value)"></td>
+        <td><div class="ocr-confidence"><div class="ocr-confidence-bar"><i style="width:${Math.round(Math.min(1,Math.max(0,item.confidence))*100)}%"></i></div><span>${Math.round(item.confidence*100)}%</span></div></td>
+        <td><span class="type-badge type-opening">第 ${Number(item.sourceImage)||1} 張</span></td><td><button class="ocr-remove" onclick="removeOcrResult(${index})">×</button></td></tr>`;
+    }).join("")}</tbody></table>`;
+    document.getElementById("ocrResultSummary").textContent = `${ocrResults.length} 筆辨識結果 · 紅框為必須核對欄位`;
+    syncOcrImportState();
+  }
+
+  window.updateOcrResult = (index, field, value) => {
+    if (!ocrResults[index]) return;
+    const numericFields = new Set(["quantity","cost","currentPrice","stopLoss","takeProfit"]);
+    ocrResults[index][field] = numericFields.has(field) ? Math.max(0, Number(value) || 0) : String(value || "").trim();
+    renderOcrResults();
+  };
+
+  window.toggleOcrResult = (index, checked) => { if (ocrResults[index]) ocrResults[index].selected = checked; syncOcrImportState(); };
+  window.toggleAllOcrResults = checked => { ocrResults.forEach(item => item.selected = checked); renderOcrResults(); };
+  window.removeOcrResult = index => { ocrResults.splice(index, 1); renderOcrResults(); };
+
+  function syncOcrImportState() {
+    const ready = ocrResults.filter(item => item.selected && isValidOcrHolding(item)).length;
+    const button = document.getElementById("ocrImportBtn");
+    button.disabled = ocrBusy || ready === 0;
+    button.textContent = `一次登記 ${ready} 筆`;
+  }
+
+  window.importRecognizedHoldings = async () => {
+    const clientName = document.getElementById("ocrClientName").value.trim();
+    const selected = ocrResults.filter(item => item.selected && isValidOcrHolding(item));
+    if (!clientName || !selected.length || ocrBusy) return;
+    ocrBusy = true;
+    updateOcrControls();
+    const importedAt = new Date().toISOString();
+    let created = 0;
+    let updated = 0;
+    selected.forEach((item, index) => {
+      const code = String(item.code).trim();
+      const quantity = Math.round(Number(item.quantity));
+      const cost = Number(item.cost);
+      const currentPrice = Number(item.currentPrice) || cost;
+      const existingIndex = holdings.findIndex(holding => holding.client === clientName && String(holding.code) === code);
+      if (existingIndex > -1) {
+        const old = { ...holdings[existingIndex] };
+        holdings[existingIndex] = {
+          ...old,
+          stockName:item.stockName,
+          code,
+          quantity,
+          cost,
+          currentPrice,
+          stopLoss:Number(item.stopLoss) || old.stopLoss || "",
+          takeProfit:Number(item.takeProfit) || old.takeProfit || "",
+          lastPriceAt:Number(item.currentPrice) ? importedAt : old.lastPriceAt || ""
+        };
+        transactions.unshift(makeTransaction("adjustment", {
+          date:importedAt,
+          client:clientName,
+          stockName:item.stockName,
+          code,
+          quantity,
+          price:cost,
+          amount:quantity*cost,
+          avgCost:cost,
+          costBasis:quantity*cost,
+          note:`截圖辨識更新持倉：${Number(old.quantity)||0} 股 → ${quantity} 股（第 ${Number(item.sourceImage)||1} 張）`
+        }));
+        updated += 1;
+      } else {
+        holdings.push({
+          id:`ocr-holding-${Date.now()}-${index}`,
+          client:clientName,
+          stockName:item.stockName,
+          code,
+          quantity,
+          cost,
+          stopLoss:Number(item.stopLoss) || "",
+          takeProfit:Number(item.takeProfit) || "",
+          recommendType:"no",
+          currentPrice,
+          lastPriceAt:Number(item.currentPrice) ? importedAt : ""
+        });
+        transactions.unshift(makeTransaction("opening", {
+          date:importedAt,
+          client:clientName,
+          stockName:item.stockName,
+          code,
+          quantity,
+          price:cost,
+          amount:quantity*cost,
+          avgCost:cost,
+          costBasis:quantity*cost,
+          note:`持倉截圖批量導入（第 ${Number(item.sourceImage)||1} 張）`
+        }));
+        created += 1;
+      }
+    });
+    const synced = await save();
+    ocrBusy = false;
+    if (!synced) {
+      updateOcrControls();
+      showToast("已暫存於此裝置，但雲端同步失敗", "error");
+      return;
+    }
+    document.getElementById("client").value = clientName;
+    selectedClient = clientName;
+    filterText = "";
+    searchInput.value = "";
+    switchDataView("holdings");
+    render();
+    document.getElementById("ocrModal").style.display = "none";
+    resetOcrWorkflow();
+    showToast(`批量登記完成：新增 ${created} 筆、更新 ${updated} 筆`);
+  };
+
+  const ocrDropzone = document.getElementById("ocrDropzone");
+  ["dragenter","dragover"].forEach(type => ocrDropzone.addEventListener(type, event => { event.preventDefault(); ocrDropzone.classList.add("dragover"); }));
+  ["dragleave","drop"].forEach(type => ocrDropzone.addEventListener(type, event => { event.preventDefault(); ocrDropzone.classList.remove("dragover"); }));
+  ocrDropzone.addEventListener("drop", event => addOcrFiles(event.dataTransfer?.files || []));
+  document.getElementById("ocrClientName").addEventListener("input", updateOcrControls);
 
   // 自動調用後端即時全台股 API 進行精準搜尋
   function handleStockInput(type) {
@@ -2194,7 +2556,14 @@
     showToast("持倉備份已匯出");
   };
 
-  window.onclick = (e) => { if(e.target.className === "modal-overlay") e.target.style.display = "none"; };
+  window.onclick = (e) => {
+    if (e.target.className !== "modal-overlay") return;
+    if (e.target.id === "ocrModal") {
+      closeHoldingScanner();
+      return;
+    }
+    e.target.style.display = "none";
+  };
 
   document.addEventListener("DOMContentLoaded", () => {
     if (userId && currentPassword) {

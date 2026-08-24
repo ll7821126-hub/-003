@@ -17,7 +17,7 @@ try {
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '20mb' }));
 
 // ==================== 連接 MongoDB 雲端資料庫 ====================
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -254,6 +254,162 @@ app.post('/api/ai_diagnose', async (req, res) => {
   }
 });
 
+// ==================== 4. 多圖持倉截圖辨識 ====================
+const HOLDING_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function normalizeBase64Image(image, index) {
+  const rawMimeType = String(image?.mimeType || image?.type || '').toLowerCase();
+  let data = String(image?.data || '').trim();
+  let mimeType = rawMimeType;
+  const dataUrlMatch = data.match(/^data:(image\/[a-z0-9.+-]+);base64,(.+)$/i);
+  if (dataUrlMatch) {
+    mimeType = dataUrlMatch[1].toLowerCase();
+    data = dataUrlMatch[2];
+  }
+  if (!HOLDING_IMAGE_TYPES.has(mimeType)) throw new Error(`第 ${index + 1} 張圖片格式不支援`);
+  if (!/^[A-Za-z0-9+/=\r\n]+$/.test(data)) throw new Error(`第 ${index + 1} 張圖片內容無效`);
+  const size = Buffer.byteLength(data.replace(/\s/g, ''), 'base64');
+  if (!size || size > 4 * 1024 * 1024) throw new Error(`第 ${index + 1} 張圖片超過 4MB`);
+  return { mimeType, data: data.replace(/\s/g, ''), size };
+}
+
+function extractGeminiText(response) {
+  return (response?.data?.candidates?.[0]?.content?.parts || [])
+    .map(part => part?.text || '')
+    .join('')
+    .trim();
+}
+
+function parseGeminiJson(text) {
+  const cleaned = String(text || '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  return JSON.parse(cleaned);
+}
+
+async function recognizeHoldingImages(images, clientName) {
+  const models = [process.env.GEMINI_VISION_MODEL, 'gemini-2.5-flash', 'gemini-2.0-flash'].filter(Boolean);
+  const prompt = `你是台灣券商持倉截圖資料擷取助手。請閱讀接下來的 ${images.length} 張圖片，辨識所有台股、ETF 或上櫃股票持倉列，並輸出符合指定 schema 的 JSON。
+
+規則：
+1. 一張圖片可能有多檔股票，多張圖片可能是同一客戶「${clientName || '未指定'}」的連續頁面。
+2. 只擷取實際持倉明細，不要把現金、總資產、損益合計或廣告文字當成股票。
+3. code 是證券代碼；stockName 使用繁體中文。看不清楚時不要猜測，保留空字串並在 warnings 說明。
+4. quantity 一律換算成「股」；若畫面單位是張，乘以 1000。
+5. cost 是每股平均成本，不是總成本；currentPrice 是畫面現價，沒有就填 0。
+6. stopLoss、takeProfit 截圖沒有時填 0。confidence 為 0 到 1。
+7. sourceImage 填圖片順序（從 1 開始）。同一檔股票在重複截圖出現時只保留資訊最完整的一筆，不要把數量相加。
+8. 所有數字移除逗號與貨幣符號後再輸出。`;
+  const responseSchema = {
+    type: 'object',
+    properties: {
+      holdings: {
+        type: 'array',
+        items: {
+          type: 'object',
+          properties: {
+            stockName: { type: 'string' },
+            code: { type: 'string' },
+            quantity: { type: 'number' },
+            cost: { type: 'number' },
+            currentPrice: { type: 'number' },
+            stopLoss: { type: 'number' },
+            takeProfit: { type: 'number' },
+            confidence: { type: 'number' },
+            sourceImage: { type: 'integer' },
+            note: { type: 'string' }
+          },
+          required: ['stockName', 'code', 'quantity', 'cost', 'currentPrice', 'stopLoss', 'takeProfit', 'confidence', 'sourceImage', 'note']
+        }
+      },
+      warnings: { type: 'array', items: { type: 'string' } }
+    },
+    required: ['holdings', 'warnings']
+  };
+  let lastError = null;
+
+  for (const modelName of [...new Set(models)]) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+      const parts = [{ text: prompt }, ...images.map(image => ({ inlineData: { mimeType: image.mimeType, data: image.data } }))];
+      const response = await axios.post(url, {
+        contents: [{ role: 'user', parts }],
+        generationConfig: {
+          temperature: 0.1,
+          responseMimeType: 'application/json',
+          responseSchema
+        }
+      }, {
+        headers: { 'Content-Type': 'application/json' },
+        timeout: 60000,
+        maxBodyLength: 20 * 1024 * 1024
+      });
+      const text = extractGeminiText(response);
+      if (text) return parseGeminiJson(text);
+    } catch (error) {
+      lastError = error.response?.data?.error?.message || error.message;
+    }
+  }
+  throw new Error(lastError || '圖片辨識服務暫時無法使用');
+}
+
+app.post('/api/ocr_holdings', async (req, res) => {
+  try {
+    const customId = String(req.body?.customId || '').trim();
+    const password = String(req.body?.password || '');
+    if (!customId || !password) return res.status(401).json({ success: false, message: '請先登入有效帳號' });
+    const authUser = await User.findOne({ customId });
+    if (!authUser || authUser.password !== password) return res.status(401).json({ success: false, message: '帳號驗證失敗，請重新登入' });
+    if (!apiKey) return res.status(503).json({ success: false, message: '後端尚未設定 GEMINI_API_KEY' });
+    const clientName = String(req.body?.clientName || '').trim().slice(0, 80);
+    const sourceImages = Array.isArray(req.body?.images) ? req.body.images.slice(0, 6) : [];
+    if (!sourceImages.length) return res.status(400).json({ success: false, message: '請至少上傳一張持倉截圖' });
+    if ((req.body?.images || []).length > 6) return res.status(400).json({ success: false, message: '每次最多辨識 6 張截圖' });
+
+    const images = sourceImages.map(normalizeBase64Image);
+    const totalSize = images.reduce((sum, image) => sum + image.size, 0);
+    if (totalSize > 14 * 1024 * 1024) return res.status(413).json({ success: false, message: '圖片總容量過大，請分兩次辨識' });
+
+    const recognized = await recognizeHoldingImages(images, clientName);
+    const warnings = Array.isArray(recognized?.warnings) ? recognized.warnings.map(value => String(value).slice(0, 300)).slice(0, 20) : [];
+    const stockByCode = new Map(allTaiwanStocks.map(stock => [stock.code, stock]));
+    const stockByName = new Map(allTaiwanStocks.map(stock => [stock.name.replace(/臺/g, '台'), stock]));
+    const deduped = new Map();
+
+    (Array.isArray(recognized?.holdings) ? recognized.holdings : []).slice(0, 80).forEach((item, index) => {
+      let code = normalizeStockCode(item?.code);
+      let stockName = String(item?.stockName || '').trim().replace(/臺/g, '台').slice(0, 40);
+      if (!code && stockName && stockByName.has(stockName)) code = stockByName.get(stockName).code;
+      if (code && stockByCode.has(code)) stockName = stockByCode.get(code).name;
+      if (!code && !stockName) return;
+      const normalized = {
+        id: `ocr-${Date.now()}-${index}`,
+        stockName,
+        code,
+        quantity: Math.max(0, Math.round(cleanNumber(item?.quantity) || 0)),
+        cost: Math.max(0, cleanNumber(item?.cost) || 0),
+        currentPrice: Math.max(0, cleanNumber(item?.currentPrice) || 0),
+        stopLoss: Math.max(0, cleanNumber(item?.stopLoss) || 0),
+        takeProfit: Math.max(0, cleanNumber(item?.takeProfit) || 0),
+        confidence: Math.min(1, Math.max(0, cleanNumber(item?.confidence) || 0)),
+        sourceImage: Math.min(images.length, Math.max(1, Math.round(cleanNumber(item?.sourceImage) || 1))),
+        note: String(item?.note || '').trim().slice(0, 160)
+      };
+      const key = code || stockName;
+      const score = [normalized.stockName, normalized.code, normalized.quantity, normalized.cost, normalized.currentPrice].filter(Boolean).length + normalized.confidence;
+      const previous = deduped.get(key);
+      if (!previous || score > previous.score) deduped.set(key, { item: normalized, score });
+      if (previous) warnings.push(`偵測到重複持倉 ${stockName || code}，已保留資訊較完整的一筆`);
+    });
+
+    const holdings = [...deduped.values()].map(entry => entry.item);
+    return res.json({ success: true, holdings, warnings: [...new Set(warnings)].slice(0, 20), imagesProcessed: images.length, recognizedAt: new Date().toISOString() });
+  } catch (error) {
+    const message = error.message || '持倉截圖辨識失敗';
+    const status = /格式不支援|內容無效|超過 4MB/.test(message) ? 400 : 502;
+    console.error('持倉截圖辨識失敗:', message);
+    return res.status(status).json({ success: false, message });
+  }
+});
+
 // 輔助函式：即時股價抓取
 async function fetchPriceViaAxios(code) {
   const suffixes = ['.TW', '.TWO'];
@@ -273,7 +429,7 @@ async function fetchPriceViaAxios(code) {
   return null;
 }
 
-// ==================== 4. 股價抓取 API 路由 ====================
+// ==================== 5. 股價抓取 API 路由 ====================
 app.post('/api/prices', async (req, res) => {
   try {
     const { codes } = req.body;
@@ -307,7 +463,7 @@ app.post('/api/prices', async (req, res) => {
   }
 });
 
-// ==================== 5. 持倉公司官方資訊 API ====================
+// ==================== 6. 持倉公司官方資訊 API ====================
 // 資料來源：臺灣證券交易所與櫃買中心 OpenAPI。結果快取 30 分鐘，避免重複抓取大型資料集。
 const marketDatasetCache = new Map();
 const MARKET_CACHE_TTL = 30 * 60 * 1000;
