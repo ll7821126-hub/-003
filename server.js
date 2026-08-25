@@ -49,6 +49,7 @@ async function callGeminiApi(prompt) {
   const models = [...new Set([
     process.env.GEMINI_TEXT_MODEL,
     process.env.GEMINI_MODEL,
+    "gemini-3.5-flash-lite",
     "gemini-3.6-flash",
     "gemini-flash-latest"
   ].filter(Boolean))];
@@ -60,7 +61,7 @@ async function callGeminiApi(prompt) {
       const response = await axios.post(
         url,
         { contents: [{ parts: [{ text: prompt }] }] },
-        { headers: { 'Content-Type': 'application/json' }, timeout: 15000 }
+        { headers: { 'Content-Type': 'application/json' }, timeout: 45000 }
       );
       const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (text) return text;
@@ -294,6 +295,7 @@ async function recognizeHoldingImages(images, clientName) {
   const models = [...new Set([
     process.env.GEMINI_VISION_MODEL,
     process.env.GEMINI_MODEL,
+    'gemini-3.5-flash-lite',
     'gemini-3.6-flash',
     'gemini-flash-latest'
   ].filter(Boolean))];
@@ -340,23 +342,27 @@ async function recognizeHoldingImages(images, clientName) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       const parts = [{ text: prompt }, ...images.map(image => ({ inlineData: { mimeType: image.mimeType, data: image.data } }))];
+      const isLiteModel = /flash-lite/i.test(modelName);
+      const timeoutMs = isLiteModel ? 60000 : 120000;
       const response = await axios.post(url, {
         contents: [{ role: 'user', parts }],
         generationConfig: {
+          thinkingConfig: { thinkingLevel: isLiteModel ? 'minimal' : 'low' },
           responseMimeType: 'application/json',
           responseSchema
         }
       }, {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 60000,
+        timeout: timeoutMs,
         maxBodyLength: 20 * 1024 * 1024
       });
       const text = extractGeminiText(response);
       if (text) return { ...parseGeminiJson(text), _model: modelName };
     } catch (error) {
+      const isTimeout = error.code === 'ECONNABORTED' || /timeout/i.test(error.message || '');
       modelErrors.push({
         model: modelName,
-        message: error.response?.data?.error?.message || error.message
+        message: isTimeout ? '模型回應逾時，系統已自動嘗試下一個快速模型' : (error.response?.data?.error?.message || error.message)
       });
     }
   }
