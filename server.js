@@ -46,7 +46,12 @@ const apiKey = process.env.GEMINI_API_KEY;
 
 // 輔助函式：呼叫 Gemini REST API
 async function callGeminiApi(prompt) {
-  const models = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+  const models = [...new Set([
+    process.env.GEMINI_TEXT_MODEL,
+    process.env.GEMINI_MODEL,
+    "gemini-3.6-flash",
+    "gemini-flash-latest"
+  ].filter(Boolean))];
   let lastError = null;
 
   for (const modelName of models) {
@@ -286,7 +291,12 @@ function parseGeminiJson(text) {
 }
 
 async function recognizeHoldingImages(images, clientName) {
-  const models = [process.env.GEMINI_VISION_MODEL, 'gemini-2.5-flash', 'gemini-2.0-flash'].filter(Boolean);
+  const models = [...new Set([
+    process.env.GEMINI_VISION_MODEL,
+    process.env.GEMINI_MODEL,
+    'gemini-3.6-flash',
+    'gemini-flash-latest'
+  ].filter(Boolean))];
   const prompt = `你是台灣券商持倉截圖資料擷取助手。請閱讀接下來的 ${images.length} 張圖片，辨識所有台股、ETF 或上櫃股票持倉列，並輸出符合指定 schema 的 JSON。
 
 規則：
@@ -324,16 +334,15 @@ async function recognizeHoldingImages(images, clientName) {
     },
     required: ['holdings', 'warnings']
   };
-  let lastError = null;
+  const modelErrors = [];
 
-  for (const modelName of [...new Set(models)]) {
+  for (const modelName of models) {
     try {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
       const parts = [{ text: prompt }, ...images.map(image => ({ inlineData: { mimeType: image.mimeType, data: image.data } }))];
       const response = await axios.post(url, {
         contents: [{ role: 'user', parts }],
         generationConfig: {
-          temperature: 0.1,
           responseMimeType: 'application/json',
           responseSchema
         }
@@ -343,12 +352,17 @@ async function recognizeHoldingImages(images, clientName) {
         maxBodyLength: 20 * 1024 * 1024
       });
       const text = extractGeminiText(response);
-      if (text) return parseGeminiJson(text);
+      if (text) return { ...parseGeminiJson(text), _model: modelName };
     } catch (error) {
-      lastError = error.response?.data?.error?.message || error.message;
+      modelErrors.push({
+        model: modelName,
+        message: error.response?.data?.error?.message || error.message
+      });
     }
   }
-  throw new Error(lastError || '圖片辨識服務暫時無法使用');
+  const usefulError = modelErrors.find(error => !/no longer available|not found|deprecated/i.test(error.message)) || modelErrors.at(-1);
+  const detail = usefulError ? `${usefulError.model}：${usefulError.message}` : '未取得模型回應';
+  throw new Error(`圖片辨識服務暫時無法使用（${detail}）`);
 }
 
 app.post('/api/ocr_holdings', async (req, res) => {
@@ -401,7 +415,7 @@ app.post('/api/ocr_holdings', async (req, res) => {
     });
 
     const holdings = [...deduped.values()].map(entry => entry.item);
-    return res.json({ success: true, holdings, warnings: [...new Set(warnings)].slice(0, 20), imagesProcessed: images.length, recognizedAt: new Date().toISOString() });
+    return res.json({ success: true, holdings, warnings: [...new Set(warnings)].slice(0, 20), imagesProcessed: images.length, model: recognized._model, recognizedAt: new Date().toISOString() });
   } catch (error) {
     const message = error.message || '持倉截圖辨識失敗';
     const status = /格式不支援|內容無效|超過 4MB/.test(message) ? 400 : 502;
