@@ -27,6 +27,7 @@
     .overlay{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#203d4f 0,#111a2b 52%,#0b1322 100%);z-index:100;display:flex;align-items:center;justify-content:center}.login-card{width:390px;background:#fff;border-radius:16px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.34)}.login-mark{width:46px;height:46px;border-radius:12px;background:linear-gradient(145deg,#132c46,#0d8f86);color:#fff;display:grid;place-items:center;font-weight:900;margin-bottom:20px}.login-card h2{font-size:22px;margin:0 0 6px}.login-card p{font-size:12px;color:#7a8494;margin:0 0 22px}.login-card label{font-size:10px;color:#677386;font-weight:700;display:block;margin-bottom:7px}.login-card input{width:100%;height:43px;border:1px solid #d4dce5;border-radius:9px;padding:0 12px;outline:none;margin-bottom:12px}.login-card input:focus{border-color:#35a99f;box-shadow:0 0 0 3px rgba(13,143,134,.1)}.login-card .btn{width:100%;height:43px}.login-error{font-size:10px;color:#b52e3c;min-height:17px;margin-top:8px}
     .toast{position:fixed;right:24px;bottom:22px;z-index:120;background:#172236;color:#fff;border-radius:10px;padding:11px 15px;font-size:11px;box-shadow:0 12px 30px rgba(15,25,42,.24);opacity:0;transform:translateY(12px);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:translateY(0)}
     @media(max-width:1400px){main{padding-left:20px;padding-right:20px}.client-workspace{grid-template-columns:330px minmax(0,1fr)}.profile{grid-template-columns:repeat(3,1fr)}.account-grid{grid-template-columns:1fr}}
+    .detail-actions{display:flex;align-items:center;gap:7px}
   </style>
 </head>
 <body>
@@ -122,7 +123,7 @@
     refresh.disabled = true; refresh.textContent = "同步中...";
     document.getElementById("statusText").textContent = "正在讀取帳號與客戶資料";
     try {
-      const response = await fetch(`${API_URL}/admin/all_data`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ adminPassword:currentAdminPwd }) });
+      const response = await fetch(`${API_URL}/admin/all_data?t=${Date.now()}`, { method:"POST", cache:"no-store", headers:{"Content-Type":"application/json","Cache-Control":"no-cache"}, body:JSON.stringify({ adminPassword:currentAdminPwd }) });
       const data = await response.json();
       if (!response.ok || !data.success) throw new Error(data.message || "管理員密碼錯誤");
       users = Array.isArray(data.users) ? data.users : [];
@@ -149,10 +150,11 @@
   function buildClientDirectory(allUsers) {
     const result = [];
     allUsers.forEach(user => {
+      const profiles = user.profiles || {};
+      const meaningfulProfiles = Object.keys(profiles).filter(name => Object.values(profiles[name] || {}).some(value => String(value || '').trim()));
       const names = new Set([
-        ...Object.keys(user.profiles || {}),
-        ...(user.holdings || []).map(item => item.client || "未命名客戶"),
-        ...(user.transactions || []).map(item => item.client).filter(Boolean)
+        ...meaningfulProfiles,
+        ...(user.holdings || []).map(item => item.client || "未命名客戶")
       ]);
       names.forEach(name => {
         const holdings = (user.holdings || []).filter(item => (item.client || "未命名客戶") === name);
@@ -254,7 +256,7 @@
     const typeLabel={buy:"買入",sell:"賣出",opening:"期初",adjustment:"調整"};
     const transactionRows = client.transactions.slice(0,10).map(tx => `<tr><td>${tx.date ? esc(new Date(tx.date).toLocaleString("zh-TW")) : "—"}</td><td><span class="tag">${esc(typeLabel[tx.type]||"紀錄")}</span></td><td class="stock">${esc(tx.stockName)}<small>${esc(tx.code)}</small></td><td class="num">${money(tx.quantity)}</td><td class="num">${tx.price ? money(tx.price) : "—"}</td><td class="num ${pnlClass(tx.realizedPnl)}">${tx.type === "sell" ? `${Number(tx.realizedPnl)>=0?"+":"−"}NT$ ${money(Math.abs(Number(tx.realizedPnl)||0))}` : "—"}</td></tr>`).join("") || `<tr><td colspan="6" class="empty-row">尚無交易紀錄</td></tr>`;
     host.innerHTML = `<div class="detail-inner">
-      <header class="detail-head"><div class="identity"><div class="avatar">${esc(client.name.slice(0,1).toUpperCase())}</div><div><h2>${esc(client.name)}<span class="client-chip">客戶檔案</span></h2><p>所屬帳號 ${esc(client.userId)} · ${client.holdings.length} 檔持倉 · ${client.transactions.length} 筆交易</p></div></div><button class="btn btn-light btn-small" onclick="focusAccount(decodeURIComponent('${urlToken(client.userId)}'))">查看帳號</button></header>
+      <header class="detail-head"><div class="identity"><div class="avatar">${esc(client.name.slice(0,1).toUpperCase())}</div><div><h2>${esc(client.name)}<span class="client-chip">客戶檔案</span></h2><p>所屬帳號 ${esc(client.userId)} · ${client.holdings.length} 檔持倉 · ${client.transactions.length} 筆交易</p></div></div><div class="detail-actions"><button class="btn btn-light btn-small" onclick="focusAccount(decodeURIComponent('${urlToken(client.userId)}'))">查看帳號</button><button class="btn btn-danger btn-small" onclick="deleteClient(decodeURIComponent('${urlToken(client.userId)}'),decodeURIComponent('${urlToken(client.name)}'))">永久刪除此客戶</button></div></header>
       <div class="detail-kpis"><div class="detail-kpi"><span>持倉成本</span><strong>NT$ ${money(client.cost)}</strong></div><div class="detail-kpi"><span>目前市值</span><strong>NT$ ${money(client.value)}</strong></div><div class="detail-kpi"><span>未實現損益</span><strong class="${pnlClass(client.pnl)}">${client.pnl>=0?"+":"−"}NT$ ${money(Math.abs(client.pnl))}</strong></div><div class="detail-kpi"><span>累計已實現</span><strong class="${pnlClass(client.realized)}">${client.realized>=0?"+":"−"}NT$ ${money(Math.abs(client.realized))}</strong></div></div>
       <section class="section"><div class="section-title"><h3>客戶完整資料</h3><span>${riskCount ? `${riskCount} 筆風險水位已觸發` : "目前無已觸發風險"}</span></div><div class="profile">
         <div class="profile-box"><span>性別</span><strong>${esc(profile.gender || "未填寫")}</strong></div><div class="profile-box"><span>年齡</span><strong>${esc(profile.age ? profile.age+" 歲" : "未填寫")}</strong></div><div class="profile-box"><span>投資經驗</span><strong>${esc(profile.experience || "未填寫")}</strong></div><div class="profile-box"><span>投資風格</span><strong>${esc(profile.style || "未填寫")}</strong></div>
@@ -305,6 +307,25 @@
       const data = await response.json(); if (!response.ok || !data.success) throw new Error(data.message || "刪除失敗");
       showToast(`帳號 ${userId} 已刪除`); selectedClientKey=""; await loadAdminData();
     } catch(error) { showToast(error.message || "刪除失敗"); }
+  };
+
+  window.deleteClient = async (userId, clientName) => {
+    if (!confirm(`確定永久刪除客戶「${clientName}」？\n\n所屬帳號：${userId}\n該客戶的檔案、持倉與交易紀錄都會一併刪除，且無法復原。`)) return;
+    try {
+      const response = await fetch(`${API_URL}/admin/delete_client`, {
+        method:"POST",
+        cache:"no-store",
+        headers:{"Content-Type":"application/json","Cache-Control":"no-cache"},
+        body:JSON.stringify({ adminPassword:currentAdminPwd, userId, clientName })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.message || "刪除客戶失敗");
+      selectedClientKey = "";
+      showToast(`客戶 ${clientName} 已永久刪除`);
+      await loadAdminData();
+    } catch (error) {
+      showToast(error.message || "刪除客戶失敗");
+    }
   };
 
   window.exportCSV = () => {

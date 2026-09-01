@@ -184,7 +184,8 @@ app.post('/api/admin/all_data', async (req, res) => {
   }
 
   try {
-    const allUsers = await User.find({});
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const allUsers = await User.find({}).lean();
     const allUserData = allUsers.map(u => ({
       userId: u.customId,
       password: u.password,
@@ -197,9 +198,53 @@ app.post('/api/admin/all_data', async (req, res) => {
     return res.json({
       success: true,
       totalUsers: allUserData.length,
+      syncedAt: new Date().toISOString(),
       users: allUserData
     });
   } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 永久刪除單一客戶（保留所屬登入帳號與其他客戶）
+app.post('/api/admin/delete_client', async (req, res) => {
+  const { adminPassword, userId } = req.body;
+  const clientName = String(req.body?.clientName || '').trim();
+  const ADMIN_SECRET = process.env.ADMIN_PASSWORD || "Qq112233.";
+
+  if (adminPassword !== ADMIN_SECRET) {
+    return res.status(403).json({ success: false, message: '管理員密碼錯誤！' });
+  }
+  if (!userId || !clientName) {
+    return res.status(400).json({ success: false, message: '缺少帳號或客戶姓名' });
+  }
+
+  try {
+    const userData = await User.findOne({ customId: userId });
+    if (!userData) return res.status(404).json({ success: false, message: '找不到所屬帳號' });
+
+    const before = {
+      holdings: (userData.holdings || []).length,
+      transactions: (userData.transactions || []).length,
+      profile: Object.prototype.hasOwnProperty.call(userData.profiles || {}, clientName)
+    };
+    userData.holdings = (userData.holdings || []).filter(item => String(item?.client || '未命名客戶') !== clientName);
+    userData.transactions = (userData.transactions || []).filter(item => String(item?.client || '') !== clientName);
+    const nextProfiles = { ...(userData.profiles || {}) };
+    delete nextProfiles[clientName];
+    userData.profiles = nextProfiles;
+    userData.markModified('profiles');
+    await userData.save();
+
+    const removed = {
+      holdings: before.holdings - userData.holdings.length,
+      transactions: before.transactions - userData.transactions.length,
+      profile: before.profile
+    };
+    console.log(`[Admin] 已永久刪除客戶 ${clientName}（帳號 ${userId}）`);
+    return res.json({ success: true, message: `客戶 ${clientName} 已永久刪除`, removed });
+  } catch (err) {
+    console.error('刪除客戶失敗:', err);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
