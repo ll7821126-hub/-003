@@ -3,18 +3,6 @@ const cors = require('cors');
 const axios = require('axios');
 const mongoose = require('mongoose');
 
-// 安全載入 yahoo-finance2
-let yahooFinance = null;
-try {
-  const YahooFinanceClass = require('yahoo-finance2').default;
-  yahooFinance = new YahooFinanceClass();
-  if (yahooFinance.suppressNotices) {
-    yahooFinance.suppressNotices(['yahooSurvey']);
-  }
-} catch (e) {
-  console.warn("⚠️ yahoo-finance2 模組初始化警告，將使用備用 API 機制");
-}
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '20mb' }));
@@ -494,36 +482,86 @@ async function fetchPriceViaAxios(code) {
   return null;
 }
 
+function parseMarketPrice(value) {
+  const first = String(value ?? '').split('_')[0].replace(/,/g, '').trim();
+  const parsed = Number(first);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
+async function fetchOfficialTaiwanPrices(codes) {
+  const prices = {};
+  const quotes = {};
+  const chunks = [];
+  for (let index = 0; index < codes.length; index += 35) chunks.push(codes.slice(index, index + 35));
+
+  for (const chunk of chunks) {
+    const channels = chunk.flatMap(code => [`tse_${code}.tw`, `otc_${code}.tw`]).join('|');
+    const response = await axios.get('https://mis.twse.com.tw/stock/api/getStockInfo.jsp', {
+      params: { ex_ch: channels, json: 1, delay: 0 },
+      timeout: 12000,
+      headers: {
+        'Accept': 'application/json,text/plain,*/*',
+        'Referer': 'https://mis.twse.com.tw/stock/index.jsp',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PortfolioOS/4.5'
+      }
+    });
+    for (const item of response.data?.msgArray || []) {
+      const code = String(item?.c || '').trim();
+      if (!code || !chunk.includes(code) || prices[code] !== undefined) continue;
+      const price = parseMarketPrice(item.z) ?? parseMarketPrice(item.pz) ?? parseMarketPrice(item.o) ?? parseMarketPrice(item.y);
+      if (price === null) continue;
+      prices[code] = price;
+      quotes[code] = {
+        price,
+        source: item.ex === 'otc' ? 'TPEX' : 'TWSE',
+        market: item.ex || '',
+        date: String(item.d || ''),
+        time: String(item.t || '')
+      };
+    }
+  }
+  return { prices, quotes };
+}
+
 // ==================== 5. 股價抓取 API 路由 ====================
 app.post('/api/prices', async (req, res) => {
+  const startedAt = Date.now();
+  const requestId = Math.random().toString(36).slice(2, 8).toUpperCase();
   try {
-    const { codes } = req.body;
-    if (!codes || !Array.isArray(codes) || codes.length === 0) {
-      return res.json({ success: true, prices: {} });
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const rawCodes = Array.isArray(req.body?.codes) ? req.body.codes : [];
+    const codes = [...new Set(rawCodes.map(code => String(code || '').trim()).filter(code => /^\d{4,6}$/.test(code)))].slice(0, 200);
+    console.log(`[Prices ${requestId}] 收到行情更新請求：${codes.length} 檔`);
+    if (codes.length === 0) {
+      console.log(`[Prices ${requestId}] 沒有有效證券代碼`);
+      return res.json({ success: true, prices: {}, quotes: {}, failedCodes: [], updatedAt: new Date().toISOString() });
     }
 
-    const priceMap = {};
-    await Promise.all(
-      codes.map(async (code) => {
-        let price = null;
-        if (yahooFinance) {
-          try {
-            const quote = await yahooFinance.quote(`${code}.TW`);
-            if (quote && quote.regularMarketPrice) price = quote.regularMarketPrice;
-          } catch (e1) {
-            try {
-              const quoteTWO = await yahooFinance.quote(`${code}.TWO`);
-              if (quoteTWO && quoteTWO.regularMarketPrice) price = quoteTWO.regularMarketPrice;
-            } catch (e2) {}
-          }
-        }
-        if (!price) price = await fetchPriceViaAxios(code);
-        if (price !== null && price !== undefined) priceMap[code] = price;
-      })
-    );
+    let official = { prices: {}, quotes: {} };
+    try {
+      official = await fetchOfficialTaiwanPrices(codes);
+    } catch (error) {
+      console.warn(`[Prices ${requestId}] 官方行情暫時不可用，改用備用來源：${error.message}`);
+    }
 
-    return res.json({ success: true, prices: priceMap });
+    const priceMap = { ...official.prices };
+    const quoteMap = { ...official.quotes };
+    const missingCodes = codes.filter(code => priceMap[code] === undefined);
+    await Promise.all(missingCodes.map(async code => {
+      const price = await fetchPriceViaAxios(code);
+      if (price !== null && price !== undefined) {
+        priceMap[code] = price;
+        quoteMap[code] = { price, source: 'Yahoo 備用', market: '', date: '', time: '' };
+      }
+    }));
+
+    const failedCodes = codes.filter(code => priceMap[code] === undefined);
+    const officialCount = Object.values(quoteMap).filter(quote => quote.source === 'TWSE' || quote.source === 'TPEX').length;
+    console.log(`[Prices ${requestId}] 完成：更新 ${Object.keys(priceMap).length}/${codes.length} 檔，官方 ${officialCount} 檔，失敗 ${failedCodes.length} 檔，耗時 ${Date.now() - startedAt}ms${failedCodes.length ? `；失敗代碼 ${failedCodes.join(',')}` : ''}`);
+
+    return res.json({ success: true, prices: priceMap, quotes: quoteMap, failedCodes, updatedAt: new Date().toISOString(), requestId });
   } catch (err) {
+    console.error(`[Prices ${requestId}] 行情更新失敗，耗時 ${Date.now() - startedAt}ms：${err.message}`);
     return res.status(500).json({ success: false, error: err.message });
   }
 });

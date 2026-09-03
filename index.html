@@ -1137,6 +1137,7 @@
   let profiles = {};
   let transactions = [];
   let autoTimer = null;
+  let refreshInFlight = false;
   let searchDebounce = null;
   let selectedClient = null;
   let currentDataView = "holdings";
@@ -2048,45 +2049,81 @@
   function toggleAutoRefresh() {
     const checkbox = document.getElementById('autoRefreshCheck');
     if(checkbox.checked) {
-      realRefresh();
-      autoTimer = setInterval(realRefresh, 10000);
+      realRefresh(true);
+      clearInterval(autoTimer);
+      autoTimer = setInterval(() => realRefresh(true), 10000);
     } else {
       clearInterval(autoTimer);
+      autoTimer = null;
     }
   }
 
-  window.realRefresh = async () => {
+  window.realRefresh = async (silent = false) => {
+    if (refreshInFlight) {
+      if (!silent) showToast('行情正在更新，請稍候', 'success');
+      return;
+    }
     if (!holdings.length) { render(); return; }
+    refreshInFlight = true;
     const refreshBtn = document.getElementById('refreshBtn');
     refreshBtn.innerText = "更新中...";
     refreshBtn.disabled = true;
+    const wakeHintTimer = setTimeout(() => {
+      refreshBtn.innerText = "服務啟動中...";
+    }, 8000);
 
     try {
       const codes = [...new Set(holdings.map(h => String(h.code || '').trim()).filter(Boolean))];
       if (!codes.length) { refreshBtn.innerText = "更新行情"; refreshBtn.disabled = false; return; }
 
-      const response = await fetch(`${API_URL}/prices`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ codes })
-      });
-      const resData = await response.json();
-
-      if (resData.success && resData.prices) {
-        const priceMap = resData.prices;
-        holdings.forEach(h => {
-          const key = String(h.code || '').trim();
-          if (priceMap[key] !== undefined && priceMap[key] !== null) {
-            h.currentPrice = Number(priceMap[key]);
-            h.lastPriceAt = new Date().toISOString();
-          }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 90000);
+      let response;
+      try {
+        response = await fetch(`${API_URL}/prices?t=${Date.now()}`, {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
+          body: JSON.stringify({ codes }),
+          signal: controller.signal
         });
-        await save();
-        if (lastUpdateEl) lastUpdateEl.innerText = `最後更新：${new Date().toLocaleTimeString('zh-TW')}`;
+      } finally {
+        clearTimeout(timeoutId);
       }
+      const responseText = await response.text();
+      let resData;
+      try {
+        resData = JSON.parse(responseText);
+      } catch (_) {
+        throw new Error(`行情服務回應格式錯誤（${response.status}）`);
+      }
+      if (!response.ok || !resData.success) throw new Error(resData.error || resData.message || `行情服務錯誤（${response.status}）`);
+      const priceMap = resData.prices || {};
+      const updatedCodes = new Set();
+      holdings.forEach(h => {
+        const key = String(h.code || '').trim();
+        const nextPrice = Number(priceMap[key]);
+        if (Number.isFinite(nextPrice) && nextPrice > 0) {
+          h.currentPrice = nextPrice;
+          h.lastPriceAt = resData.updatedAt || new Date().toISOString();
+          updatedCodes.add(key);
+        }
+      });
+      if (!updatedCodes.size) throw new Error('後端沒有取得任何有效行情，請查看 Render 的 [Prices] 日誌');
+      await save();
+      const failedCodes = Array.isArray(resData.failedCodes) ? resData.failedCodes : [];
+      const sourceNames = [...new Set(Object.values(resData.quotes || {}).map(item => item?.source).filter(Boolean))];
+      if (lastUpdateEl) lastUpdateEl.innerText = `最後更新：${new Date().toLocaleTimeString('zh-TW')} · ${updatedCodes.size}/${codes.length} 檔`;
+      showToast(failedCodes.length
+        ? `已更新 ${updatedCodes.size} 檔；${failedCodes.length} 檔失敗：${failedCodes.join('、')}`
+        : `行情已更新 ${updatedCodes.size} 檔${sourceNames.length ? ` · ${sourceNames.join(' / ')}` : ''}`,
+        failedCodes.length ? 'error' : 'success');
     } catch (error) {
       console.error(error);
+      showToast(error.name === 'AbortError' ? '行情服務啟動超過 90 秒，請再試一次' : (error.message || '行情更新失敗'), 'error');
     } finally {
+      clearTimeout(wakeHintTimer);
+      refreshInFlight = false;
       refreshBtn.innerText = "更新行情";
       refreshBtn.disabled = false;
     }
