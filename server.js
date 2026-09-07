@@ -65,6 +65,7 @@ app.get('/', (req, res) => res.send('Server is running normally!'));
 
 // ==================== 全台股清單與搜尋 API ====================
 let allTaiwanStocks = [];
+let taiwanMarketByCode = new Map();
 
 // 伺服器啟動時抓取全台股清單（上市 + 上櫃）
 async function loadAllTaiwanStocks() {
@@ -72,16 +73,20 @@ async function loadAllTaiwanStocks() {
     const twseRes = await axios.get('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', { timeout: 8000 });
     const twseList = (twseRes.data || []).map(item => ({
       code: String(item.Code).trim(),
-      name: String(item.Name).trim()
+      name: String(item.Name).trim(),
+      market: 'tse'
     }));
 
     const tpexRes = await axios.get('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes', { timeout: 8000 });
     const tpexList = (tpexRes.data || []).map(item => ({
       code: String(item.SecuritiesCompanyCode || item.Code).trim(),
-      name: String(item.CompanyName || item.Name).trim()
+      name: String(item.CompanyName || item.Name).trim(),
+      market: 'otc'
     }));
 
-    allTaiwanStocks = [...twseList, ...tpexList].filter(s => s.code && s.name && !s.code.startsWith('00'));
+    const completeList = [...twseList, ...tpexList].filter(s => s.code && s.name);
+    taiwanMarketByCode = new Map(completeList.map(stock => [stock.code, stock.market]));
+    allTaiwanStocks = completeList;
     console.log(`✅ 已成功載入全台股數據庫，共 ${allTaiwanStocks.length} 檔標的`);
   } catch (err) {
     console.warn("⚠️ 台股清單初始化失敗，使用基礎備用清單:", err.message);
@@ -156,6 +161,47 @@ app.post('/api/save_data', async (req, res) => {
     await userData.save();
     return res.json({ success: true, message: '雲端同步成功 (已永久寫入數據庫)' });
   } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 只同步最新行情，避免每 5 秒覆寫客戶檔案與交易紀錄
+app.post('/api/save_prices', async (req, res) => {
+  const { customId, password } = req.body || {};
+  const rawUpdates = Array.isArray(req.body?.updates) ? req.body.updates : [];
+  if (!customId) return res.status(400).json({ success: false, message: '缺少 customId' });
+
+  const updates = rawUpdates.map(item => ({
+    code: String(item?.code || '').trim(),
+    currentPrice: Number(item?.currentPrice),
+    lastPriceAt: String(item?.lastPriceAt || new Date().toISOString())
+  })).filter(item => /^\d{4,6}$/.test(item.code) && Number.isFinite(item.currentPrice) && item.currentPrice > 0).slice(0, 200);
+  if (!updates.length) return res.json({ success: true, updated: 0 });
+
+  try {
+    const userData = await User.findOne({ customId }).select('_id password').lean();
+    if (!userData) return res.status(404).json({ success: false, message: '找不到帳號' });
+    if (userData.password && userData.password !== password) {
+      return res.status(403).json({ success: false, message: '密碼不符，無法同步行情' });
+    }
+
+    const operations = updates.map(item => {
+      const codeVariants = /^\d+$/.test(item.code) ? [item.code, Number(item.code)] : [item.code];
+      return {
+        updateOne: {
+          filter: { _id: userData._id },
+          update: { $set: {
+            'holdings.$[holding].currentPrice': item.currentPrice,
+            'holdings.$[holding].lastPriceAt': item.lastPriceAt
+          } },
+          arrayFilters: [{ 'holding.code': { $in: codeVariants } }]
+        }
+      };
+    });
+    const result = await User.collection.bulkWrite(operations, { ordered: false });
+    return res.json({ success: true, updated: result.modifiedCount || 0 });
+  } catch (err) {
+    console.error('行情雲端同步失敗:', err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -464,14 +510,14 @@ app.post('/api/ocr_holdings', async (req, res) => {
 });
 
 // 輔助函式：即時股價抓取
-async function fetchPriceViaAxios(code) {
-  const suffixes = ['.TW', '.TWO'];
+async function fetchPriceViaAxios(code, marketHint = '') {
+  const suffixes = marketHint === 'tse' ? ['.TW'] : marketHint === 'otc' ? ['.TWO'] : ['.TW', '.TWO'];
   for (const suffix of suffixes) {
     try {
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${code}${suffix}`;
       const resp = await axios.get(url, { 
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' },
-        timeout: 5000 
+        timeout: 2200
       });
       const meta = resp.data?.chart?.result?.[0]?.meta;
       if (meta && typeof meta.regularMarketPrice === 'number') {
@@ -488,39 +534,63 @@ function parseMarketPrice(value) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
-async function fetchOfficialTaiwanPrices(codes) {
+const PRICE_CACHE_TTL_MS = 4000;
+const PRICE_STALE_MAX_AGE_MS = 60000;
+const priceQuoteCache = new Map();
+const officialBatchRequests = new Map();
+
+async function fetchOfficialTaiwanPricesUncached(codes) {
   const prices = {};
   const quotes = {};
   const chunks = [];
   for (let index = 0; index < codes.length; index += 35) chunks.push(codes.slice(index, index + 35));
 
   for (const chunk of chunks) {
-    const channels = chunk.flatMap(code => [`tse_${code}.tw`, `otc_${code}.tw`]).join('|');
+    const channels = chunk.flatMap(code => {
+      const market = taiwanMarketByCode.get(code);
+      return market ? [`${market}_${code}.tw`] : [`tse_${code}.tw`, `otc_${code}.tw`];
+    }).join('|');
     const response = await axios.get('https://mis.twse.com.tw/stock/api/getStockInfo.jsp', {
       params: { ex_ch: channels, json: 1, delay: 0 },
-      timeout: 12000,
+      timeout: 6000,
       headers: {
         'Accept': 'application/json,text/plain,*/*',
         'Referer': 'https://mis.twse.com.tw/stock/index.jsp',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PortfolioOS/4.5'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) PortfolioOS/4.6'
       }
     });
     for (const item of response.data?.msgArray || []) {
       const code = String(item?.c || '').trim();
       if (!code || !chunk.includes(code) || prices[code] !== undefined) continue;
-      const price = parseMarketPrice(item.z) ?? parseMarketPrice(item.pz) ?? parseMarketPrice(item.o) ?? parseMarketPrice(item.y);
+      const candidates = [
+        { price: parseMarketPrice(item.z), priceType: 'last' },
+        { price: parseMarketPrice(item.pz), priceType: 'lastKnown' },
+        { price: parseMarketPrice(item.y), priceType: 'previousClose' }
+      ];
+      const selected = candidates.find(candidate => candidate.price !== null);
+      const price = selected?.price ?? null;
       if (price === null) continue;
       prices[code] = price;
       quotes[code] = {
         price,
+        priceType: selected.priceType,
         source: item.ex === 'otc' ? 'TPEX' : 'TWSE',
         market: item.ex || '',
         date: String(item.d || ''),
-        time: String(item.t || '')
+        time: String(item.t || ''),
+        name: String(item.n || item.nf || '').trim()
       };
     }
   }
   return { prices, quotes };
+}
+
+async function fetchOfficialTaiwanPrices(codes) {
+  const key = [...codes].sort().join(',');
+  if (officialBatchRequests.has(key)) return officialBatchRequests.get(key);
+  const request = fetchOfficialTaiwanPricesUncached(codes).finally(() => officialBatchRequests.delete(key));
+  officialBatchRequests.set(key, request);
+  return request;
 }
 
 // ==================== 5. 股價抓取 API 路由 ====================
@@ -537,29 +607,56 @@ app.post('/api/prices', async (req, res) => {
       return res.json({ success: true, prices: {}, quotes: {}, failedCodes: [], updatedAt: new Date().toISOString() });
     }
 
-    let official = { prices: {}, quotes: {} };
-    try {
-      official = await fetchOfficialTaiwanPrices(codes);
-    } catch (error) {
-      console.warn(`[Prices ${requestId}] 官方行情暫時不可用，改用備用來源：${error.message}`);
+    const now = Date.now();
+    const priceMap = {};
+    const quoteMap = {};
+    let cacheHits = 0;
+    codes.forEach(code => {
+      const cached = priceQuoteCache.get(code);
+      if (!cached || now - cached.cachedAt >= PRICE_CACHE_TTL_MS) return;
+      priceMap[code] = cached.quote.price;
+      quoteMap[code] = { ...cached.quote, cached: true, cacheAgeMs: now - cached.cachedAt };
+      cacheHits += 1;
+    });
+
+    const uncachedCodes = codes.filter(code => priceMap[code] === undefined);
+    if (uncachedCodes.length) {
+      try {
+        const official = await fetchOfficialTaiwanPrices(uncachedCodes);
+        Object.entries(official.quotes).forEach(([code, quote]) => {
+          priceMap[code] = quote.price;
+          quoteMap[code] = { ...quote, cached: false, cacheAgeMs: 0 };
+          priceQuoteCache.set(code, { quote, cachedAt: Date.now() });
+        });
+      } catch (error) {
+        console.warn(`[Prices ${requestId}] 官方行情暫時不可用，改用備用來源：${error.message}`);
+      }
     }
 
-    const priceMap = { ...official.prices };
-    const quoteMap = { ...official.quotes };
-    const missingCodes = codes.filter(code => priceMap[code] === undefined);
+    let missingCodes = codes.filter(code => priceMap[code] === undefined);
+    missingCodes.forEach(code => {
+      const cached = priceQuoteCache.get(code);
+      const age = cached ? Date.now() - cached.cachedAt : Infinity;
+      if (!cached || age > PRICE_STALE_MAX_AGE_MS) return;
+      priceMap[code] = cached.quote.price;
+      quoteMap[code] = { ...cached.quote, cached: true, stale: true, cacheAgeMs: age };
+    });
+
+    missingCodes = codes.filter(code => priceMap[code] === undefined);
     await Promise.all(missingCodes.map(async code => {
-      const price = await fetchPriceViaAxios(code);
+      const market = taiwanMarketByCode.get(code) || '';
+      const price = await fetchPriceViaAxios(code, market);
       if (price !== null && price !== undefined) {
         priceMap[code] = price;
-        quoteMap[code] = { price, source: 'Yahoo 備用', market: '', date: '', time: '' };
+        quoteMap[code] = { price, priceType: 'fallback', source: 'Yahoo 備用', market, date: '', time: '', cached: false, cacheAgeMs: 0 };
       }
     }));
 
     const failedCodes = codes.filter(code => priceMap[code] === undefined);
     const officialCount = Object.values(quoteMap).filter(quote => quote.source === 'TWSE' || quote.source === 'TPEX').length;
-    console.log(`[Prices ${requestId}] 完成：更新 ${Object.keys(priceMap).length}/${codes.length} 檔，官方 ${officialCount} 檔，失敗 ${failedCodes.length} 檔，耗時 ${Date.now() - startedAt}ms${failedCodes.length ? `；失敗代碼 ${failedCodes.join(',')}` : ''}`);
+    console.log(`[Prices ${requestId}] 完成：更新 ${Object.keys(priceMap).length}/${codes.length} 檔，官方 ${officialCount} 檔，快取 ${cacheHits} 檔，失敗 ${failedCodes.length} 檔，耗時 ${Date.now() - startedAt}ms${failedCodes.length ? `；失敗代碼 ${failedCodes.join(',')}` : ''}`);
 
-    return res.json({ success: true, prices: priceMap, quotes: quoteMap, failedCodes, updatedAt: new Date().toISOString(), requestId });
+    return res.json({ success: true, prices: priceMap, quotes: quoteMap, failedCodes, updatedAt: new Date().toISOString(), requestId, cacheTtlMs: PRICE_CACHE_TTL_MS });
   } catch (err) {
     console.error(`[Prices ${requestId}] 行情更新失敗，耗時 ${Date.now() - startedAt}ms：${err.message}`);
     return res.status(500).json({ success: false, error: err.message });

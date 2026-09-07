@@ -921,12 +921,12 @@
         <span id="lastUpdate" class="sync-meta"></span>
         <label class="switch-label">
           <input type="checkbox" id="autoRefreshCheck" onchange="toggleAutoRefresh()">
-          <span>10 秒自動更新</span>
+          <span>5 秒即時更新</span>
         </label>
         <button class="btn btn-ghost btn-sm btn-smart" onclick="openHoldingScanner()">截圖辨識</button>
         <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
         <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
-        <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="realRefresh()">更新行情</button>
+        <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="startRealtimeRefresh()">更新行情</button>
         <button class="btn btn-ghost btn-sm" onclick="exportCSV()">匯出 CSV</button>
       </div>
     </header>
@@ -1136,8 +1136,12 @@
   let holdings = [];
   let profiles = {};
   let transactions = [];
+  const AUTO_REFRESH_INTERVAL_MS = 5000;
+  const PRICE_CLOUD_SYNC_INTERVAL_MS = 60000;
   let autoTimer = null;
   let refreshInFlight = false;
+  let priceCloudSyncInFlight = false;
+  let lastPriceCloudSyncAt = 0;
   let searchDebounce = null;
   let selectedClient = null;
   let currentDataView = "holdings";
@@ -1620,7 +1624,7 @@
         localStorage.setItem(TX_KEY, JSON.stringify(transactions));
       }
       render();
-      realRefresh();
+      realRefresh(true);
     } catch (err) {
       alert("連線失敗，請檢查網路狀況");
     }
@@ -2046,24 +2050,86 @@
     renderRiskAlerts();
   }
 
-  function toggleAutoRefresh() {
-    const checkbox = document.getElementById('autoRefreshCheck');
-    if(checkbox.checked) {
-      realRefresh(true);
-      clearInterval(autoTimer);
-      autoTimer = setInterval(() => realRefresh(true), 10000);
-    } else {
-      clearInterval(autoTimer);
-      autoTimer = null;
+  function stopAutoRefreshTimer() {
+    clearTimeout(autoTimer);
+    autoTimer = null;
+  }
+
+  async function syncLatestPricesToCloud(updatedCodes, lastPriceAt, force = false) {
+    if (!userId || !currentPassword || priceCloudSyncInFlight) return;
+    const now = Date.now();
+    if (!force && now - lastPriceCloudSyncAt < PRICE_CLOUD_SYNC_INTERVAL_MS) return;
+    const updates = [...updatedCodes].map(code => {
+      const holding = holdings.find(item => String(item.code || '').trim() === code);
+      return holding ? { code, currentPrice:Number(holding.currentPrice), lastPriceAt } : null;
+    }).filter(Boolean);
+    if (!updates.length) return;
+
+    lastPriceCloudSyncAt = now;
+    priceCloudSyncInFlight = true;
+    try {
+      const response = await fetch(`${API_URL}/save_prices`, {
+        method:'POST',
+        cache:'no-store',
+        headers:{ 'Content-Type':'application/json', 'Cache-Control':'no-cache' },
+        body:JSON.stringify({ customId:userId, password:currentPassword, updates })
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    } catch (error) {
+      console.warn('行情雲端同步暫時失敗:', error.message);
+    } finally {
+      priceCloudSyncInFlight = false;
     }
   }
+
+  function getLatestExchangeTime(quotes) {
+    const stamps = Object.values(quotes || {}).map(quote => {
+      const date = String(quote?.date || '');
+      const time = String(quote?.time || '');
+      if (!/^\d{8}$/.test(date) || !time) return null;
+      return { key:`${date}${time}`, text:`${date.slice(4,6)}/${date.slice(6,8)} ${time}` };
+    }).filter(Boolean).sort((a, b) => b.key.localeCompare(a.key));
+    return stamps[0]?.text || new Date().toLocaleTimeString('zh-TW');
+  }
+
+  async function runAutoRefreshCycle(silent = true) {
+    stopAutoRefreshTimer();
+    const checkbox = document.getElementById('autoRefreshCheck');
+    if (!checkbox.checked || document.hidden) return;
+    await realRefresh(silent);
+    if (checkbox.checked && !document.hidden) {
+      autoTimer = setTimeout(() => runAutoRefreshCycle(true), AUTO_REFRESH_INTERVAL_MS);
+    }
+  }
+
+  function toggleAutoRefresh() {
+    const checkbox = document.getElementById('autoRefreshCheck');
+    stopAutoRefreshTimer();
+    if (checkbox.checked) {
+      runAutoRefreshCycle(false);
+    } else {
+      const refreshBtn = document.getElementById('refreshBtn');
+      refreshBtn.innerText = "更新行情";
+      showToast('已停止即時行情');
+    }
+  }
+
+  window.startRealtimeRefresh = () => {
+    const checkbox = document.getElementById('autoRefreshCheck');
+    checkbox.checked = true;
+    runAutoRefreshCycle(false);
+  };
 
   window.realRefresh = async (silent = false) => {
     if (refreshInFlight) {
       if (!silent) showToast('行情正在更新，請稍候', 'success');
-      return;
+      return false;
     }
-    if (!holdings.length) { render(); return; }
+    if (!holdings.length) {
+      render();
+      if (!silent) showToast('目前沒有可更新的持倉', 'error');
+      return false;
+    }
     refreshInFlight = true;
     const refreshBtn = document.getElementById('refreshBtn');
     refreshBtn.innerText = "更新中...";
@@ -2074,7 +2140,7 @@
 
     try {
       const codes = [...new Set(holdings.map(h => String(h.code || '').trim()).filter(Boolean))];
-      if (!codes.length) { refreshBtn.innerText = "更新行情"; refreshBtn.disabled = false; return; }
+      if (!codes.length) return false;
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 90000);
@@ -2110,24 +2176,45 @@
         }
       });
       if (!updatedCodes.size) throw new Error('後端沒有取得任何有效行情，請查看 Render 的 [Prices] 日誌');
-      await save();
+      localStorage.setItem(DB_KEY, JSON.stringify(holdings));
+      render();
+      syncLatestPricesToCloud(updatedCodes, resData.updatedAt || new Date().toISOString(), !silent);
       const failedCodes = Array.isArray(resData.failedCodes) ? resData.failedCodes : [];
-      const sourceNames = [...new Set(Object.values(resData.quotes || {}).map(item => item?.source).filter(Boolean))];
-      if (lastUpdateEl) lastUpdateEl.innerText = `最後更新：${new Date().toLocaleTimeString('zh-TW')} · ${updatedCodes.size}/${codes.length} 檔`;
-      showToast(failedCodes.length
-        ? `已更新 ${updatedCodes.size} 檔；${failedCodes.length} 檔失敗：${failedCodes.join('、')}`
-        : `行情已更新 ${updatedCodes.size} 檔${sourceNames.length ? ` · ${sourceNames.join(' / ')}` : ''}`,
-        failedCodes.length ? 'error' : 'success');
+      const quotes = resData.quotes || {};
+      const quoteValues = Object.values(quotes);
+      const sourceNames = [...new Set(quoteValues.map(item => item?.source).filter(Boolean))];
+      const referenceCount = quoteValues.filter(item => item?.priceType === 'previousClose').length;
+      const fallbackCount = quoteValues.filter(item => item?.source === 'Yahoo 備用' || item?.stale).length;
+      const exchangeTime = getLatestExchangeTime(quotes);
+      if (lastUpdateEl) {
+        const notes = [referenceCount ? `${referenceCount} 檔昨收` : '', fallbackCount ? `${fallbackCount} 檔備用` : '', failedCodes.length ? `${failedCodes.length} 檔未更新` : ''].filter(Boolean);
+        lastUpdateEl.innerText = `行情 ${exchangeTime} · ${updatedCodes.size}/${codes.length} 檔${notes.length ? ` · ${notes.join(' / ')}` : ''}`;
+      }
+      if (!silent) {
+        showToast(failedCodes.length
+          ? `已更新 ${updatedCodes.size} 檔；${failedCodes.length} 檔未更新：${failedCodes.join('、')}`
+          : `即時行情已啟動 · ${updatedCodes.size} 檔${sourceNames.length ? ` · ${sourceNames.join(' / ')}` : ''}`,
+          failedCodes.length ? 'error' : 'success');
+      }
+      return true;
     } catch (error) {
       console.error(error);
-      showToast(error.name === 'AbortError' ? '行情服務啟動超過 90 秒，請再試一次' : (error.message || '行情更新失敗'), 'error');
+      if (lastUpdateEl) lastUpdateEl.innerText = '即時行情暫時中斷 · 將自動重試';
+      if (!silent) showToast(error.name === 'AbortError' ? '行情服務啟動超過 90 秒，請再試一次' : (error.message || '行情更新失敗'), 'error');
+      return false;
     } finally {
       clearTimeout(wakeHintTimer);
       refreshInFlight = false;
-      refreshBtn.innerText = "更新行情";
+      refreshBtn.innerText = document.getElementById('autoRefreshCheck').checked ? "即時行情運行中" : "更新行情";
       refreshBtn.disabled = false;
     }
   };
+
+  document.addEventListener('visibilitychange', () => {
+    const checkbox = document.getElementById('autoRefreshCheck');
+    if (document.hidden) stopAutoRefreshTimer();
+    else if (checkbox.checked) runAutoRefreshCycle(true);
+  });
 
   async function loadFromCloud() {
     if (!userId || !currentPassword) return;
@@ -2144,7 +2231,7 @@
         localStorage.setItem(TX_KEY, JSON.stringify(transactions));
       }
       render();
-      realRefresh();
+      realRefresh(true);
     } catch (err) { render(); }
   }
 
