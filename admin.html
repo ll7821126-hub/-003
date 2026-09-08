@@ -1,7 +1,693 @@
-Warning: truncated output (original token count: 15986)
-Total output lines: 694
-
 <!doctype html>
-<ht…15976 tokens truncated…</body>
-</html>
+<html lang="zh-TW">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio OS · 管理中心</title>
+  <style>
+    :root{
+      --ink:#172033;--muted:#758094;--line:#dfe5ec;--soft:#f4f7f9;--paper:#fff;
+      --navy:#101a2d;--navy-2:#18243a;--teal:#0d8f86;--teal-dark:#08736d;
+      --up:#c23c48;--down:#14877c;--amber:#c58624;--shadow:0 12px 34px rgba(24,38,61,.08)
+    }
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:"Microsoft JhengHei","Noto Sans TC",system-ui,sans-serif;color:var(--ink);background:#eef2f5}
+    button,input{font:inherit}button{cursor:pointer}.app{min-width:1180px;min-height:100vh}
+    .topbar{height:76px;background:linear-gradient(115deg,#0d1729,#17243b);color:#fff;display:flex;align-items:center;padding:0 34px;box-shadow:0 8px 24px rgba(13,23,41,.18);position:sticky;top:0;z-index:30}
+    .brand{display:flex;align-items:center;gap:13px;min-width:330px}.brand-mark{width:36px;height:36px;border:1px solid rgba(255,255,255,.22);border-radius:10px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(22,180,166,.22),rgba(255,255,255,.04));font-weight:900;color:#55d8cb}.brand strong{display:block;font-size:15px;letter-spacing:.08em}.brand span{display:block;font-size:10px;color:#9cabc0;letter-spacing:.13em;margin-top:2px}
+    .top-status{margin-left:auto;display:flex;align-items:center;gap:18px}.sync{font-size:11px;color:#9dabc0;text-align:right}.sync strong{display:block;color:#e9f0f7;font-size:12px;margin-bottom:2px}.online-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ed0a9;margin-right:6px;box-shadow:0 0 0 4px rgba(62,208,169,.12)}
+    .btn{border:1px solid transparent;border-radius:9px;height:36px;padding:0 14px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.18s}.btn:hover{transform:translateY(-1px)}.btn-primary{background:var(--teal);color:#fff;box-shadow:0 7px 16px rgba(13,143,134,.22)}.btn-primary:hover{background:var(--teal-dark)}.btn-light{background:#fff;color:#344054;border-color:#d7dee7}.btn-ghost{color:#d4deeb;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.13)}.btn-danger{color:#b52e3c;background:#fff3f4;border-color:#f2cbd0}.btn-small{height:30px;padding:0 10px;font-size:11px}
+    main{padding:24px 30px 30px;max-width:1920px;margin:0 auto}.eyebrow{font-size:10px;letter-spacing:.14em;color:var(--teal);font-weight:800;text-transform:uppercase}.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:18px}.page-head h1{font-size:23px;margin:4px 0 1px;letter-spacing:-.04em}.page-head p{margin:0;color:var(--muted);font-size:12px}
+    .kpis{display:grid;grid-template-columns:repeat(5,minmax(150px,1fr));gap:12px;margin-bottom:16px}.kpi{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:14px 16px;box-shadow:0 5px 18px rgba(20,34,55,.04);min-height:83px}.kpi span{color:#7c8798;font-size:10px;letter-spacing:.06em}.kpi strong{display:block;font-size:19px;margin-top:8px;letter-spacing:-.03em}.kpi small{font-size:10px;color:#98a2b3;margin-left:5px;font-weight:500}
+    .toolbar{min-height:62px;background:#fff;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;padding:11px 12px;margin-bottom:14px;box-shadow:0 5px 18px rgba(20,34,55,.04)}.tabs{display:flex;gap:4px}.tab{height:36px;border:0;background:transparent;color:#667085;padding:0 15px;border-radius:8px;font-size:12px;font-weight:700}.tab.active{background:#e8f6f4;color:#08756e}.search-wrap{margin-left:18px;width:min(360px,25vw);position:relative}.search-wrap:before{content:"⌕";position:absolute;left:12px;top:7px;color:#8b96a8;font-size:18px}.search-wrap input{width:100%;height:38px;border:1px solid #d8e0e8;border-radius:9px;padding:0 13px 0 36px;background:#f8fafb;color:#263247;outline:none;font-size:12px}.search-wrap input:focus{border-color:#4bb8b0;box-shadow:0 0 0 3px rgba(13,143,134,.09);background:#fff}.toolbar-actions{display:flex;gap:7px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+    .client-workspace{display:grid;grid-template-columns:385px minmax(0,1fr);height:calc(100vh - 298px);min-height:570px;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow)}.directory{border-right:1px solid var(--line);background:#f8fafb;min-height:0;display:flex;flex-direction:column}.account-scope{display:none;margin:10px 10px 0;padding:11px 12px;border-radius:10px;background:linear-gradient(135deg,#10243a,#17344a);color:#fff;align-items:center;justify-content:space-between;gap:10px;box-shadow:0 8px 18px rgba(16,36,58,.13)}.account-scope.show{display:flex}.account-scope span{display:block;color:#8fb2c4;font-size:9px;letter-spacing:.08em}.account-scope strong{display:block;font-size:12px;margin:2px 0}.account-scope small{display:block;color:#b9ccda;font-size:9px}.scope-clear{height:28px;border:1px solid rgba(255,255,255,.18);border-radius:7px;background:rgba(255,255,255,.08);color:#fff;padding:0 9px;font-size:9px;font-weight:700}.directory-head{padding:15px 16px 12px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.directory-head strong{font-size:12px}.directory-head span{font-size:10px;color:#8b95a4}.directory-list{overflow:auto;padding:9px;scrollbar-width:thin}.client-item{width:100%;border:1px solid transparent;background:transparent;text-align:left;border-radius:10px;padding:12px;margin-bottom:5px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;color:inherit}.client-item:hover{background:#fff;border-color:#e2e7ec}.client-item.active{background:#fff;border-color:#9bd3ce;box-shadow:0 7px 17px rgba(26,56,78,.07)}.client-name{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.client-account{font-size:10px;color:#8893a3;margin-top:3px}.client-mini{text-align:right;font-size:10px;color:#768194}.client-mini strong{display:block;font-size:11px;margin-bottom:3px}.gain{color:var(--up)!important}.loss{color:var(--down)!important}.neutral{color:#667085!important}
+    .detail{overflow:auto;min-width:0;background:#fff}.detail-empty{height:100%;display:grid;place-items:center;text-align:center;color:#8d97a7}.detail-empty strong{display:block;color:#475467;font-size:14px;margin-bottom:5px}.detail-inner{padding:20px 22px 28px}.detail-head{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:16px;border-bottom:1px solid var(--line)}.identity{display:flex;gap:12px;align-items:center}.avatar{width:44px;height:44px;border-radius:12px;background:linear-gradient(145deg,#15314a,#0d8f86);color:#fff;display:grid;place-items:center;font-size:16px;font-weight:900}.identity h2{font-size:19px;margin:0 0 4px}.identity p{margin:0;color:#7a8595;font-size:11px}.client-chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:20px;background:#edf7f6;color:#08766f;font-size:10px;font-weight:700;margin-left:7px}.detail-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:15px 0}.detail-kpi{border:1px solid #e2e7ed;background:#fafcfd;border-radius:9px;padding:10px 11px}.detail-kpi span{font-size:9px;color:#8490a1}.detail-kpi strong{display:block;font-size:14px;margin-top:4px}
+    .section{margin-top:18px}.section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.section-title h3{font-size:12px;margin:0;display:flex;gap:7px;align-items:center}.section-title h3:before{content:"";width:3px;height:13px;border-radius:3px;background:var(--teal)}.section-title span{font-size:10px;color:#8b95a3}.profile{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.profile-box{border:1px solid #e2e7ed;border-radius:8px;padding:9px 10px;min-height:54px}.profile-box span{font-size:9px;color:#8a95a5;display:block;margin-bottom:4px}.profile-box strong{font-size:11px;font-weight:650}.profile-box.wide{grid-column:span 2}.profile-box.note{grid-column:1/-1;min-height:58px;background:#fafcfd}
+    .table-shell{border:1px solid #dfe5eb;border-radius:9px;overflow:auto}table{width:100%;border-collapse:collapse;font-size:10.5px;min-width:850px}th{position:sticky;top:0;z-index:2;text-align:left;background:#f2f5f7;color:#667085;font-size:9.5px;padding:8px 9px;border-bottom:1px solid #dce3e9;white-space:nowrap}td{padding:9px;border-bottom:1px solid #e8ecf0;white-space:nowrap;vertical-align:top}tr:last-child td{border-bottom:0}.num{text-align:right}.stock{font-weight:800}.stock small{display:block;color:#8b95a4;font-weight:500;margin-top:2px}.stock a{color:#172033;text-decoration:none}.stock a:hover{color:var(--teal)}.tag{display:inline-flex;border-radius:20px;padding:3px 7px;background:#edf2f6;color:#617084;font-size:9px;font-weight:700}.risk-tag{color:#a96f16;background:#fff6e5}.empty-row{text-align:center;color:#98a2b3;padding:22px}
+    .accounts-view{display:none}.account-grid{display:grid;grid-template-columns:repeat(2,minmax(480px,1fr));gap:12px}.account-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 17px;box-shadow:0 5px 18px rgba(20,34,55,.04)}.account-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.account-head h3{font-size:14px;margin:0 0 4px}.account-head p{font-size:10px;color:#8792a2;margin:0}.account-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:13px}.account-stat{background:#f6f8fa;border-radius:8px;padding:8px}.account-stat span{font-size:9px;color:#8c96a6}.account-stat strong{font-size:11px;display:block;margin-top:3px}.account-client-preview{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:11px;min-height:25px}.account-client-preview>span:first-child{font-size:9px;color:#8b95a4;margin-right:2px}.account-client-chip{display:inline-flex;height:23px;align-items:center;padding:0 8px;border-radius:20px;background:#eef7f6;color:#08756e;font-size:9px;font-weight:700}.account-footer{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #edf0f3;margin-top:11px;padding-top:11px}.password{font-family:Consolas,monospace;font-size:10px;color:#778294}.password code{background:#f1f4f6;border-radius:5px;padding:4px 7px;color:#526071}.account-actions{display:flex;gap:6px}
+    .overlay{position:fixed;inset:0;background:radial-gradient(circle at 30% 20%,#203d4f 0,#111a2b 52%,#0b1322 100%);z-index:100;display:flex;align-items:center;justify-content:center}.login-card{width:390px;background:#fff;border-radius:16px;padding:30px;box-shadow:0 30px 80px rgba(0,0,0,.34)}.login-mark{width:46px;height:46px;border-radius:12px;background:linear-gradient(145deg,#132c46,#0d8f86);color:#fff;display:grid;place-items:center;font-weight:900;margin-bottom:20px}.login-card h2{font-size:22px;margin:0 0 6px}.login-card p{font-size:12px;color:#7a8494;margin:0 0 22px}.login-card label{font-size:10px;color:#677386;font-weight:700;display:block;margin-bottom:7px}.login-card input{width:100%;height:43px;border:1px solid #d4dce5;border-radius:9px;padding:0 12px;outline:none;margin-bottom:12px}.login-card input:focus{border-color:#35a99f;box-shadow:0 0 0 3px rgba(13,143,134,.1)}.login-card .btn{width:100%;height:43px}.login-error{font-size:10px;color:#b52e3c;min-height:17px;margin-top:8px}
+    .toast{position:fixed;right:24px;bottom:22px;z-index:160;background:#172236;color:#fff;border-radius:10px;padding:11px 15px;font-size:11px;box-shadow:0 12px 30px rgba(15,25,42,.24);opacity:0;transform:translateY(12px);pointer-events:none;transition:.22s}.toast.show{opacity:1;transform:translateY(0)}
+    .modal-layer{position:fixed;inset:0;z-index:130;background:rgba(9,17,29,.64);display:none;align-items:center;justify-content:center;padding:26px}.modal-layer.show{display:flex}.modal-panel{width:min(780px,calc(100vw - 52px));max-height:calc(100vh - 72px);background:#fff;border:1px solid #dbe2e9;border-radius:16px;box-shadow:0 28px 80px rgba(7,17,31,.3);display:flex;flex-direction:column;overflow:hidden}.modal-panel.narrow{width:min(520px,calc(100vw - 52px))}.modal-panel.wide{width:min(1000px,calc(100vw - 52px))}.modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:18px 20px 15px;border-bottom:1px solid var(--line)}.modal-head h2{font-size:17px;margin:0 0 4px}.modal-head p{font-size:11px;color:var(--muted);margin:0;line-height:1.6}.modal-close{width:34px;height:34px;border:1px solid #d8e0e8;border-radius:9px;background:#fff;color:#5f6b7c;font-size:18px}.modal-body{padding:18px 20px 21px;overflow:auto}.field-label{display:block;font-size:11px;font-weight:800;color:#526071;margin-bottom:7px}.field-input,.field-select{width:100%;height:42px;border:1px solid #d5dde6;border-radius:9px;padding:0 12px;background:#fff;color:#263247;outline:none;font-size:12px}.field-input:focus,.field-select:focus{border-color:#43aaa2;box-shadow:0 0 0 3px rgba(13,143,134,.1)}.helper{font-size:11px;line-height:1.65;color:#7a8595}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}.security-note{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid #cde6e2;background:#f1faf8;border-radius:10px;color:#31675f;font-size:11px;line-height:1.55}.one-time-secret{display:none;margin-top:14px;padding:14px;border:1px solid #f0d29b;background:#fff8e8;border-radius:11px}.one-time-secret.show{display:block}.secret-row{display:flex;gap:8px;margin-top:9px}.secret-value{flex:1;min-width:0;padding:10px 12px;border-radius:8px;background:#fff;border:1px solid #e4c27e;font-family:Consolas,monospace;font-size:15px;font-weight:800;letter-spacing:.04em;word-break:break-all}.data-list{display:grid;gap:9px}.data-card{border:1px solid #e0e6ec;border-radius:11px;padding:12px 13px;background:#fbfcfd;display:flex;align-items:center;gap:14px}.data-card-main{flex:1;min-width:0}.data-card-title{font-size:12px;font-weight:800;color:#263247}.data-card-meta{font-size:11px;color:#7f8998;margin-top:4px;line-height:1.55}.data-card-actions{display:flex;gap:7px;align-items:center;flex-shrink:0}.empty-state{padding:28px;text-align:center;color:#8993a2;font-size:11px;border:1px dashed #d6dee6;border-radius:11px;background:#fafcfd}.danger-zone{margin-top:16px;padding-top:14px;border-top:1px solid #edf0f3}.danger-note{font-size:11px;color:#a4555d;margin-bottom:9px}.audit-table{min-width:720px}.audit-action{font-weight:800;color:#344054}.backup-tools{display:grid;grid-template-columns:minmax(260px,1fr) auto;gap:8px;align-items:end;margin-bottom:14px}.session-badge{display:inline-flex;align-items:center;gap:7px;height:27px;padding:0 10px;border-radius:20px;border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.06);font-size:11px;color:#cfdae8}.session-badge:before{content:"";width:7px;height:7px;border-radius:50%;background:#3ed0a9;box-shadow:0 0 0 4px rgba(62,208,169,.1)}
+    .brand span,.eyebrow,.kpi span,.kpi small,.directory-head span,.client-account,.client-mini,.identity p,.client-chip,.detail-kpi span,.section-title span,.profile-box span,.stock small,.tag,.account-head p,.account-stat span,.account-client-preview>span:first-child,.account-client-chip,.password,.login-card label,.login-error,.account-scope span,.account-scope small{font-size:11px}.profile-box strong,.account-stat strong{font-size:12px}.btn-small,.scope-clear{font-size:12px}
+    @media(max-width:1400px){main{padding-left:20px;padding-right:20px}.client-workspace{grid-template-columns:330px minmax(0,1fr)}.profile{grid-template-columns:repeat(3,1fr)}.account-grid{grid-template-columns:1fr}}
+    .detail-actions{display:flex;align-items:center;gap:7px}
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">OS</div><div><strong>PORTFOLIO OS</strong><span>ADMINISTRATION CONSOLE</span></div></div>
+    <div class="top-status"><span id="sessionBadge" class="session-badge" style="display:none">安全工作階段</span><div class="sync"><strong><span class="online-dot"></span><span id="connectionText">等待管理員登入</span></strong><span id="lastSync">尚未同步資料</span></div><button class="btn btn-ghost" onclick="switchAdmin()">切換管理員</button></div>
+  </header>
+  <main>
+    <div class="page-head"><div><div class="eyebrow">Client Intelligence</div><h1>客戶與資產管理中心</h1><p>按客戶直接檢視完整檔案、持倉、損益與交易紀錄。</p></div><div id="statusText" style="font-size:11px;color:#7d8898;">等待載入資料</div></div>
+    <section class="kpis">
+      <div class="kpi"><span>註冊帳號</span><strong id="kpiAccounts">0 <small>個</small></strong></div>
+      <div class="kpi"><span>登記客戶</span><strong id="kpiClients">0 <small>位</small></strong></div>
+      <div class="kpi"><span>持倉筆數</span><strong id="kpiHoldings">0 <small>筆</small></strong></div>
+      <div class="kpi"><span>總市值</span><strong id="kpiValue">NT$ 0</strong></div>
+      <div class="kpi"><span>預估總損益</span><strong id="kpiPnl">NT$ 0</strong></div>
+    </section>
+    <div class="toolbar">
+      <div class="tabs"><button id="clientsTab" class="tab active" onclick="setView('clients')">客戶目錄</button><button id="accountsTab" class="tab" onclick="setView('accounts')">帳號管理</button></div>
+      <div class="search-wrap"><input id="searchInput" placeholder="搜尋客戶姓名、帳號、股票或代碼" oninput="applySearch()" /></div>
+      <div class="toolbar-actions"><button class="btn btn-light" onclick="openTrash()">回收站</button><button class="btn btn-light" onclick="openAudit()">操作記錄</button><button class="btn btn-light" onclick="openBackups()">備份恢復</button><button class="btn btn-light" onclick="exportCSV()">匯出客戶 CSV</button><button id="refreshBtn" class="btn btn-primary" onclick="loadAdminData()">更新資料與行情</button></div>
+    </div>
+    <section id="clientsView" class="client-workspace">
+      <aside class="directory"><div id="accountScope" class="account-scope"><div><span>目前業務員／帳號</span><strong id="accountScopeName">—</strong><small id="accountScopeCount">0 位客戶</small></div><button class="scope-clear" onclick="clearAccountFilter()">顯示全部</button></div><div class="directory-head"><strong id="directoryTitle">全部客戶</strong><span id="directoryCount">0 位</span></div><div id="clientList" class="directory-list"></div></aside>
+      <div id="clientDetail" class="detail"><div class="detail-empty"><div><strong>選擇一位客戶</strong>即可查看完整資料與持倉紀錄</div></div></div>
+    </section>
+    <section id="accountsView" class="accounts-view"><div id="accountGrid" class="account-grid"></div></section>
+  </main>
+</div>
 
+<div id="passwordModal" class="modal-layer" role="dialog" aria-modal="true" aria-labelledby="passwordModalTitle">
+  <div class="modal-panel narrow">
+    <div class="modal-head"><div><h2 id="passwordModalTitle">重設帳號密碼</h2><p id="passwordAccountText">為帳號建立新的安全密碼</p></div><button class="modal-close" onclick="closeModal('passwordModal')" aria-label="關閉">×</button></div>
+    <div class="modal-body">
+      <div class="security-note"><span>🔒</span><span>原密碼已加密保存，管理員無法查看。你可以輸入指定的新密碼，或留空讓系統產生一次性臨時密碼。</span></div>
+      <div style="margin-top:15px"><label class="field-label" for="newPasswordInput">指定新密碼（選填）</label><input id="newPasswordInput" class="field-input" type="password" autocomplete="new-password" placeholder="留空則產生臨時密碼" /><div class="helper" style="margin-top:6px">若自行設定，建議至少 10 碼並混合英文、數字與符號。</div></div>
+      <div id="temporaryPasswordBox" class="one-time-secret"><strong style="font-size:12px;color:#765318">臨時密碼只顯示這一次</strong><div class="helper" style="color:#8c6728">請立即複製並安全交給使用者；關閉視窗後將無法再次查看。</div><div class="secret-row"><div id="temporaryPasswordValue" class="secret-value"></div><button class="btn btn-light" onclick="copyTemporaryPassword()">複製</button></div></div>
+      <div class="modal-actions"><button class="btn btn-light" onclick="closeModal('passwordModal')">取消</button><button id="resetPasswordBtn" class="btn btn-primary" onclick="submitPasswordReset()">重設密碼</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="trashModal" class="modal-layer" role="dialog" aria-modal="true" aria-labelledby="trashModalTitle">
+  <div class="modal-panel wide">
+    <div class="modal-head"><div><h2 id="trashModalTitle">回收站</h2><p>移除的帳號與客戶會保留在這裡。預設建議恢復，永久刪除後無法找回。</p></div><button class="modal-close" onclick="closeModal('trashModal')" aria-label="關閉">×</button></div>
+    <div class="modal-body"><div id="trashContent" class="data-list"><div class="empty-state">正在讀取回收站…</div></div></div>
+  </div>
+</div>
+
+<div id="auditModal" class="modal-layer" role="dialog" aria-modal="true" aria-labelledby="auditModalTitle">
+  <div class="modal-panel wide">
+    <div class="modal-head"><div><h2 id="auditModalTitle">管理員操作記錄</h2><p>查看登入、密碼重設、刪除、恢復與備份還原等管理操作。</p></div><button class="modal-close" onclick="closeModal('auditModal')" aria-label="關閉">×</button></div>
+    <div class="modal-body"><div id="auditContent"><div class="empty-state">正在讀取操作記錄…</div></div></div>
+  </div>
+</div>
+
+<div id="backupModal" class="modal-layer" role="dialog" aria-modal="true" aria-labelledby="backupModalTitle">
+  <div class="modal-panel">
+    <div class="modal-head"><div><h2 id="backupModalTitle">帳號備份恢復</h2><p>選擇帳號查看可恢復快照。恢復前會再次確認，不會在載入頁面時自動改動資料。</p></div><button class="modal-close" onclick="closeModal('backupModal')" aria-label="關閉">×</button></div>
+    <div class="modal-body"><div class="backup-tools"><div><label class="field-label" for="backupUserSelect">選擇帳號</label><select id="backupUserSelect" class="field-select" onchange="loadBackups()"></select></div><button class="btn btn-light" onclick="loadBackups()">重新讀取</button></div><div id="backupContent" class="data-list"><div class="empty-state">請先選擇帳號</div></div></div>
+  </div>
+</div>
+
+<div id="loginModal" class="overlay">
+  <form class="login-card" onsubmit="handleAdminLogin(event)">
+    <div class="login-mark">OS</div><h2>管理員登入</h2><p>進入客戶資料與資產管理控制台</p>
+    <label for="adminPwdInput">管理員密碼</label><input type="password" id="adminPwdInput" autocomplete="current-password" placeholder="請輸入管理員密碼" required />
+    <button id="loginBtn" class="btn btn-primary" type="submit">安全登入</button><div id="loginError" class="login-error"></div>
+  </form>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+  const API_URL = "https://003-v2.onrender.com/api";
+  const ADMIN_TOKEN_KEY = "portfolio_os_admin_token";
+  let adminToken = sessionStorage.getItem(ADMIN_TOKEN_KEY) || "";
+  let users = [];
+  let clients = [];
+  let filteredClients = [];
+  let priceMap = {};
+  let activeView = "clients";
+  let selectedClientKey = "";
+  let activeAccountFilter = "";
+  let passwordResetUserId = "";
+  let trashState = { users:[], clients:[] };
+  let backupState = [];
+
+  const money = value => Number(value || 0).toLocaleString("zh-TW", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const pct = value => `${Number(value || 0) >= 0 ? "+" : ""}${Number(value || 0).toFixed(2)}%`;
+  const esc = value => String(value ?? "").replace(/[&<>'"]/g, char => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[char]));
+  const pnlClass = value => Number(value) > 0 ? "gain" : Number(value) < 0 ? "loss" : "neutral";
+  const currentPrice = holding => Number(priceMap[String(holding.code || "").trim()] ?? holding.currentPrice ?? holding.cost ?? 0);
+  const keyFor = (account, client) => `${account}::${client}`;
+  const urlToken = value => encodeURIComponent(String(value)).replaceAll("'", "%27");
+
+  function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message; toast.classList.add("show");
+    clearTimeout(showToast.timer); showToast.timer = setTimeout(() => toast.classList.remove("show"), 2400);
+  }
+
+  function responseMessage(data, fallback) {
+    return data?.message || data?.error?.message || (typeof data?.error === "string" ? data.error : "") || fallback;
+  }
+
+  function setConnectionState(authenticated) {
+    document.getElementById("sessionBadge").style.display = authenticated ? "inline-flex" : "none";
+    document.getElementById("connectionText").textContent = authenticated ? "管理端安全連線" : "等待管理員登入";
+  }
+
+  function showLogin(message = "") {
+    const modal = document.getElementById("loginModal");
+    modal.style.display = "flex";
+    document.getElementById("loginError").textContent = message;
+    setTimeout(() => document.getElementById("adminPwdInput").focus(), 0);
+  }
+
+  function clearAdminSession(message = "") {
+    adminToken = "";
+    sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    setConnectionState(false);
+    document.getElementById("lastSync").textContent = "尚未同步資料";
+    if (message) showLogin(message);
+  }
+
+  function switchAdmin() {
+    closeAllUtilityModals();
+    clearAdminSession();
+    document.getElementById("adminPwdInput").value = "";
+    showLogin();
+  }
+
+  async function adminRequest(path, { method="GET", body } = {}) {
+    if (!adminToken) {
+      showLogin("請先登入管理員帳號");
+      throw new Error("管理員工作階段不存在");
+    }
+    const headers = { "Authorization":`Bearer ${adminToken}`, "Cache-Control":"no-cache" };
+    const request = { method, cache:"no-store", headers };
+    if (body !== undefined) {
+      headers["Content-Type"] = "application/json";
+      request.body = JSON.stringify(body);
+    }
+    const response = await fetch(`${API_URL}${path}`, request);
+    let data = {};
+    try { data = await response.json(); } catch (_) { data = {}; }
+    if (response.status === 401 || response.status === 403) {
+      clearAdminSession("登入已過期或權限失效，請重新登入");
+      throw new Error(responseMessage(data, "管理員驗證失敗"));
+    }
+    if (!response.ok || data.success === false) throw new Error(responseMessage(data, `請求失敗（${response.status}）`));
+    return data;
+  }
+
+  async function handleAdminLogin(event) {
+    event.preventDefault();
+    const password = document.getElementById("adminPwdInput").value;
+    if (!password) return;
+    const button = document.getElementById("loginBtn");
+    button.disabled = true; button.textContent = "驗證中...";
+    try {
+      const response = await fetch(`${API_URL}/admin/login`, { method:"POST", cache:"no-store", headers:{"Content-Type":"application/json","Cache-Control":"no-cache"}, body:JSON.stringify({ password }) });
+      let data = {};
+      try { data = await response.json(); } catch (_) {}
+      if (!response.ok || !data.success || !data.token) throw new Error(responseMessage(data, "管理員密碼錯誤"));
+      adminToken = String(data.token);
+      sessionStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
+      document.getElementById("adminPwdInput").value = "";
+      document.getElementById("loginError").textContent = "";
+      setConnectionState(true);
+      const success = await loadAdminData(true);
+      if (success) document.getElementById("loginModal").style.display = "none";
+    } catch (error) {
+      document.getElementById("loginError").textContent = error.message || "登入失敗，請稍後再試";
+    } finally {
+      button.disabled = false; button.textContent = "安全登入";
+    }
+  }
+
+  async function fetchPrices(codes) {
+    if (!codes.length) return;
+    try {
+      const response = await fetch(`${API_URL}/prices`, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({ codes }) });
+      const data = await response.json();
+      if (data.success && data.prices) priceMap = data.prices;
+    } catch (error) { console.warn("行情讀取失敗", error); }
+  }
+
+  async function loadAdminData(fromLogin = false) {
+    if (!adminToken) { showLogin(); return false; }
+    const refresh = document.getElementById("refreshBtn");
+    refresh.disabled = true; refresh.textContent = "同步中...";
+    document.getElementById("statusText").textContent = "正在讀取帳號與客戶資料";
+    try {
+      const data = await adminRequest(`/admin/all_data?t=${Date.now()}`, { method:"POST", body:{} });
+      users = Array.isArray(data.users) ? data.users : [];
+      const codes = [...new Set(users.flatMap(user => (user.holdings || []).map(item => String(item.code || "").trim()).filter(Boolean)))];
+      await fetchPrices(codes);
+      clients = buildClientDirectory(users);
+      updateKpis();
+      applySearch();
+      const time = new Date().toLocaleString("zh-TW");
+      document.getElementById("lastSync").textContent = `最後同步 ${time}`;
+      document.getElementById("statusText").textContent = `${users.length} 個帳號 · ${clients.length} 位客戶 · 行情已更新`;
+      setConnectionState(true);
+      if (!fromLogin) showToast("客戶資料與行情已更新");
+      document.getElementById("loginError").textContent = "";
+      return true;
+    } catch (error) {
+      document.getElementById("loginError").textContent = error.message || "連線失敗，請檢查後端服務";
+      if (!fromLogin) showToast(error.message || "資料讀取失敗");
+      return false;
+    } finally {
+      refresh.disabled = false; refresh.textContent = "更新資料與行情";
+    }
+  }
+
+  function buildClientDirectory(allUsers) {
+    const result = [];
+    allUsers.forEach(user => {
+      const profiles = user.profiles || {};
+      const meaningfulProfiles = Object.keys(profiles).filter(name => Object.values(profiles[name] || {}).some(value => String(value || '').trim()));
+      const names = new Set([
+        ...meaningfulProfiles,
+        ...(user.holdings || []).map(item => item.client || "未命名客戶")
+      ]);
+      names.forEach(name => {
+        const holdings = (user.holdings || []).filter(item => (item.client || "未命名客戶") === name);
+        const transactions = (user.transactions || []).filter(item => item.client === name).sort((a,b) => String(b.date || "").localeCompare(String(a.date || "")));
+        const totals = holdings.reduce((acc, item) => {
+          const quantity = Number(item.quantity) || 0, cost = Number(item.cost) || 0, price = currentPrice(item);
+          acc.cost += quantity * cost; acc.value += quantity * price; return acc;
+        }, { cost:0, value:0 });
+        result.push({ key:keyFor(user.userId, name), userId:user.userId, name, profile:(user.profiles || {})[name] || {}, holdings, transactions, cost:totals.cost, value:totals.value, pnl:totals.value - totals.cost, realized:transactions.reduce((sum, tx) => sum + (Number(tx.realizedPnl) || 0), 0) });
+      });
+    });
+    return result.sort((a,b) => a.name.localeCompare(b.name, "zh-TW") || a.userId.localeCompare(b.userId));
+  }
+
+  function updateKpis() {
+    const holdings = users.flatMap(user => user.holdings || []);
+    const totals = holdings.reduce((acc, item) => { const qty=Number(item.quantity)||0, cost=Number(item.cost)||0, price=currentPrice(item); acc.cost += qty*cost; acc.value += qty*price; return acc; }, {cost:0,value:0});
+    document.getElementById("kpiAccounts").innerHTML = `${users.length} <small>個</small>`;
+    document.getElementById("kpiClients").innerHTML = `${clients.length} <small>位</small>`;
+    document.getElementById("kpiHoldings").innerHTML = `${holdings.length} <small>筆</small>`;
+    document.getElementById("kpiValue").textContent = `NT$ ${money(totals.value)}`;
+    const pnl = totals.value - totals.cost, pnlEl = document.getElementById("kpiPnl");
+    pnlEl.textContent = `${pnl >= 0 ? "+" : "−"}NT$ ${money(Math.abs(pnl))}`; pnlEl.className = pnlClass(pnl);
+  }
+
+  window.setView = (view, preserveAccountFilter = false) => {
+    activeView = view === "accounts" ? "accounts" : "clients";
+    if (activeView === "clients" && !preserveAccountFilter) activeAccountFilter = "";
+    document.getElementById("clientsView").style.display = activeView === "clients" ? "grid" : "none";
+    document.getElementById("accountsView").style.display = activeView === "accounts" ? "block" : "none";
+    document.getElementById("clientsTab").classList.toggle("active", activeView === "clients");
+    document.getElementById("accountsTab").classList.toggle("active", activeView === "accounts");
+    updateAccountScope();
+    applySearch();
+  };
+
+  function updateAccountScope() {
+    const scope = document.getElementById("accountScope");
+    const scopedClients = activeAccountFilter ? clients.filter(client => client.userId === activeAccountFilter) : clients;
+    scope.classList.toggle("show", Boolean(activeAccountFilter));
+    document.getElementById("accountScopeName").textContent = activeAccountFilter || "—";
+    document.getElementById("accountScopeCount").textContent = `${scopedClients.length} 位名下客戶`;
+    document.getElementById("directoryTitle").textContent = activeAccountFilter ? "名下客戶清單" : "全部客戶";
+    document.getElementById("searchInput").placeholder = activeAccountFilter ? `搜尋 ${activeAccountFilter} 名下客戶` : "搜尋客戶姓名、帳號、股票或代碼";
+  }
+
+  window.clearAccountFilter = () => {
+    activeAccountFilter = "";
+    selectedClientKey = "";
+    document.getElementById("searchInput").value = "";
+    updateAccountScope();
+    applySearch();
+    showToast("已顯示全部業務員的客戶");
+  };
+
+  window.applySearch = () => {
+    const query = document.getElementById("searchInput").value.trim().toLowerCase();
+    filteredClients = clients.filter(client => {
+      if (activeAccountFilter && client.userId !== activeAccountFilter) return false;
+      const profile = client.profile || {};
+      const text = [client.name, client.userId, profile.gender, profile.age, profile.experience, profile.style, profile.hobbies, profile.family, profile.note, ...client.holdings.flatMap(h => [h.stockName,h.code])].join(" ").toLowerCase();
+      return !query || text.includes(query);
+    });
+    renderClientList();
+    if (activeView === "accounts") renderAccounts(query);
+  };
+
+  function renderClientList() {
+    const list = document.getElementById("clientList");
+    document.getElementById("directoryCount").textContent = `${filteredClients.length} 位`;
+    if (!filteredClients.length) {
+      list.innerHTML = `<div class="detail-empty" style="height:220px"><div><strong>找不到客戶</strong>請嘗試其他關鍵字</div></div>`;
+      document.getElementById("clientDetail").innerHTML = `<div class="detail-empty"><div><strong>沒有相符資料</strong>調整搜尋條件後再試</div></div>`;
+      return;
+    }
+    if (!filteredClients.some(item => item.key === selectedClientKey)) selectedClientKey = filteredClients[0].key;
+    list.innerHTML = filteredClients.map(client => `<button class="client-item ${client.key === selectedClientKey ? "active" : ""}" onclick="selectClient(decodeURIComponent('${urlToken(client.key)}'))">
+      <div><div class="client-name">${esc(client.name)}</div><div class="client-account">帳號 ${esc(client.userId)} · ${client.holdings.length} 檔持倉</div></div>
+      <div class="client-mini"><strong>NT$ ${money(client.value)}</strong><span class="${pnlClass(client.pnl)}">${pct(client.cost ? client.pnl/client.cost*100 : 0)}</span></div>
+    </button>`).join("");
+    renderClientDetail(selectedClientKey);
+  }
+
+  window.selectClient = key => { selectedClientKey = key; renderClientList(); };
+
+  function renderClientDetail(key) {
+    const client = clients.find(item => item.key === key);
+    const host = document.getElementById("clientDetail");
+    if (!client) { host.innerHTML = `<div class="detail-empty"><div><strong>選擇一位客戶</strong>即可查看完整資料</div></div>`; return; }
+    const profile = client.profile || {};
+    const riskCount = client.holdings.filter(item => { const price=currentPrice(item), stop=Number(item.stopLoss)||0, take=Number(item.takeProfit)||0; return (stop && price <= stop) || (take && price >= take); }).length;
+    const holdingRows = client.holdings.map(item => {
+      const qty=Number(item.quantity)||0, cost=Number(item.cost)||0, price=currentPrice(item), value=qty*price, pnl=value-qty*cost, rate=cost ? (price-cost)/cost*100 : 0;
+      const code=String(item.code||"").replace(/[^0-9]/g,"");
+      return `<tr><td class="stock"><a href="${code ? `https://statementdog.com/analysis/${code}` : "#"}" target="_blank" rel="noopener">${esc(item.stockName || "未命名股票")}</a><small>${esc(item.code)}</small></td>
+        <td class="num">${money(qty)}</td><td class="num">${money(cost)}</td><td class="num">${money(price)}</td><td class="num">NT$ ${money(value)}</td><td class="num ${pnlClass(pnl)}">${pnl>=0?"+":"−"}NT$ ${money(Math.abs(pnl))}<small>${pct(rate)}</small></td>
+        <td><span class="tag ${((Number(item.stopLoss)||0)&&price<=Number(item.stopLoss))||((Number(item.takeProfit)||0)&&price>=Number(item.takeProfit)) ? "risk-tag" : ""}">止損 ${item.stopLoss ? money(item.stopLoss) : "—"} / 止盈 ${item.takeProfit ? money(item.takeProfit) : "—"}</span></td></tr>`;
+    }).join("") || `<tr><td colspan="7" class="empty-row">此客戶目前沒有持倉</td></tr>`;
+    const typeLabel={buy:"買入",sell:"賣出",opening:"期初",adjustment:"調整"};
+    const transactionRows = client.transactions.slice(0,10).map(tx => `<tr><td>${tx.date ? esc(new Date(tx.date).toLocaleString("zh-TW")) : "—"}</td><td><span class="tag">${esc(typeLabel[tx.type]||"紀錄")}</span></td><td class="stock">${esc(tx.stockName)}<small>${esc(tx.code)}</small></td><td class="num">${money(tx.quantity)}</td><td class="num">${tx.price ? money(tx.price) : "—"}</td><td class="num ${pnlClass(tx.realizedPnl)}">${tx.type === "sell" ? `${Number(tx.realizedPnl)>=0?"+":"−"}NT$ ${money(Math.abs(Number(tx.realizedPnl)||0))}` : "—"}</td></tr>`).join("") || `<tr><td colspan="6" class="empty-row">尚無交易紀錄</td></tr>`;
+    host.innerHTML = `<div class="detail-inner">
+      <header class="detail-head"><div class="identity"><div class="avatar">${esc(client.name.slice(0,1).toUpperCase())}</div><div><h2>${esc(client.name)}<span class="client-chip">客戶檔案</span></h2><p>所屬帳號 ${esc(client.userId)} · ${client.holdings.length} 檔持倉 · ${client.transactions.length} 筆交易</p></div></div><div class="detail-actions"><button class="btn btn-light btn-small" onclick="focusAccount(decodeURIComponent('${urlToken(client.userId)}'))">查看帳號</button><button class="btn btn-danger btn-small" onclick="deleteClient(decodeURIComponent('${urlToken(client.userId)}'),decodeURIComponent('${urlToken(client.name)}'))">移至回收站</button></div></header>
+      <div class="detail-kpis"><div class="detail-kpi"><span>持倉成本</span><strong>NT$ ${money(client.cost)}</strong></div><div class="detail-kpi"><span>目前市值</span><strong>NT$ ${money(client.value)}</strong></div><div class="detail-kpi"><span>未實現損益</span><strong class="${pnlClass(client.pnl)}">${client.pnl>=0?"+":"−"}NT$ ${money(Math.abs(client.pnl))}</strong></div><div class="detail-kpi"><span>累計已實現</span><strong class="${pnlClass(client.realized)}">${client.realized>=0?"+":"−"}NT$ ${money(Math.abs(client.realized))}</strong></div></div>
+      <section class="section"><div class="section-title"><h3>客戶完整資料</h3><span>${riskCount ? `${riskCount} 筆風險水位已觸發` : "目前無已觸發風險"}</span></div><div class="profile">
+        <div class="profile-box"><span>性別</span><strong>${esc(profile.gender || "未填寫")}</strong></div><div class="profile-box"><span>年齡</span><strong>${esc(profile.age ? profile.age+" 歲" : "未填寫")}</strong></div><div class="profile-box"><span>投資經驗</span><strong>${esc(profile.experience || "未填寫")}</strong></div><div class="profile-box"><span>投資風格</span><strong>${esc(profile.style || "未填寫")}</strong></div>
+        <div class="profile-box wide"><span>興趣與偏好</span><strong>${esc(profile.hobbies || "未填寫")}</strong></div><div class="profile-box wide"><span>家庭狀況</span><strong>${esc(profile.family || "未填寫")}</strong></div><div class="profile-box note"><span>客戶備註</span><strong>${esc(profile.note || "尚無備註")}</strong></div></div></section>
+      <section class="section"><div class="section-title"><h3>目前持倉</h3><span>行情以本次同步結果為準</span></div><div class="table-shell"><table><thead><tr><th>股票</th><th class="num">股數</th><th class="num">成本</th><th class="num">現價</th><th class="num">市值</th><th class="num">預估損益</th><th>風控水位</th></tr></thead><tbody>${holdingRows}</tbody></table></div></section>
+      <section class="section"><div class="section-title"><h3>最近交易紀錄</h3><span>顯示最近 10 筆</span></div><div class="table-shell"><table><thead><tr><th>時間</th><th>類型</th><th>股票</th><th class="num">股數</th><th class="num">成交價</th><th class="num">已實現損益</th></tr></thead><tbody>${transactionRows}</tbody></table></div></section>
+    </div>`;
+  }
+
+  function renderAccounts(query = "") {
+    const filtered = users.filter(user => {
+      const names = clients.filter(client => client.userId === user.userId).map(client => client.name);
+      return !query || [user.userId,...names,...(user.holdings||[]).flatMap(item=>[item.stockName,item.code])].join(" ").toLowerCase().includes(query);
+    });
+    const grid = document.getElementById("accountGrid");
+    if (!filtered.length) { grid.innerHTML = `<div class="account-card" style="text-align:center;color:#8b95a4">找不到相符帳號</div>`; return; }
+    grid.innerHTML = filtered.map(user => {
+      const accountClients = clients.filter(client => client.userId === user.userId);
+      const holdings = user.holdings || [];
+      const value = accountClients.reduce((sum,client)=>sum+client.value,0), pnl=accountClients.reduce((sum,client)=>sum+client.pnl,0), cost=accountClients.reduce((sum,client)=>sum+client.cost,0);
+      const clientPreview = accountClients.length ? accountClients.slice(0, 5).map(client => `<span class="account-client-chip">${esc(client.name)}</span>`).join("") + (accountClients.length > 5 ? `<span class="account-client-chip">+${accountClients.length - 5}</span>` : "") : `<span class="account-client-chip" style="color:#7b8798;background:#f1f4f6;">尚無登記客戶</span>`;
+      return `<article class="account-card" data-user="${esc(user.userId.toLowerCase())}"><div class="account-head"><div><h3>${esc(user.userId)}</h3><p>註冊帳號 · ${accountClients.length} 位登記客戶</p></div><span class="tag">使用中</span></div>
+        <div class="account-stats"><div class="account-stat"><span>客戶</span><strong>${accountClients.length} 位</strong></div><div class="account-stat"><span>持倉</span><strong>${holdings.length} 筆</strong></div><div class="account-stat"><span>總市值</span><strong>NT$ ${money(value)}</strong></div><div class="account-stat"><span>預估損益</span><strong class="${pnlClass(pnl)}">${pct(cost?pnl/cost*100:0)}</strong></div></div>
+        <div class="account-client-preview"><span>名下客戶</span>${clientPreview}</div>
+        <div class="account-footer"><div class="password"><strong style="color:#08756e;font-family:inherit;font-size:12px">🔒 密碼已加密</strong><div style="margin-top:4px">${esc(passwordStateLabel(user.passwordState))}</div></div><div class="account-actions"><button class="btn btn-light btn-small" onclick="openPasswordReset(decodeURIComponent('${urlToken(user.userId)}'))">重設密碼</button><button class="btn btn-light btn-small" onclick="openBackups(decodeURIComponent('${urlToken(user.userId)}'))">備份</button><button class="btn btn-light btn-small" onclick="focusFirstClient(decodeURIComponent('${urlToken(user.userId)}'))">查看旗下客戶</button><button class="btn btn-danger btn-small" onclick="deleteAccount(decodeURIComponent('${urlToken(user.userId)}'))">移至回收站</button></div></div></article>`;
+    }).join("");
+  }
+
+  function passwordStateLabel(state) {
+    const value = typeof state === "string" ? state.toLowerCase() : "";
+    if (value.includes("temporary") || value.includes("temp") || state?.temporary) return "目前使用臨時密碼，可再次安全重設";
+    if (value.includes("unset") || value.includes("missing") || state?.hasPassword === false) return "尚未設定密碼，建議立即重設";
+    return "原密碼不可查看，只能安全重設";
+  }
+  window.focusAccount = userId => { setView("accounts"); document.getElementById("searchInput").value=userId; applySearch(); };
+  window.focusFirstClient = userId => {
+    const accountClients = clients.filter(item => item.userId === userId);
+    if (!accountClients.length) { showToast(`帳號 ${userId} 目前沒有登記客戶`); return; }
+    activeAccountFilter = userId;
+    selectedClientKey = accountClients[0].key;
+    document.getElementById("searchInput").value = "";
+    setView("clients", true);
+    showToast(`已顯示 ${userId} 名下 ${accountClients.length} 位客戶`);
+  };
+
+  window.deleteAccount = async userId => {
+    if (!confirm(`要將帳號「${userId}」移至回收站嗎？\n\n帳號、客戶、持倉與交易資料會保留，可由回收站恢復。`)) return;
+    try {
+      await adminRequest("/admin/delete_user", { method:"POST", body:{ userId } });
+      showToast(`帳號 ${userId} 已移至回收站`); selectedClientKey=""; await loadAdminData();
+    } catch(error) { showToast(error.message || "移至回收站失敗"); }
+  };
+
+  window.deleteClient = async (userId, clientName) => {
+    if (!confirm(`要將客戶「${clientName}」移至回收站嗎？\n\n所屬帳號：${userId}\n客戶檔案、持倉與交易紀錄會保留，可由回收站恢復。`)) return;
+    try {
+      await adminRequest("/admin/delete_client", { method:"POST", body:{ userId, clientName } });
+      selectedClientKey = "";
+      showToast(`客戶 ${clientName} 已移至回收站`);
+      await loadAdminData();
+    } catch (error) {
+      showToast(error.message || "移至回收站失敗");
+    }
+  };
+
+  function openModal(id) {
+    document.getElementById(id)?.classList.add("show");
+  }
+
+  function closeModal(id) {
+    const modal = document.getElementById(id);
+    if (modal) modal.classList.remove("show");
+    if (id === "passwordModal") {
+      passwordResetUserId = "";
+      document.getElementById("newPasswordInput").value = "";
+      document.getElementById("temporaryPasswordValue").textContent = "";
+      document.getElementById("temporaryPasswordBox").classList.remove("show");
+      const button = document.getElementById("resetPasswordBtn");
+      button.disabled = false; button.textContent = "重設密碼";
+    }
+  }
+
+  function closeAllUtilityModals() {
+    ["passwordModal","trashModal","auditModal","backupModal"].forEach(id => closeModal(id));
+  }
+
+  function openPasswordReset(userId) {
+    passwordResetUserId = userId;
+    document.getElementById("passwordAccountText").textContent = `帳號 ${userId} · 原密碼無法查看，只能安全重設`;
+    document.getElementById("newPasswordInput").value = "";
+    document.getElementById("temporaryPasswordValue").textContent = "";
+    document.getElementById("temporaryPasswordBox").classList.remove("show");
+    openModal("passwordModal");
+    setTimeout(() => document.getElementById("newPasswordInput").focus(), 0);
+  }
+
+  async function submitPasswordReset() {
+    if (!passwordResetUserId) return;
+    const input = document.getElementById("newPasswordInput");
+    const newPassword = input.value;
+    if (newPassword && newPassword.length < 8) { showToast("新密碼至少需要 8 碼"); input.focus(); return; }
+    const button = document.getElementById("resetPasswordBtn");
+    button.disabled = true; button.textContent = "處理中...";
+    try {
+      const body = { userId:passwordResetUserId };
+      if (newPassword) body.newPassword = newPassword;
+      const data = await adminRequest("/admin/reset_password", { method:"POST", body });
+      input.value = "";
+      if (data.temporaryPassword) {
+        document.getElementById("temporaryPasswordValue").textContent = String(data.temporaryPassword);
+        document.getElementById("temporaryPasswordBox").classList.add("show");
+        button.textContent = "已完成";
+        showToast("臨時密碼已產生，請立即複製");
+      } else {
+        showToast(`帳號 ${passwordResetUserId} 的密碼已重設`);
+        closeModal("passwordModal");
+      }
+      await loadAdminData(true);
+    } catch (error) {
+      showToast(error.message || "密碼重設失敗");
+      button.disabled = false; button.textContent = "重設密碼";
+    }
+  }
+
+  async function copyTemporaryPassword() {
+    const value = document.getElementById("temporaryPasswordValue").textContent;
+    if (!value) return;
+    try {
+      await navigator.clipboard.writeText(value);
+    } catch (_) {
+      const area = document.createElement("textarea");
+      area.value = value; area.style.position = "fixed"; area.style.opacity = "0";
+      document.body.appendChild(area); area.select(); document.execCommand("copy"); area.remove();
+    }
+    showToast("臨時密碼已複製，請安全傳送");
+  }
+
+  const itemUserId = item => String(item?.userId || item?.customId || item?.accountId || item?.snapshot?.customId || "").trim();
+  const itemTrashId = item => String(item?.trashId || item?._id || item?.id || item?.snapshotId || "").trim();
+  const itemClientName = item => String(item?.clientName || item?.name || item?.client || item?.snapshot?.clientName || "未命名客戶").trim();
+  const itemDeletedAt = item => item?.deletedAt || item?.createdAt || item?.updatedAt || "";
+  const formatTime = value => {
+    if (!value) return "時間未記錄";
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString("zh-TW");
+  };
+
+  function normalizeTrash(data) {
+    const container = data?.trash || data || {};
+    let deletedUsers = container.deletedUsers || container.users || data?.deletedUsers || [];
+    let deletedClients = container.deletedClients || container.clients || data?.deletedClients || [];
+    const items = Array.isArray(container.items) ? container.items : Array.isArray(data?.items) ? data.items : [];
+    if (!Array.isArray(deletedUsers)) deletedUsers = [];
+    if (!Array.isArray(deletedClients)) deletedClients = [];
+    items.forEach(item => {
+      const type = String(item?.type || item?.kind || "").toLowerCase();
+      if (type.includes("user") || type.includes("account")) deletedUsers.push(item);
+      else if (type.includes("client")) deletedClients.push(item);
+    });
+    return { users:deletedUsers, clients:deletedClients };
+  }
+
+  async function openTrash() {
+    openModal("trashModal");
+    await loadTrash();
+  }
+
+  async function loadTrash() {
+    const host = document.getElementById("trashContent");
+    host.innerHTML = `<div class="empty-state">正在讀取回收站…</div>`;
+    try {
+      trashState = normalizeTrash(await adminRequest("/admin/trash"));
+      renderTrash();
+    } catch (error) {
+      host.innerHTML = `<div class="empty-state">${esc(error.message || "回收站讀取失敗")}</div>`;
+    }
+  }
+
+  function renderTrash() {
+    const host = document.getElementById("trashContent");
+    const userCards = trashState.users.map((item,index) => {
+      const userId = itemUserId(item) || "未知帳號";
+      const clientCount = Number(item?.clientCount ?? item?.snapshot?.clientCount ?? (item?.snapshot?.profiles ? Object.keys(item.snapshot.profiles).length : 0));
+      return `<div class="data-card"><div class="data-card-main"><div class="data-card-title">帳號 · ${esc(userId)}</div><div class="data-card-meta">移除時間 ${esc(formatTime(itemDeletedAt(item)))}${clientCount ? ` · 約 ${clientCount} 位客戶` : ""}</div></div><div class="data-card-actions"><button class="btn btn-primary btn-small" onclick="restoreTrashUser(${index})">恢復帳號</button><button class="btn btn-danger btn-small" onclick="purgeTrashUser(${index})">永久刪除</button></div></div>`;
+    }).join("");
+    const clientCards = trashState.clients.map((item,index) => {
+      const userId = itemUserId(item) || "未知帳號", clientName = itemClientName(item);
+      return `<div class="data-card"><div class="data-card-main"><div class="data-card-title">客戶 · ${esc(clientName)}</div><div class="data-card-meta">所屬帳號 ${esc(userId)} · 移除時間 ${esc(formatTime(itemDeletedAt(item)))}</div></div><div class="data-card-actions"><button class="btn btn-primary btn-small" onclick="restoreTrashClient(${index})">恢復客戶</button><button class="btn btn-danger btn-small" onclick="purgeTrashClient(${index})">永久刪除</button></div></div>`;
+    }).join("");
+    if (!userCards && !clientCards) { host.innerHTML = `<div class="empty-state">回收站目前是空的，沒有待恢復資料。</div>`; return; }
+    host.innerHTML = `${userCards ? `<div class="section-title"><h3>已移除帳號</h3><span>${trashState.users.length} 個</span></div>${userCards}` : ""}${clientCards ? `<div class="section-title" style="margin-top:18px"><h3>已移除客戶</h3><span>${trashState.clients.length} 位</span></div>${clientCards}` : ""}<div class="danger-zone"><div class="danger-note">永久刪除只應用於確定不再需要的資料，系統會要求連續確認兩次。</div></div>`;
+  }
+
+  async function refreshAfterTrashChange(message) {
+    showToast(message);
+    await Promise.all([loadTrash(), loadAdminData(true)]);
+  }
+
+  async function restoreTrashUser(index) {
+    const item = trashState.users[index], userId = itemUserId(item);
+    if (!userId || !confirm(`確定恢復帳號「${userId}」及其保存資料？`)) return;
+    try { await adminRequest("/admin/restore_user", { method:"POST", body:{ userId } }); await refreshAfterTrashChange(`帳號 ${userId} 已恢復`); }
+    catch (error) { showToast(error.message || "帳號恢復失敗"); }
+  }
+
+  async function restoreTrashClient(index) {
+    const item = trashState.clients[index], userId = itemUserId(item), trashId = itemTrashId(item), name = itemClientName(item);
+    if (!userId || !trashId || !confirm(`確定恢復客戶「${name}」？`)) return;
+    try { await adminRequest("/admin/restore_client", { method:"POST", body:{ userId, trashId } }); await refreshAfterTrashChange(`客戶 ${name} 已恢復`); }
+    catch (error) { showToast(error.message || "客戶恢復失敗"); }
+  }
+
+  function confirmPermanent(label) {
+    if (!confirm(`第一次確認：要永久刪除${label}嗎？\n\n此操作無法復原。`)) return false;
+    return confirm(`第二次確認：永久刪除後，回收站與備份以外將無法恢復。\n\n確定繼續刪除${label}？`);
+  }
+
+  async function purgeTrashUser(index) {
+    const item = trashState.users[index], userId = itemUserId(item);
+    if (!userId || !confirmPermanent(`帳號「${userId}」`)) return;
+    try { await adminRequest("/admin/purge_user", { method:"POST", body:{ userId, confirm:true } }); await refreshAfterTrashChange(`帳號 ${userId} 已永久刪除`); }
+    catch (error) { showToast(error.message || "永久刪除失敗"); }
+  }
+
+  async function purgeTrashClient(index) {
+    const item = trashState.clients[index], userId = itemUserId(item), trashId = itemTrashId(item), name = itemClientName(item);
+    if (!userId || !trashId || !confirmPermanent(`客戶「${name}」`)) return;
+    try { await adminRequest("/admin/purge_client", { method:"POST", body:{ userId, trashId, confirm:true } }); await refreshAfterTrashChange(`客戶 ${name} 已永久刪除`); }
+    catch (error) { showToast(error.message || "永久刪除失敗"); }
+  }
+
+  function safeAuditDetails(value) {
+    if (value === undefined || value === null || value === "") return "—";
+    if (typeof value === "string") return value.slice(0, 280);
+    try {
+      return JSON.stringify(value, (key, entry) => /password|token|secret/i.test(key) ? "[已隱藏]" : entry).slice(0, 280);
+    } catch (_) { return "—"; }
+  }
+
+  async function openAudit() {
+    openModal("auditModal");
+    const host = document.getElementById("auditContent");
+    host.innerHTML = `<div class="empty-state">正在讀取操作記錄…</div>`;
+    try {
+      const data = await adminRequest("/admin/audit");
+      const records = data.logs || data.audit?.items || data.audit || data.entries || data.items || [];
+      const rows = Array.isArray(records) ? records : [];
+      if (!rows.length) { host.innerHTML = `<div class="empty-state">目前沒有管理员操作記錄。</div>`; return; }
+      host.innerHTML = `<div class="table-shell"><table class="audit-table"><thead><tr><th>時間</th><th>操作</th><th>對象</th><th>結果／說明</th><th>來源</th></tr></thead><tbody>${rows.map(item => {
+        const action = item.action || item.type || item.event || "管理操作";
+        const target = item.target || item.userId || item.clientName || item.resource || "—";
+        const details = safeAuditDetails(item.details || item.metadata || item.message || item.result);
+        const actor = item.actor || item.admin || item.ip || item.source || "管理員";
+        return `<tr><td>${esc(formatTime(item.createdAt || item.timestamp || item.date))}</td><td class="audit-action">${esc(action)}</td><td>${esc(target)}</td><td style="white-space:normal;max-width:360px">${esc(details)}</td><td>${esc(actor)}</td></tr>`;
+      }).join("")}</tbody></table></div>`;
+    } catch (error) {
+      host.innerHTML = `<div class="empty-state">${esc(error.message || "操作記錄讀取失敗")}</div>`;
+    }
+  }
+
+  async function openBackups(preselectedUserId = "") {
+    const select = document.getElementById("backupUserSelect");
+    const previous = preselectedUserId || select.value;
+    select.innerHTML = users.length ? users.map(user => `<option value="${esc(user.userId)}">${esc(user.userId)}</option>`).join("") : `<option value="">目前沒有可選帳號</option>`;
+    if (previous && users.some(user => user.userId === previous)) select.value = previous;
+    openModal("backupModal");
+    if (select.value) await loadBackups();
+    else document.getElementById("backupContent").innerHTML = `<div class="empty-state">目前沒有可查看的帳號備份。</div>`;
+  }
+
+  async function loadBackups() {
+    const userId = document.getElementById("backupUserSelect").value;
+    const host = document.getElementById("backupContent");
+    if (!userId) { host.innerHTML = `<div class="empty-state">請先選擇帳號</div>`; return; }
+    host.innerHTML = `<div class="empty-state">正在讀取 ${esc(userId)} 的備份…</div>`;
+    try {
+      const data = await adminRequest("/admin/backups", { method:"POST", body:{ userId } });
+      const records = data.backups || data.snapshots || data.items || [];
+      backupState = Array.isArray(records) ? records : [];
+      if (!backupState.length) { host.innerHTML = `<div class="empty-state">帳號 ${esc(userId)} 目前沒有可恢復快照。</div>`; return; }
+      host.innerHTML = backupState.map((item,index) => {
+        const snapshot = item.snapshot || item.data || {};
+        const holdingCount = Number(item.holdingCount ?? snapshot.holdings?.length ?? 0);
+        const clientCount = Number(item.clientCount ?? (snapshot.profiles ? Object.keys(snapshot.profiles).length : 0));
+        const reason = item.reason || item.action || item.label || "資料快照";
+        return `<div class="data-card"><div class="data-card-main"><div class="data-card-title">${esc(reason)}</div><div class="data-card-meta">${esc(formatTime(item.createdAt || item.timestamp || item.date))} · ${clientCount} 位客戶 · ${holdingCount} 筆持倉</div></div><div class="data-card-actions"><button class="btn btn-primary btn-small" onclick="restoreBackup(${index})">恢復此快照</button></div></div>`;
+      }).join("");
+    } catch (error) {
+      host.innerHTML = `<div class="empty-state">${esc(error.message || "備份讀取失敗")}</div>`;
+    }
+  }
+
+  async function restoreBackup(index) {
+    const item = backupState[index], userId = document.getElementById("backupUserSelect").value;
+    const backupId = String(item?.backupId || item?.snapshotId || item?._id || item?.id || "");
+    if (!userId || !backupId) { showToast("此快照缺少識別碼，無法恢復"); return; }
+    if (!confirm(`要將帳號「${userId}」恢復到 ${formatTime(item.createdAt || item.timestamp || item.date)} 的快照嗎？\n\n目前資料將由後端先保存備份後再恢復。`)) return;
+    try {
+      await adminRequest("/admin/restore_backup", { method:"POST", body:{ userId, backupId } });
+      showToast(`帳號 ${userId} 已恢復到所選快照`);
+      await loadAdminData(true);
+      await loadBackups();
+    } catch (error) { showToast(error.message || "備份恢復失敗"); }
+  }
+
+  window.exportCSV = () => {
+    if (!clients.length) { showToast("目前沒有可匯出的客戶資料"); return; }
+    const cell = value => { let text=String(value??""); if(/^[=+\-@]/.test(text)) text=`'${text}`; return `"${text.replaceAll('"','""')}"`; };
+    const rows=[["帳號","客戶","性別","年齡","投資經驗","投資風格","興趣","家庭狀況","客戶備註","股票","代碼","股數","成本","現價","市值","未實現損益"]];
+    clients.forEach(client => {
+      const source=client.holdings.length?client.holdings:[{}];
+      source.forEach(item=>{const qty=Number(item.quantity)||0,cost=Number(item.cost)||0,price=item.code?currentPrice(item):0;rows.push([client.userId,client.name,client.profile.gender||"",client.profile.age||"",client.profile.experience||"",client.profile.style||"",client.profile.hobbies||"",client.profile.family||"",client.profile.note||"",item.stockName||"",item.code||"",item.quantity||"",item.cost||"",item.code?price:"",item.code?qty*price:"",item.code?qty*(price-cost):""]);});
+    });
+    const blob=new Blob(["\uFEFF"+rows.map(row=>row.map(cell).join(",")).join("\n")],{type:"text/csv;charset=utf-8"}); const url=URL.createObjectURL(blob),a=document.createElement("a"); a.href=url;a.download=`Portfolio-OS-客戶資料-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url);showToast("客戶資料 CSV 已匯出");
+  };
+
+  document.querySelectorAll(".modal-layer").forEach(layer => layer.addEventListener("click", event => {
+    if (event.target === layer) closeModal(layer.id);
+  }));
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    if (adminToken) {
+      setConnectionState(true);
+      const valid = await loadAdminData(true);
+      if (valid) document.getElementById("loginModal").style.display = "none";
+      else showLogin(document.getElementById("loginError").textContent || "請重新登入");
+    } else {
+      setConnectionState(false);
+      showLogin();
+    }
+  });
+</script>
+</body>
+</html>
