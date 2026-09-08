@@ -43,7 +43,7 @@ app.use(cors({
     return callback(null, false);
   },
   methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control'],
   maxAge: 86400
 }));
 app.use(express.json({ limit: '20mb' }));
@@ -1334,3 +1334,4 @@ process.on('unhandledRejection', (reason) => console.error('Unhandled Rejection:
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+
