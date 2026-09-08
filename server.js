@@ -342,9 +342,11 @@ const apiKey = process.env.GEMINI_API_KEY;
 async function callGeminiApi(prompt) {
   const models = [...new Set([
     process.env.GEMINI_TEXT_MODEL,
-    process.env.GEMINI_MODEL,
-    "gemini-3.5-flash-lite",
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
     "gemini-3.6-flash",
+    "gemini-3.5-flash-lite",
+    process.env.GEMINI_MODEL,
     "gemini-flash-latest"
   ].filter(Boolean))];
   let lastError = null;
@@ -849,9 +851,11 @@ function parseGeminiJson(text) {
 async function recognizeHoldingImages(images, clientName) {
   const models = [...new Set([
     process.env.GEMINI_VISION_MODEL,
-    process.env.GEMINI_MODEL,
-    'gemini-3.5-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
     'gemini-3.6-flash',
+    'gemini-3.5-flash-lite',
+    process.env.GEMINI_MODEL,
     'gemini-flash-latest'
   ].filter(Boolean))];
   const prompt = `你是台灣券商持倉截圖資料擷取助手。請閱讀接下來的 ${images.length} 張圖片，辨識所有台股、ETF 或上櫃股票持倉列，並輸出符合指定 schema 的 JSON。
