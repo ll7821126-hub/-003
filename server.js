@@ -1020,6 +1020,13 @@ function parseMarketPrice(value) {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 }
 
+function parseMarketPriceLevels(value) {
+  return String(value ?? '')
+    .split('_')
+    .map(level => parseMarketPrice(level))
+    .filter(level => level !== null);
+}
+
 const PRICE_CACHE_TTL_MS = 4000;
 const PRICE_STALE_MAX_AGE_MS = 60000;
 const priceQuoteCache = new Map();
@@ -1048,9 +1055,17 @@ async function fetchOfficialTaiwanPricesUncached(codes) {
     for (const item of response.data?.msgArray || []) {
       const code = String(item?.c || '').trim();
       if (!code || !chunk.includes(code) || prices[code] !== undefined) continue;
+      const bidLevels = parseMarketPriceLevels(item.b);
+      const askLevels = parseMarketPriceLevels(item.a);
+      const bestBid = bidLevels[0] ?? null;
+      const bestAsk = askLevels[0] ?? null;
       const candidates = [
         { price: parseMarketPrice(item.z), priceType: 'last' },
         { price: parseMarketPrice(item.pz), priceType: 'lastKnown' },
+        // MIS 的 z 只在最新揭示事件为成交时才有值；盘口更新时经常是 "-"。
+        // 此时最佳买价比昨收更接近当下可成交价值，也避免盘中行情跳回前一日。
+        { price: bestBid, priceType: 'bestBid' },
+        { price: bestAsk, priceType: 'bestAsk' },
         { price: parseMarketPrice(item.y), priceType: 'previousClose' }
       ];
       const selected = candidates.find(candidate => candidate.price !== null);
@@ -1064,7 +1079,9 @@ async function fetchOfficialTaiwanPricesUncached(codes) {
         market: item.ex || '',
         date: String(item.d || ''),
         time: String(item.t || ''),
-        name: String(item.n || item.nf || '').trim()
+        name: String(item.n || item.nf || '').trim(),
+        bestBid,
+        bestAsk
       };
     }
   }

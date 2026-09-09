@@ -2404,10 +2404,11 @@
       const quoteValues = Object.values(quotes);
       const sourceNames = [...new Set(quoteValues.map(item => item?.source).filter(Boolean))];
       const referenceCount = quoteValues.filter(item => item?.priceType === 'previousClose').length;
+      const indicativeCount = quoteValues.filter(item => item?.priceType === 'bestBid' || item?.priceType === 'bestAsk').length;
       const fallbackCount = quoteValues.filter(item => item?.source === 'Yahoo 備用' || item?.stale).length;
       const exchangeTime = getLatestExchangeTime(quotes);
       if (lastUpdateEl) {
-        const notes = [referenceCount ? `${referenceCount} 檔昨收` : '', fallbackCount ? `${fallbackCount} 檔備用` : '', failedCodes.length ? `${failedCodes.length} 檔未更新` : ''].filter(Boolean);
+        const notes = [indicativeCount ? `${indicativeCount} 檔即時買一` : '', referenceCount ? `${referenceCount} 檔昨收` : '', fallbackCount ? `${fallbackCount} 檔備用` : '', failedCodes.length ? `${failedCodes.length} 檔未更新` : ''].filter(Boolean);
         lastUpdateEl.innerText = `行情 ${exchangeTime} · ${updatedCodes.size}/${codes.length} 檔${notes.length ? ` · ${notes.join(' / ')}` : ''}`;
       }
       if (!silent) {
@@ -2920,3 +2921,4 @@
 </script>
 </body>
 </html>
+
