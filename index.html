@@ -719,8 +719,11 @@
     .risk-status{padding:4px 8px;border-radius:99px;font-size:9px;font-weight:800}
     .risk-status.triggered{background:#fff0f2;color:#c72f48}
     .risk-status.near{background:#fff7e6;color:#9a6700}
+    .risk-status.safe{background:#e7f7f3;color:#08756e}
     .loading-state{padding:54px 20px;text-align:center;color:#7b8798;font-size:12px}
     .loading-state .ai-loading-spinner{display:block;margin:0 auto 12px}
+    .price-stack{display:flex;flex-direction:column;align-items:center;gap:3px}.price-origin{display:inline-flex;align-items:center;gap:4px;padding:2px 5px;border-radius:99px;background:#edf7f5;color:#087e72;font-size:7.5px;font-weight:800;white-space:nowrap}.price-origin.stale{background:#fff3dc;color:#9a6700}.price-origin.expired{background:#fff0f2;color:#c72f48}.price-origin.reference{background:#eef2f6;color:#667085}
+    .import-modal{width:min(1120px,95vw);max-height:90vh;padding:0;overflow:hidden;display:flex;flex-direction:column}.import-head{display:flex;justify-content:space-between;align-items:flex-start;padding:19px 22px;border-bottom:1px solid var(--border)}.import-body{padding:16px 20px;overflow:auto}.import-controls{display:grid;grid-template-columns:230px minmax(280px,1fr) auto;gap:10px;align-items:end}.import-drop{height:42px;border:1px dashed #8bc9c1;border-radius:9px;background:#f1faf8;color:#087e72;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;cursor:pointer}.import-summary{margin:14px 0 10px;padding:10px 12px;border-radius:9px;background:#f5f7fa;color:#667085;font-size:10px}.import-table{width:100%;min-width:900px}.import-table input,.import-table select{width:100%;min-width:78px;padding:6px 7px;border:1px solid #dbe2ea;border-radius:7px;background:#fff;font-size:10px}.import-invalid{border-color:#e99aa5!important;background:#fff8f9!important}.import-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:13px 20px;border-top:1px solid var(--border);background:#fff}.history-modal{width:min(860px,94vw)}.history-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}.history-kpi{padding:12px;border:1px solid var(--border);border-radius:11px;background:#f8fafb}.history-kpi span{display:block;font-size:9px;color:#8490a0}.history-kpi strong{display:block;margin-top:5px;font-size:17px}.history-chart{height:300px;border:1px solid var(--border);border-radius:12px;background:linear-gradient(#fbfcfd,#fff);padding:12px}.history-chart svg{width:100%;height:100%;overflow:visible}.history-axis{stroke:#dfe5eb;stroke-width:1}.history-line{fill:none;stroke:#0f9f8f;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}.history-area{fill:url(#historyGradient)}.history-point{fill:#fff;stroke:#0f9f8f;stroke-width:2}.history-empty{height:100%;display:grid;place-items:center;color:#8b96a7;font-size:12px;text-align:center}.history-foot{display:flex;justify-content:space-between;margin-top:9px;color:#8a95a6;font-size:9px}
     .report-source{position:fixed;inset:0;overflow:auto;background:rgba(12,22,38,.78);z-index:10020;padding:28px;display:flex;justify-content:center;align-items:flex-start;color:#142033}
     .ocr-modal{width:min(1180px,95vw);height:min(850px,92vh);padding:0;overflow:hidden;display:flex;flex-direction:column;background:#f7f9fb}
     .ocr-header{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:20px 22px 16px;background:#fff;border-bottom:1px solid var(--border)}
@@ -934,6 +937,7 @@
           <span id="autoRefreshText">5 秒即時更新</span>
         </label>
         <button class="btn btn-ghost btn-sm btn-smart" onclick="openHoldingScanner()">截圖辨識</button>
+        <button class="btn btn-ghost btn-sm" onclick="openBatchImport()">批量匯入</button>
         <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
         <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
         <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="startRealtimeRefresh()">更新行情</button>
@@ -1086,6 +1090,36 @@
   </div>
 </div>
 
+<!-- Excel / CSV 批量匯入 Modal -->
+<div id="importModal" class="modal-overlay">
+  <div class="modal import-modal" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
+    <header class="import-head">
+      <div><div class="profile-title" id="importModalTitle">Excel / CSV 批量匯入</div><div class="modal-subtitle">先預覽、校正，再一次寫入；既有資料不會被默默覆蓋。</div></div>
+      <button class="btn-close" onclick="closeBatchImport()">關閉</button>
+    </header>
+    <div class="import-body">
+      <div class="import-controls">
+        <label class="form-group"><span>預設客戶</span><input id="importClientName" placeholder="檔案未填客戶時使用" oninput="updateImportDefaultClient()"></label>
+        <div><div class="form-label">選擇檔案</div><input id="importFileInput" type="file" accept=".csv,.xlsx,.xls" hidden onchange="handleImportFile(event)"><div class="import-drop" onclick="document.getElementById('importFileInput').click()"><span id="importFileName">選擇或拖入 CSV / Excel 檔</span></div></div>
+        <button class="btn btn-ghost" type="button" onclick="downloadImportTemplate()">下載範本</button>
+      </div>
+      <div id="importSummary" class="import-summary">支援欄位：客戶、股票名稱、代碼、股數或張數、平均成本、現價、止損、止盈。</div>
+      <div style="overflow:auto;max-height:52vh;"><table class="import-table"><thead><tr><th>狀態</th><th>客戶</th><th>股票名稱</th><th>代碼</th><th>股數</th><th>平均成本</th><th>現價</th><th>處理方式</th></tr></thead><tbody id="importPreview"><tr><td colspan="8" class="loading-state">尚未選擇檔案</td></tr></tbody></table></div>
+    </div>
+    <footer class="import-footer"><span style="font-size:10px;color:#7f8a9a;">匯入前會再次檢查必填資料，並保留一筆交易紀錄。</span><div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="closeBatchImport()">取消</button><button id="importConfirmBtn" class="btn btn-save" onclick="confirmBatchImport()" disabled>匯入 0 筆</button></div></footer>
+  </div>
+</div>
+
+<!-- 客戶資產趨勢 Modal -->
+<div id="historyModal" class="modal-overlay">
+  <div class="modal history-modal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+    <div class="modal-toolbar"><div><div class="profile-title" id="historyTitle">客戶資產趨勢</div><div class="modal-subtitle" id="historySubtitle">每日自動保留一個資產快照</div></div><button class="btn-close" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div>
+    <div class="history-kpis"><div class="history-kpi"><span>目前市值</span><strong id="historyCurrent">NT$ 0</strong></div><div class="history-kpi"><span>期間變化</span><strong id="historyChange">NT$ 0</strong></div><div class="history-kpi"><span>期間最高</span><strong id="historyHigh">NT$ 0</strong></div></div>
+    <div id="historyChart" class="history-chart"><div class="history-empty">尚未建立歷史資料</div></div>
+    <div class="history-foot"><span id="historyStart">—</span><span id="historyEnd">—</span></div>
+  </div>
+</div>
+
 <div id="toast" class="toast" role="status" aria-live="polite"><span class="toast-dot"></span><span id="toastText"></span></div>
 
 <!-- AI 分析 Modal -->
@@ -1154,12 +1188,14 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="assets/html2pdf.bundle.min.js"></script>
 <script>
   const API_URL = "https://003-v2.onrender.com/api";
   const DB_KEY = "korea_stock_v13_sync";
   const PROFILE_KEY = "korea_profile_v13_sync";
   const TX_KEY = "korea_transactions_v14_sync";
+  const SNAPSHOT_KEY = "portfolio_snapshots_v1";
   const AUTH_TOKEN_KEY = "portfolio_auth_token";
 
   const form = document.getElementById("holdForm");
@@ -1174,6 +1210,8 @@
   let holdings = [];
   let profiles = {};
   let transactions = [];
+  let portfolioSnapshots = [];
+  let importRows = [];
   const AUTO_REFRESH_INTERVAL_MS = 5000;
   const PRICE_CLOUD_SYNC_INTERVAL_MS = 60000;
   let autoTimer = null;
@@ -1199,10 +1237,12 @@
     holdings = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
     profiles = JSON.parse(localStorage.getItem(PROFILE_KEY) || "{}");
     transactions = JSON.parse(localStorage.getItem(TX_KEY) || "[]");
+    portfolioSnapshots = JSON.parse(localStorage.getItem(SNAPSHOT_KEY) || "[]");
   } catch (e) {
     holdings = [];
     profiles = {};
     transactions = [];
+    portfolioSnapshots = [];
   }
 
   // 啟用橫向滾輪支持
@@ -1245,6 +1285,7 @@
     localStorage.setItem(DB_KEY, JSON.stringify(holdings));
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
     localStorage.setItem(TX_KEY, JSON.stringify(transactions));
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(portfolioSnapshots));
   }
 
   function applyCloudPayload(payload, versionValue) {
@@ -1252,11 +1293,211 @@
     holdings = Array.isArray(cloud.holdings) ? cloud.holdings : [];
     profiles = cloud.profiles && typeof cloud.profiles === "object" ? cloud.profiles : {};
     transactions = Array.isArray(cloud.transactions) ? cloud.transactions : [];
+    portfolioSnapshots = Array.isArray(cloud.portfolioSnapshots) ? cloud.portfolioSnapshots : [];
     const parsedVersion = Number(versionValue ?? cloud.version);
     dataVersion = Number.isFinite(parsedVersion) ? parsedVersion : 0;
     migrateLegacyTransactions();
     cacheCurrentData();
   }
+
+  function taipeiDay(value = new Date()) {
+    return new Intl.DateTimeFormat("en-CA", { timeZone:"Asia/Taipei", year:"numeric", month:"2-digit", day:"2-digit" }).format(value);
+  }
+
+  function recordLocalSnapshots() {
+    const day = taipeiDay();
+    const byClient = new Map();
+    holdings.forEach(item => {
+      const client = String(item.client || "").trim();
+      if (!client) return;
+      const qty = Number(item.quantity) || 0;
+      const cost = Number(item.cost) || 0;
+      const price = Number(item.currentPrice ?? item.cost) || 0;
+      const row = byClient.get(client) || { marketValue:0, costBasis:0, holdingCount:0 };
+      row.marketValue += qty * price;
+      row.costBasis += qty * cost;
+      row.holdingCount += 1;
+      byClient.set(client, row);
+    });
+    portfolioSnapshots = portfolioSnapshots.filter(item => String(item?.day || "") !== day);
+    byClient.forEach((value, client) => portfolioSnapshots.push({
+      day, capturedAt:new Date().toISOString(), client,
+      marketValue:value.marketValue, costBasis:value.costBasis,
+      pnl:value.marketValue - value.costBasis, holdingCount:value.holdingCount
+    }));
+    portfolioSnapshots = portfolioSnapshots.sort((a,b) => String(a.day).localeCompare(String(b.day))).slice(-5000);
+    localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(portfolioSnapshots));
+  }
+
+  window.openPortfolioHistory = client => {
+    recordLocalSnapshots();
+    const points = portfolioSnapshots
+      .filter(item => String(item?.client || "") === client && Number.isFinite(Number(item.marketValue)))
+      .sort((a,b) => String(a.day).localeCompare(String(b.day)));
+    document.getElementById("historyTitle").textContent = `${client} · 資產趨勢`;
+    document.getElementById("historySubtitle").textContent = points.length > 1 ? `已保留 ${points.length} 個每日快照` : "已開始記錄；每日自動保留一個資產快照";
+    const chart = document.getElementById("historyChart");
+    if (!points.length) {
+      chart.innerHTML = `<div class="history-empty">尚無可顯示的資產資料</div>`;
+      document.getElementById("historyCurrent").textContent = "NT$ 0";
+      document.getElementById("historyChange").textContent = "NT$ 0";
+      document.getElementById("historyHigh").textContent = "NT$ 0";
+      document.getElementById("historyStart").textContent = "—";
+      document.getElementById("historyEnd").textContent = "—";
+    } else {
+      const values = points.map(point => Number(point.marketValue) || 0);
+      const current = values.at(-1) || 0;
+      const change = current - (values[0] || 0);
+      const changePct = values[0] ? change / values[0] * 100 : 0;
+      const changeEl = document.getElementById("historyChange");
+      document.getElementById("historyCurrent").textContent = `NT$ ${fmtMoney(current)}`;
+      changeEl.textContent = `${change >= 0 ? "+" : ""}NT$ ${fmtMoney(change)} · ${fmtPct(changePct)}`;
+      changeEl.className = change >= 0 ? "color-up" : "color-down";
+      document.getElementById("historyHigh").textContent = `NT$ ${fmtMoney(Math.max(...values))}`;
+      document.getElementById("historyStart").textContent = points[0].day;
+      document.getElementById("historyEnd").textContent = points.at(-1).day;
+      if (points.length === 1) {
+        chart.innerHTML = `<div class="history-empty"><div><strong>今天的起始快照已建立</strong><br>後續每日會自動累積，形成可比較的資產曲線。</div></div>`;
+      } else {
+        const width = 780, height = 270, padX = 26, padY = 22;
+        const min = Math.min(...values), max = Math.max(...values), span = Math.max(max - min, Math.max(max, 1) * .02);
+        const coords = values.map((value, index) => ({
+          x: padX + index * (width - padX * 2) / Math.max(values.length - 1, 1),
+          y: height - padY - (value - min) / span * (height - padY * 2)
+        }));
+        const line = coords.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+        const area = `${padX},${height-padY} ${line} ${coords.at(-1).x},${height-padY}`;
+        chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" aria-label="${escapeHtml(client)} 資產市值趨勢"><defs><linearGradient id="historyGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f9f8f" stop-opacity=".24"/><stop offset="1" stop-color="#0f9f8f" stop-opacity=".02"/></linearGradient></defs><line class="history-axis" x1="${padX}" y1="${height-padY}" x2="${width-padX}" y2="${height-padY}"/><polygon class="history-area" points="${area}"/><polyline class="history-line" points="${line}"/>${coords.map((point,index) => `<circle class="history-point" cx="${point.x}" cy="${point.y}" r="${index === coords.length - 1 ? 5 : 3}"><title>${points[index].day} · NT$ ${fmtMoney(values[index])}</title></circle>`).join("")}</svg>`;
+      }
+    }
+    document.getElementById("historyModal").style.display = "flex";
+  };
+
+  function normalizeImportHeader(value) {
+    return String(value || "").trim().toLowerCase().replace(/[\s_()（）／\/\-]/g, "");
+  }
+
+  function parseCsv(text) {
+    const rows = [];
+    let row = [], cell = "", quoted = false;
+    const input = String(text || "").replace(/^\uFEFF/, "");
+    for (let index = 0; index < input.length; index++) {
+      const char = input[index];
+      if (char === '"' && quoted && input[index + 1] === '"') { cell += '"'; index++; }
+      else if (char === '"') quoted = !quoted;
+      else if (char === "," && !quoted) { row.push(cell); cell = ""; }
+      else if ((char === "\n" || char === "\r") && !quoted) {
+        if (char === "\r" && input[index + 1] === "\n") index++;
+        row.push(cell); if (row.some(value => String(value).trim())) rows.push(row); row = []; cell = "";
+      } else cell += char;
+    }
+    row.push(cell); if (row.some(value => String(value).trim())) rows.push(row);
+    if (rows.length < 2) return [];
+    const headers = rows.shift().map(normalizeImportHeader);
+    return rows.map(values => Object.fromEntries(headers.map((header,index) => [header, values[index] ?? ""])));
+  }
+
+  function normalizeImportRows(rawRows) {
+    const aliases = {
+      client:["客戶","客户","客戶姓名","客户姓名","client"], name:["股票","股票名稱","股票名称","商品","名稱","名称","stockname"],
+      code:["代碼","代码","股票代碼","股票代码","code"], quantity:["股數","股数","數量","数量","quantity","shares"], lots:["張數","张数","庫存張數","lots"],
+      cost:["成本","成本價","成本价","平均成本","均價","均价","cost"], current:["現價","现价","目前價格","currentprice"], stop:["止損","止损","stoploss"], take:["止盈","takeprofit"]
+    };
+    const read = (row, keys) => {
+      const normalized = Object.fromEntries(Object.entries(row || {}).map(([key,value]) => [normalizeImportHeader(key), value]));
+      for (const key of keys) if (normalized[normalizeImportHeader(key)] !== undefined) return normalized[normalizeImportHeader(key)];
+      return "";
+    };
+    const numeric = value => Number(String(value ?? "").replaceAll(",", "").replace(/[^\d.\-]/g, ""));
+    const defaultClient = document.getElementById("importClientName").value.trim();
+    importRows = rawRows.map((raw,index) => {
+      const explicitClient = String(read(raw, aliases.client) || "").trim();
+      let code = String(read(raw, aliases.code) || "").trim().replace(/\.0$/, "").replace(/[^0-9A-Za-z]/g, "");
+      if (/^\d{1,3}$/.test(code)) code = code.padStart(4, "0");
+      const sharesRaw = read(raw, aliases.quantity), lotsRaw = read(raw, aliases.lots);
+      const quantity = numeric(sharesRaw) || (numeric(lotsRaw) * 1000);
+      const client = explicitClient || defaultClient;
+      const name = String(read(raw, aliases.name) || "").trim();
+      const existing = holdings.find(item => item.client === client && String(item.code) === code);
+      return { index, client, explicitClient:Boolean(explicitClient), stockName:name, code, quantity, cost:numeric(read(raw, aliases.cost)), currentPrice:numeric(read(raw, aliases.current)), stopLoss:numeric(read(raw, aliases.stop)), takeProfit:numeric(read(raw, aliases.take)), action:existing ? "overwrite" : "new" };
+    });
+    renderImportPreview();
+  }
+
+  function importRowValid(row) {
+    return Boolean(row.client && row.stockName && row.code && Number(row.quantity) > 0 && Number(row.cost) > 0);
+  }
+
+  function renderImportPreview() {
+    const body = document.getElementById("importPreview");
+    const validCount = importRows.filter(row => importRowValid(row) && row.action !== "skip").length;
+    const invalidCount = importRows.filter(row => !importRowValid(row)).length;
+    document.getElementById("importSummary").textContent = importRows.length ? `共讀取 ${importRows.length} 行 · 可匯入 ${validCount} 行${invalidCount ? ` · ${invalidCount} 行資料不完整，請修正紅框` : " · 格式檢查通過"}` : "支援欄位：客戶、股票名稱、代碼、股數或張數、平均成本、現價、止損、止盈。";
+    document.getElementById("importConfirmBtn").disabled = validCount === 0;
+    document.getElementById("importConfirmBtn").textContent = `匯入 ${validCount} 筆`;
+    if (!importRows.length) { body.innerHTML = `<tr><td colspan="8" class="loading-state">尚未讀取到資料</td></tr>`; return; }
+    const input = (row,index,field,type="text") => {
+      const required = ["client","stockName","code","quantity","cost"].includes(field);
+      const invalid = required && (!String(row[field] ?? "").trim() || (["quantity","cost"].includes(field) && !(Number(row[field]) > 0)));
+      return `<input class="${invalid ? "import-invalid" : ""}" type="${type}" value="${escapeHtml(row[field] || "")}" onchange="updateImportRow(${index},'${field}',this.value)">`;
+    };
+    body.innerHTML = importRows.map((row,index) => `<tr><td><span class="risk-status ${importRowValid(row) ? "safe" : "triggered"}">${importRowValid(row) ? "可匯入" : "待修正"}</span></td><td>${input(row,index,"client")}</td><td>${input(row,index,"stockName")}</td><td>${input(row,index,"code")}</td><td>${input(row,index,"quantity","number")}</td><td>${input(row,index,"cost","number")}</td><td>${input(row,index,"currentPrice","number")}</td><td><select onchange="updateImportRow(${index},'action',this.value)"><option value="new" ${row.action === "new" ? "selected" : ""}>新增</option><option value="overwrite" ${row.action === "overwrite" ? "selected" : ""}>覆蓋同客戶同代碼</option><option value="skip" ${row.action === "skip" ? "selected" : ""}>略過</option></select></td></tr>`).join("");
+  }
+
+  window.openBatchImport = () => {
+    if (!authToken) return requireFreshLogin("請先登入後再批量匯入");
+    const defaultClient = document.getElementById("client").value.trim() || selectedClient || "";
+    if (!document.getElementById("importClientName").value) document.getElementById("importClientName").value = defaultClient;
+    document.getElementById("importModal").style.display = "flex";
+  };
+  window.closeBatchImport = () => { document.getElementById("importModal").style.display = "none"; };
+  window.updateImportDefaultClient = () => { const value = document.getElementById("importClientName").value.trim(); importRows.forEach(row => { if (!row.explicitClient) row.client = value; }); renderImportPreview(); };
+  window.updateImportRow = (index, field, value) => { if (!importRows[index]) return; importRows[index][field] = ["quantity","cost","currentPrice","stopLoss","takeProfit"].includes(field) ? Number(value) : value.trim(); renderImportPreview(); };
+
+  window.handleImportFile = async event => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    document.getElementById("importFileName").textContent = file.name;
+    try {
+      const buffer = await file.arrayBuffer();
+      let rows;
+      if (file.name.toLowerCase().endsWith(".csv")) rows = parseCsv(new TextDecoder("utf-8").decode(buffer));
+      else {
+        if (!window.XLSX) throw new Error("Excel 解析元件尚未載入，請重新整理後再試");
+        const workbook = XLSX.read(buffer, { type:"array" });
+        rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval:"" });
+      }
+      normalizeImportRows(rows || []);
+      if (!importRows.length) throw new Error("檔案中沒有可讀取的資料列");
+    } catch (error) {
+      importRows = []; renderImportPreview(); showToast(error.message || "檔案讀取失敗", "error");
+    }
+  };
+
+  window.downloadImportTemplate = () => {
+    const csv = "客戶,股票名稱,代碼,股數,張數,平均成本,現價,止損,止盈\n王小姐,台積電,2330,1000,,900,905,850,980\n";
+    const url = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type:"text/csv;charset=utf-8" }));
+    const link = document.createElement("a"); link.href = url; link.download = "持倉批量匯入範本.csv"; link.click(); URL.revokeObjectURL(url);
+  };
+
+  window.confirmBatchImport = async () => {
+    const rows = importRows.filter(row => row.action !== "skip" && importRowValid(row));
+    if (!rows.length) return showToast("沒有可匯入的完整資料", "error");
+    rows.forEach(row => {
+      const existing = holdings.find(item => item.client === row.client && String(item.code) === String(row.code));
+      const target = row.action === "overwrite" && existing ? existing : null;
+      const price = Number(row.currentPrice) > 0 ? Number(row.currentPrice) : Number(row.cost);
+      if (target) Object.assign(target, { stockName:row.stockName, quantity:Number(row.quantity), lots:Number(row.quantity)/1000, cost:Number(row.cost), currentPrice:price, stopLoss:Number(row.stopLoss)||"", takeProfit:Number(row.takeProfit)||"" });
+      else holdings.push({ id:`import_${Date.now()}_${Math.random().toString(36).slice(2,8)}`, client:row.client, stockName:row.stockName, code:String(row.code), quantity:Number(row.quantity), lots:Number(row.quantity)/1000, cost:Number(row.cost), currentPrice:price, stopLoss:Number(row.stopLoss)||"", takeProfit:Number(row.takeProfit)||"", recommendType:"no" });
+      profiles[row.client] ||= {};
+      transactions.push({ id:`tx_import_${Date.now()}_${Math.random().toString(36).slice(2,8)}`, date:new Date().toISOString(), client:row.client, type:"adjustment", stockName:row.stockName, code:String(row.code), quantity:Number(row.quantity), price:Number(row.cost), amount:Number(row.quantity)*Number(row.cost), realizedPnl:0, note:`批量匯入：${target ? "覆蓋既有持倉" : "新增持倉"}` });
+    });
+    const saved = await save();
+    if (saved) {
+      closeBatchImport(); importRows = []; document.getElementById("importFileInput").value = ""; document.getElementById("importFileName").textContent = "選擇或拖入 CSV / Excel 檔";
+      showToast(`已成功匯入 ${rows.length} 筆持倉`);
+    }
+  };
 
   function requireFreshLogin(message = "登入已失效，請重新登入") {
     authToken = "";
@@ -1841,7 +2082,7 @@
       localStorage.removeItem("app_user_password");
       sessionStorage.removeItem(AUTH_TOKEN_KEY);
       stopAutoRefreshTimer();
-      userId = ""; authToken = ""; dataVersion = null; holdings = []; profiles = {}; transactions = [];
+      userId = ""; authToken = ""; dataVersion = null; holdings = []; profiles = {}; transactions = []; portfolioSnapshots = [];
       cacheCurrentData();
       updateUserDisplay();
       render();
@@ -1859,6 +2100,7 @@
           holdings:Array.isArray(data?.holdings) ? data.holdings : holdings,
           profiles:data?.profiles && typeof data.profiles === "object" ? data.profiles : profiles,
           transactions:Array.isArray(data?.transactions) ? data.transactions : transactions,
+          clearSnapshots:data?.clearSnapshots === true,
           expectedVersion:dataVersion
         })
       });
@@ -1983,10 +2225,15 @@
 
   function getRiskAlerts(clientName = null) {
     const alerts = [];
-    holdings.filter(h => !clientName || h.client === clientName).forEach(h => {
+    const targets = holdings.filter(h => !clientName || h.client === clientName);
+    targets.forEach(h => {
       const price = Number(h.currentPrice ?? h.cost);
       const stopLoss = Number(h.stopLoss) || 0;
       const takeProfit = Number(h.takeProfit) || 0;
+      const freshness = getPricePresentation(h);
+      if (freshness.status === "expired" || freshness.status === "reference") {
+        alerts.push({ ...h, price, stopLoss, takeProfit, status:freshness.status === "expired" ? "triggered" : "near", message:freshness.status === "expired" ? "行情超過 60 秒未更新" : `目前顯示${freshness.type === "previousClose" ? "昨收參考價" : "備用參考價"}`, distance:0, alertKind:"freshness", detail:freshness.label });
+      }
       if (!price || (!stopLoss && !takeProfit)) return;
 
       let status = "safe";
@@ -2009,8 +2256,20 @@
           message = stopDistance <= profitDistance ? `距止損價約 ${(stopDistance * 100).toFixed(1)}%` : `距止盈價約 ${(profitDistance * 100).toFixed(1)}%`;
         }
       }
-      alerts.push({ ...h, price, stopLoss, takeProfit, status, message, distance });
+      alerts.push({ ...h, price, stopLoss, takeProfit, status, message, distance, alertKind:"price" });
     });
+    const groups = new Map();
+    targets.forEach(item => {
+      const client = String(item.client || "");
+      const value = (Number(item.currentPrice ?? item.cost) || 0) * (Number(item.quantity) || 0);
+      const group = groups.get(client) || { total:0, items:[] };
+      group.total += value; group.items.push({ item, value }); groups.set(client, group);
+    });
+    groups.forEach(group => group.items.forEach(({ item, value }) => {
+      const weight = group.total ? value / group.total : 0;
+      if (weight < .5 || group.items.length < 2) return;
+      alerts.push({ ...item, price:Number(item.currentPrice ?? item.cost) || 0, status:weight >= .7 ? "triggered" : "near", message:`單一持倉占該客戶資產 ${(weight * 100).toFixed(1)}%`, distance:1-weight, alertKind:"concentration", detail:"持倉集中度超過 50%，對單一股票波動較敏感" });
+    }));
     const order = { triggered: 0, near: 1, safe: 2 };
     return alerts.sort((a, b) => order[a.status] - order[b.status] || a.distance - b.distance);
   }
@@ -2021,19 +2280,22 @@
     const badge = document.getElementById("riskAlertCount");
     badge.textContent = active;
     badge.classList.toggle("show", active > 0);
-    document.getElementById("riskAlertSubtitle").textContent = `${active} 筆需留意 · 共檢查 ${alerts.length} 筆已設定風控的持倉`;
+    document.getElementById("riskAlertSubtitle").textContent = `${active} 筆需留意 · 同時檢查風控價、行情鮮度與持倉集中度`;
     const list = document.getElementById("riskAlertList");
     if (!alerts.length) {
-      list.innerHTML = `<div class="loading-state">尚未設定止損或止盈價格。</div>`;
+      list.innerHTML = `<div class="loading-state">目前沒有需要提醒的項目；可設定止損／止盈以啟用價格水位提醒。</div>`;
       return;
     }
     const statusLabel = { triggered: "已觸發", near: "接近水位", safe: "區間內" };
-    list.innerHTML = alerts.map(alert => `
+    list.innerHTML = alerts.map(alert => {
+      const detail = alert.alertKind === "price" ? `止損 ${alert.stopLoss ? `NT$ ${fmtMoney(alert.stopLoss)}` : "未設定"} · 止盈 ${alert.takeProfit ? `NT$ ${fmtMoney(alert.takeProfit)}` : "未設定"}` : alert.detail;
+      return `
       <div class="insight-item risk-${alert.status}">
         <div class="insight-code"><strong>${escapeHtml(alert.stockName)}</strong><span>${escapeHtml(alert.code)} · ${escapeHtml(alert.client)}</span></div>
-        <div class="insight-main"><strong>${escapeHtml(alert.message)}</strong><p>止損 ${alert.stopLoss ? `NT$ ${fmtMoney(alert.stopLoss)}` : "未設定"} · 止盈 ${alert.takeProfit ? `NT$ ${fmtMoney(alert.takeProfit)}` : "未設定"}</p></div>
+        <div class="insight-main"><strong>${escapeHtml(alert.message)}</strong><p>${escapeHtml(detail || "")}</p></div>
         <div class="insight-meta"><div class="risk-price">NT$ ${fmtMoney(alert.price)}</div><span class="risk-status ${alert.status}">${statusLabel[alert.status]}</span></div>
-      </div>`).join("");
+      </div>`;
+    }).join("");
   }
 
   window.openRiskAlerts = () => {
@@ -2100,6 +2362,19 @@
         <div class="insight-meta">${escapeHtml(event.date || "-")}<br>${escapeHtml(event.time || "")}</div>
       </a>`;
     }).join("");
+  }
+
+  function getPricePresentation(item) {
+    const typeLabels = { last:"成交", lastKnown:"最近成交", bestBid:"買一", bestAsk:"賣一", previousClose:"昨收", fallback:"備用" };
+    const type = String(item.priceType || "fallback");
+    const source = String(item.priceSource || "未標示來源");
+    const updated = item.lastPriceAt ? new Date(item.lastPriceAt) : null;
+    const ageSeconds = updated && !Number.isNaN(updated.getTime()) ? Math.max(0, (Date.now() - updated.getTime()) / 1000) : Infinity;
+    let status = type === "previousClose" || type === "fallback" ? "reference" : type === "lastKnown" ? "stale" : ageSeconds > 60 ? "expired" : ageSeconds > 15 ? "stale" : "live";
+    const exchangeTime = String(item.exchangeTime || "").replace(/^\d{8}\s*/, "");
+    const label = [source.replace("證交所 MIS", "TWSE").replace("櫃買中心 MIS", "TPEx"), typeLabels[type] || type, exchangeTime].filter(Boolean).join(" · ");
+    const title = [`來源：${source}`, `行情：${typeLabels[type] || type}`, exchangeTime ? `交易所時間：${exchangeTime}` : "", Number(item.bestBid) > 0 ? `買一：${fmtMoney(item.bestBid)}` : "", Number(item.bestAsk) > 0 ? `賣一：${fmtMoney(item.bestAsk)}` : ""].filter(Boolean).join("｜");
+    return { status, label:label || "價格來源待確認", title, ageSeconds, type };
   }
 
   function render() {
@@ -2206,6 +2481,7 @@
         </div>
         <div class="cc-actions">
           <button class="cc-btn" onclick="openProfile(decodeURIComponent('${encodedClient}'))">客戶檔案</button>
+          <button class="cc-btn" onclick="openPortfolioHistory(decodeURIComponent('${encodedClient}'))">資產趨勢</button>
           <button class="cc-btn ai" onclick="aiAnalyzePortfolio(decodeURIComponent('${encodedClient}'))">AI 洞察</button>
           <button class="cc-btn" onclick="generateClientReport(decodeURIComponent('${encodedClient}'))">月報</button>
         </div>
@@ -2239,6 +2515,7 @@
 
         const cleanCode = item.code ? String(item.code).replace(/[^0-9]/g, '') : '';
         const stockUrl = cleanCode ? `https://statementdog.com/analysis/${cleanCode}` : '#';
+        const priceInfo = getPricePresentation(item);
 
         const tr = document.createElement("tr");
         if(isRec) tr.className = "is-recommend";
@@ -2251,7 +2528,7 @@
           <td>${fmtMoney(item.quantity)}</td>
           <td>${fmtMoney(item.cost)}</td>
           <td style="font-size:12px;color:#9ca3af;">${item.stopLoss ? '損:'+item.stopLoss : '-'} / ${item.takeProfit ? '盈:'+item.takeProfit : '-'}</td>
-          <td style="font-weight:600">${fmtMoney(item.cur)}</td>
+          <td><div class="price-stack"><strong>${fmtMoney(item.cur)}</strong><span class="price-origin ${priceInfo.status}" title="${escapeHtml(priceInfo.title)}">${escapeHtml(priceInfo.label)}</span></div></td>
           <td>${fmtMoney(val)}</td>
           <td class="${pnlTextClass}">${fmtMoney(itemPnl)}</td>
           <td><span class="${itemClass}">${fmtPct(itemRate)}</span></td>
@@ -2281,7 +2558,12 @@
     if (!force && now - lastPriceCloudSyncAt < PRICE_CLOUD_SYNC_INTERVAL_MS) return;
     const updates = [...updatedCodes].map(code => {
       const holding = holdings.find(item => String(item.code || '').trim() === code);
-      return holding ? { code, currentPrice:Number(holding.currentPrice), lastPriceAt } : null;
+      return holding ? {
+        code, currentPrice:Number(holding.currentPrice), lastPriceAt,
+        priceSource:holding.priceSource || "", priceType:holding.priceType || "",
+        exchangeTime:holding.exchangeTime || "", bestBid:Number(holding.bestBid) || null,
+        bestAsk:Number(holding.bestAsk) || null
+      } : null;
     }).filter(Boolean);
     if (!updates.length) return;
 
@@ -2385,22 +2667,29 @@
       }
       if (!response.ok || !resData.success) throw new Error(resData.error || resData.message || `行情服務錯誤（${response.status}）`);
       const priceMap = resData.prices || {};
+      const quotes = resData.quotes || {};
       const updatedCodes = new Set();
       holdings.forEach(h => {
         const key = String(h.code || '').trim();
         const nextPrice = Number(priceMap[key]);
         if (Number.isFinite(nextPrice) && nextPrice > 0) {
+          const quote = quotes[key] || {};
           h.currentPrice = nextPrice;
           h.lastPriceAt = resData.updatedAt || new Date().toISOString();
+          h.priceSource = quote.source || h.priceSource || "";
+          h.priceType = quote.priceType || h.priceType || "fallback";
+          h.exchangeTime = [quote.date, quote.time].filter(Boolean).join(" ");
+          h.bestBid = Number(quote.bestBid) || null;
+          h.bestAsk = Number(quote.bestAsk) || null;
           updatedCodes.add(key);
         }
       });
       if (!updatedCodes.size) throw new Error('後端沒有取得任何有效行情，請查看 Render 的 [Prices] 日誌');
       localStorage.setItem(DB_KEY, JSON.stringify(holdings));
+      recordLocalSnapshots();
       render();
       syncLatestPricesToCloud(updatedCodes, resData.updatedAt || new Date().toISOString(), !silent);
       const failedCodes = Array.isArray(resData.failedCodes) ? resData.failedCodes : [];
-      const quotes = resData.quotes || {};
       const quoteValues = Object.values(quotes);
       const sourceNames = [...new Set(quoteValues.map(item => item?.source).filter(Boolean))];
       const referenceCount = quoteValues.filter(item => item?.priceType === 'previousClose').length;
@@ -2619,6 +2908,7 @@
   }
 
   async function save() {
+    recordLocalSnapshots();
     cacheCurrentData();
     render();
     const operation = () => apiSaveData({ holdings, profiles, transactions });
@@ -2659,7 +2949,8 @@
       account: userId,
       holdings: JSON.parse(JSON.stringify(holdings)),
       profiles: JSON.parse(JSON.stringify(profiles)),
-      transactions: JSON.parse(JSON.stringify(transactions))
+      transactions: JSON.parse(JSON.stringify(transactions)),
+      portfolioSnapshots: JSON.parse(JSON.stringify(portfolioSnapshots))
     };
     downloadFullBackup(snapshot);
 
@@ -2670,15 +2961,17 @@
     holdings = [];
     profiles = {};
     transactions = [];
+    portfolioSnapshots = [];
     selectedClient = null;
     filterText = "";
     searchInput.value = "";
 
-    const synced = await apiSaveData({ holdings: [], profiles: {}, transactions: [] });
+    const synced = await apiSaveData({ holdings: [], profiles: {}, transactions: [], clearSnapshots:true });
     if (synced) {
       localStorage.setItem(DB_KEY, "[]");
       localStorage.setItem(PROFILE_KEY, "{}");
       localStorage.setItem(TX_KEY, "[]");
+      localStorage.setItem(SNAPSHOT_KEY, "[]");
       render();
       resetForm();
       showToast("所有持倉、客戶檔案與交易紀錄已清除");
@@ -2686,9 +2979,11 @@
       holdings = snapshot.holdings;
       profiles = snapshot.profiles;
       transactions = snapshot.transactions;
+      portfolioSnapshots = snapshot.portfolioSnapshots;
       localStorage.setItem(DB_KEY, JSON.stringify(holdings));
       localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
       localStorage.setItem(TX_KEY, JSON.stringify(transactions));
+      localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(portfolioSnapshots));
       render();
       showToast("清除失敗，原資料已自動恢復", "error");
     }
@@ -2909,6 +3204,12 @@
   };
 
   document.addEventListener("DOMContentLoaded", () => {
+    const importDrop = document.querySelector("#importModal .import-drop");
+    if (importDrop) {
+      ["dragenter","dragover"].forEach(type => importDrop.addEventListener(type, event => { event.preventDefault(); importDrop.style.borderColor = "#0f9f8f"; }));
+      ["dragleave","drop"].forEach(type => importDrop.addEventListener(type, event => { event.preventDefault(); importDrop.style.borderColor = ""; }));
+      importDrop.addEventListener("drop", event => { const files = event.dataTransfer?.files; if (files?.length) window.handleImportFile({ target:{ files } }); });
+    }
     if (userId && authToken) {
       document.getElementById("loginModal").style.display = "none";
       updateUserDisplay();

@@ -30,6 +30,7 @@
     .brand span,.eyebrow,.kpi span,.kpi small,.directory-head span,.client-account,.client-mini,.identity p,.client-chip,.detail-kpi span,.section-title span,.profile-box span,.stock small,.tag,.account-head p,.account-stat span,.account-client-preview>span:first-child,.account-client-chip,.password,.login-card label,.login-error,.account-scope span,.account-scope small{font-size:11px}.profile-box strong,.account-stat strong{font-size:12px}.btn-small,.scope-clear{font-size:12px}
     @media(max-width:1400px){main{padding-left:20px;padding-right:20px}.client-workspace{grid-template-columns:330px minmax(0,1fr)}.profile{grid-template-columns:repeat(3,1fr)}.account-grid{grid-template-columns:1fr}}
     .detail-actions{display:flex;align-items:center;gap:7px}
+    .security-status{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px;border:1px solid #dbe3ea;border-radius:11px;background:#f8fafb}.security-status strong{display:block;font-size:13px}.security-status span{display:block;margin-top:4px;font-size:10px;color:#7b8798}.security-badge{flex:none;padding:5px 9px;border-radius:99px;font-size:9px;font-weight:800;background:#fff2df;color:#986317}.security-badge.enabled{background:#e7f7f3;color:#08756e}.setup-secret{margin:13px 0;padding:13px;border:1px solid #cde4e0;background:#f2faf8;border-radius:10px}.setup-secret code{display:block;margin-top:8px;padding:9px;background:#fff;border:1px solid #d7e2e0;border-radius:7px;font:700 13px Consolas,monospace;letter-spacing:.08em;word-break:break-all}.security-login-list{display:grid;gap:7px;margin-top:14px}.security-login{display:grid;grid-template-columns:90px 70px minmax(0,1fr);gap:10px;padding:9px 10px;border:1px solid #e2e7ec;border-radius:9px;font-size:10px;color:#667085}.security-login b{color:#344054}.totp-login-field{display:none}.totp-login-field.show{display:block}
   </style>
 </head>
 <body>
@@ -50,7 +51,7 @@
     <div class="toolbar">
       <div class="tabs"><button id="clientsTab" class="tab active" onclick="setView('clients')">客戶目錄</button><button id="accountsTab" class="tab" onclick="setView('accounts')">帳號管理</button></div>
       <div class="search-wrap"><input id="searchInput" placeholder="搜尋客戶姓名、帳號、股票或代碼" oninput="applySearch()" /></div>
-      <div class="toolbar-actions"><button class="btn btn-light" onclick="openTrash()">回收站</button><button class="btn btn-light" onclick="openAudit()">操作記錄</button><button class="btn btn-light" onclick="openBackups()">備份恢復</button><button class="btn btn-light" onclick="exportCSV()">匯出客戶 CSV</button><button id="refreshBtn" class="btn btn-primary" onclick="loadAdminData()">更新資料與行情</button></div>
+      <div class="toolbar-actions"><button class="btn btn-light" onclick="openSecurity()">安全設定</button><button class="btn btn-light" onclick="openTrash()">回收站</button><button class="btn btn-light" onclick="openAudit()">操作記錄</button><button class="btn btn-light" onclick="openBackups()">備份恢復</button><button class="btn btn-light" onclick="exportCSV()">匯出客戶 CSV</button><button id="refreshBtn" class="btn btn-primary" onclick="loadAdminData()">更新資料與行情</button></div>
     </div>
     <section id="clientsView" class="client-workspace">
       <aside class="directory"><div id="accountScope" class="account-scope"><div><span>目前業務員／帳號</span><strong id="accountScopeName">—</strong><small id="accountScopeCount">0 位客戶</small></div><button class="scope-clear" onclick="clearAccountFilter()">顯示全部</button></div><div class="directory-head"><strong id="directoryTitle">全部客戶</strong><span id="directoryCount">0 位</span></div><div id="clientList" class="directory-list"></div></aside>
@@ -93,10 +94,23 @@
   </div>
 </div>
 
+<div id="securityModal" class="modal-layer" role="dialog" aria-modal="true" aria-labelledby="securityModalTitle">
+  <div class="modal-panel narrow">
+    <div class="modal-head"><div><h2 id="securityModalTitle">管理員安全設定</h2><p>啟用驗證器雙重驗證、查看最近登入，並在閒置時自動登出。</p></div><button class="modal-close" onclick="closeModal('securityModal')" aria-label="關閉">×</button></div>
+    <div class="modal-body">
+      <div class="security-status"><div><strong id="mfaStatusTitle">正在讀取安全狀態</strong><span id="mfaStatusText">請稍候…</span></div><span id="mfaBadge" class="security-badge">讀取中</span></div>
+      <div id="mfaSetupArea" style="margin-top:14px"></div>
+      <div class="section-title" style="margin-top:18px"><h3>最近管理員登入</h3><span>閒置 30 分鐘自動登出</span></div>
+      <div id="securityLoginList" class="security-login-list"><div class="empty-state">正在讀取…</div></div>
+    </div>
+  </div>
+</div>
+
 <div id="loginModal" class="overlay">
   <form class="login-card" onsubmit="handleAdminLogin(event)">
     <div class="login-mark">OS</div><h2>管理員登入</h2><p>進入客戶資料與資產管理控制台</p>
     <label for="adminPwdInput">管理員密碼</label><input type="password" id="adminPwdInput" autocomplete="current-password" placeholder="請輸入管理員密碼" required />
+    <div id="totpLoginField" class="totp-login-field"><label for="adminTotpInput" style="margin-top:12px">六位數驗證碼</label><input type="text" id="adminTotpInput" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" /></div>
     <button id="loginBtn" class="btn btn-primary" type="submit">安全登入</button><div id="loginError" class="login-error"></div>
   </form>
 </div>
@@ -116,6 +130,9 @@
   let passwordResetUserId = "";
   let trashState = { users:[], clients:[] };
   let backupState = [];
+  let pendingTotpSecret = "";
+  const ADMIN_IDLE_TIMEOUT_MS = 30 * 60 * 1000;
+  let adminIdleTimer = null;
 
   const money = value => Number(value || 0).toLocaleString("zh-TW", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const pct = value => `${Number(value || 0) >= 0 ? "+" : ""}${Number(value || 0).toFixed(2)}%`;
@@ -152,13 +169,26 @@
     sessionStorage.removeItem(ADMIN_TOKEN_KEY);
     setConnectionState(false);
     document.getElementById("lastSync").textContent = "尚未同步資料";
+    clearTimeout(adminIdleTimer);
+    adminIdleTimer = null;
     if (message) showLogin(message);
   }
+
+  function resetAdminIdleTimer() {
+    if (!adminToken) return;
+    clearTimeout(adminIdleTimer);
+    adminIdleTimer = setTimeout(() => clearAdminSession("為保護客戶資料，管理頁面閒置 30 分鐘後已自動登出"), ADMIN_IDLE_TIMEOUT_MS);
+  }
+
+  ["pointerdown","keydown","scroll"].forEach(type => document.addEventListener(type, resetAdminIdleTimer, { passive:true }));
 
   function switchAdmin() {
     closeAllUtilityModals();
     clearAdminSession();
     document.getElementById("adminPwdInput").value = "";
+    document.getElementById("adminTotpInput").value = "";
+    document.getElementById("adminTotpInput").required = false;
+    document.getElementById("totpLoginField").classList.remove("show");
     showLogin();
   }
 
@@ -181,25 +211,38 @@
       throw new Error(responseMessage(data, "管理員驗證失敗"));
     }
     if (!response.ok || data.success === false) throw new Error(responseMessage(data, `請求失敗（${response.status}）`));
+    resetAdminIdleTimer();
     return data;
   }
 
   async function handleAdminLogin(event) {
     event.preventDefault();
     const password = document.getElementById("adminPwdInput").value;
+    const totp = document.getElementById("adminTotpInput").value.trim();
     if (!password) return;
     const button = document.getElementById("loginBtn");
     button.disabled = true; button.textContent = "驗證中...";
     try {
-      const response = await fetch(`${API_URL}/admin/login`, { method:"POST", cache:"no-store", headers:{"Content-Type":"application/json","Cache-Control":"no-cache"}, body:JSON.stringify({ password }) });
+      const response = await fetch(`${API_URL}/admin/login`, { method:"POST", cache:"no-store", headers:{"Content-Type":"application/json","Cache-Control":"no-cache"}, body:JSON.stringify({ password, totp }) });
       let data = {};
       try { data = await response.json(); } catch (_) {}
+      if (response.status === 428 && (data.mfaRequired || data?.error?.code === "MFA_REQUIRED")) {
+        document.getElementById("totpLoginField").classList.add("show");
+        document.getElementById("adminTotpInput").required = true;
+        document.getElementById("loginError").textContent = responseMessage(data, "請輸入驗證器代碼");
+        setTimeout(() => document.getElementById("adminTotpInput").focus(), 0);
+        return;
+      }
       if (!response.ok || !data.success || !data.token) throw new Error(responseMessage(data, "管理員密碼錯誤"));
       adminToken = String(data.token);
       sessionStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
       document.getElementById("adminPwdInput").value = "";
+      document.getElementById("adminTotpInput").value = "";
+      document.getElementById("adminTotpInput").required = false;
+      document.getElementById("totpLoginField").classList.remove("show");
       document.getElementById("loginError").textContent = "";
       setConnectionState(true);
+      resetAdminIdleTimer();
       const success = await loadAdminData(true);
       if (success) document.getElementById("loginModal").style.display = "none";
     } catch (error) {
@@ -440,7 +483,64 @@
   }
 
   function closeAllUtilityModals() {
-    ["passwordModal","trashModal","auditModal","backupModal"].forEach(id => closeModal(id));
+    ["passwordModal","trashModal","auditModal","backupModal","securityModal"].forEach(id => closeModal(id));
+  }
+
+  function renderSecurityStatus(data) {
+    const enabled = Boolean(data.mfaEnabled);
+    const managed = Boolean(data.environmentManaged);
+    document.getElementById("mfaStatusTitle").textContent = enabled ? "驗證器雙重驗證已啟用" : "尚未啟用雙重驗證";
+    document.getElementById("mfaStatusText").textContent = managed ? "此設定由 Render 環境變數管理" : (enabled ? "管理員登入時需要密碼與六位數驗證碼" : "建議使用 Google Authenticator 或 Microsoft Authenticator");
+    const badge = document.getElementById("mfaBadge");
+    badge.textContent = enabled ? "已保護" : "待加強";
+    badge.className = `security-badge${enabled ? " enabled" : ""}`;
+    const area = document.getElementById("mfaSetupArea");
+    if (managed) area.innerHTML = `<div class="security-note">雙重驗證由伺服器設定管理。如需變更，請在 Render 的 ADMIN_TOTP_SECRET 環境變數調整。</div>`;
+    else if (enabled) area.innerHTML = `<label class="field-label">關閉雙重驗證需輸入目前驗證碼</label><div style="display:flex;gap:8px"><input id="disableTotpCode" class="field-input" inputmode="numeric" maxlength="6" placeholder="六位數驗證碼"><button class="btn btn-danger" onclick="disableAdminMfa()">關閉</button></div>`;
+    else area.innerHTML = `<button class="btn btn-primary" onclick="beginAdminMfaSetup()">開始設定雙重驗證</button>`;
+    const recent = Array.isArray(data.recentLogins) ? data.recentLogins : [];
+    document.getElementById("securityLoginList").innerHTML = recent.length ? recent.map(item => `<div class="security-login"><span>${esc(formatTime(item.createdAt))}</span><b style="color:${item.success ? "#08756e" : "#c72f48"}">${item.success ? "登入成功" : "登入失敗"}</b><span>${esc(item.ip || "未知來源")}${item.newLocation ? " · 新来源" : ""}<br>${esc((item.userAgent || "").slice(0,90))}</span></div>`).join("") : `<div class="empty-state">尚無登入記錄</div>`;
+  }
+
+  async function loadSecurityStatus() {
+    const data = await adminRequest("/admin/security/status");
+    renderSecurityStatus(data);
+  }
+
+  async function openSecurity() {
+    pendingTotpSecret = "";
+    openModal("securityModal");
+    try { await loadSecurityStatus(); }
+    catch (error) { document.getElementById("mfaSetupArea").innerHTML = `<div class="empty-state">${esc(error.message || "安全設定讀取失敗")}</div>`; }
+  }
+
+  async function beginAdminMfaSetup() {
+    try {
+      const data = await adminRequest("/admin/security/setup_totp", { method:"POST", body:{} });
+      pendingTotpSecret = String(data.secret || "");
+      document.getElementById("mfaSetupArea").innerHTML = `<div class="setup-secret"><strong>在驗證器中選擇「輸入設定金鑰」</strong><span class="helper">帳戶名稱可填 Portfolio OS Administrator，金鑰如下：</span><code>${esc(pendingTotpSecret)}</code></div><label class="field-label">輸入驗證器顯示的六位數代碼</label><div style="display:flex;gap:8px"><input id="confirmTotpCode" class="field-input" inputmode="numeric" maxlength="6" placeholder="000000"><button class="btn btn-primary" onclick="confirmAdminMfa()">確認啟用</button></div>`;
+      document.getElementById("confirmTotpCode").focus();
+    } catch (error) { showToast(error.message || "雙重驗證設定失敗"); }
+  }
+
+  async function confirmAdminMfa() {
+    const code = document.getElementById("confirmTotpCode")?.value || "";
+    try {
+      await adminRequest("/admin/security/confirm_totp", { method:"POST", body:{ secret:pendingTotpSecret, code } });
+      pendingTotpSecret = "";
+      showToast("管理員雙重驗證已啟用");
+      await loadSecurityStatus();
+    } catch (error) { showToast(error.message || "驗證碼不正確"); }
+  }
+
+  async function disableAdminMfa() {
+    const code = document.getElementById("disableTotpCode")?.value || "";
+    if (!confirm("確定關閉管理員雙重驗證？")) return;
+    try {
+      await adminRequest("/admin/security/disable_totp", { method:"POST", body:{ code } });
+      showToast("管理員雙重驗證已關閉");
+      await loadSecurityStatus();
+    } catch (error) { showToast(error.message || "無法關閉雙重驗證"); }
   }
 
   function openPasswordReset(userId) {
@@ -641,7 +741,9 @@
         const snapshot = item.snapshot || item.data || {};
         const holdingCount = Number(item.holdingCount ?? snapshot.holdings?.length ?? 0);
         const clientCount = Number(item.clientCount ?? (snapshot.profiles ? Object.keys(snapshot.profiles).length : 0));
-        const reason = item.reason || item.action || item.label || "資料快照";
+        const reasonLabels = { scheduled_daily:"每日自動備份", daily_before_write:"修改前自動備份", before_backup_restore:"恢復前安全備份", before_delete_user:"刪除帳號前備份", before_delete_client:"刪除客戶前備份" };
+        const rawReason = item.reason || item.action || item.label || "資料快照";
+        const reason = reasonLabels[rawReason] || rawReason;
         return `<div class="data-card"><div class="data-card-main"><div class="data-card-title">${esc(reason)}</div><div class="data-card-meta">${esc(formatTime(item.createdAt || item.timestamp || item.date))} · ${clientCount} 位客戶 · ${holdingCount} 筆持倉</div></div><div class="data-card-actions"><button class="btn btn-primary btn-small" onclick="restoreBackup(${index})">恢復此快照</button></div></div>`;
       }).join("");
     } catch (error) {
@@ -680,6 +782,7 @@
   document.addEventListener("DOMContentLoaded", async () => {
     if (adminToken) {
       setConnectionState(true);
+      resetAdminIdleTimer();
       const valid = await loadAdminData(true);
       if (valid) document.getElementById("loginModal").style.display = "none";
       else showLogin(document.getElementById("loginError").textContent || "請重新登入");
@@ -691,3 +794,4 @@
 </script>
 </body>
 </html>
+

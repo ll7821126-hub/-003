@@ -120,7 +120,8 @@ const userSchema = new mongoose.Schema({
   deletedClients: { type: Array, default: [] },
   holdings: { type: Array, default: [] },
   profiles: { type: Object, default: {} },
-  transactions: { type: Array, default: [] }
+  transactions: { type: Array, default: [] },
+  portfolioSnapshots: { type: Array, default: [] }
 }, { timestamps: true });
 
 const User = mongoose.model('User', userSchema);
@@ -147,10 +148,18 @@ const backupSchema = new mongoose.Schema({
   holdings: { type: Array, default: [] },
   profiles: { type: Object, default: {} },
   transactions: { type: Array, default: [] },
+  portfolioSnapshots: { type: Array, default: [] },
   deletedClients: { type: Array, default: [] },
   createdBy: { type: String, default: 'system' }
 }, { timestamps: true, versionKey: false });
 const Backup = mongoose.model('Backup', backupSchema);
+
+const systemConfigSchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  encryptedValue: { type: String, default: '' },
+  updatedBy: { type: String, default: 'system' }
+}, { timestamps: true, versionKey: false });
+const SystemConfig = mongoose.model('SystemConfig', systemConfigSchema);
 
 const scryptAsync = promisify(crypto.scrypt);
 const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
@@ -163,6 +172,73 @@ if (isProduction && configuredAuthSecret.length < 32) {
 }
 const authSecret = configuredAuthSecret || crypto.randomBytes(48).toString('base64url');
 if (!configuredAuthSecret) console.warn('⚠️ 未設定 AUTH_SECRET；目前使用只適合本機開發的臨時金鑰，重啟後登入憑證會失效');
+
+const secretEncryptionKey = crypto.createHash('sha256').update(authSecret).digest();
+function encryptConfigSecret(value) {
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv('aes-256-gcm', secretEncryptionKey, iv);
+  const encrypted = Buffer.concat([cipher.update(String(value), 'utf8'), cipher.final()]);
+  return `${iv.toString('base64url')}.${cipher.getAuthTag().toString('base64url')}.${encrypted.toString('base64url')}`;
+}
+
+function decryptConfigSecret(value) {
+  try {
+    const [ivText, tagText, encryptedText] = String(value || '').split('.');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', secretEncryptionKey, Buffer.from(ivText, 'base64url'));
+    decipher.setAuthTag(Buffer.from(tagText, 'base64url'));
+    return Buffer.concat([decipher.update(Buffer.from(encryptedText, 'base64url')), decipher.final()]).toString('utf8');
+  } catch (_) {
+    return '';
+  }
+}
+
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+function encodeBase32(buffer) {
+  let bits = '', output = '';
+  for (const byte of buffer) bits += byte.toString(2).padStart(8, '0');
+  for (let index = 0; index < bits.length; index += 5) {
+    output += BASE32_ALPHABET[parseInt(bits.slice(index, index + 5).padEnd(5, '0'), 2)];
+  }
+  return output;
+}
+
+function decodeBase32(value) {
+  const clean = String(value || '').toUpperCase().replace(/[^A-Z2-7]/g, '');
+  let bits = '';
+  for (const char of clean) {
+    const index = BASE32_ALPHABET.indexOf(char);
+    if (index < 0) return Buffer.alloc(0);
+    bits += index.toString(2).padStart(5, '0');
+  }
+  const bytes = [];
+  for (let index = 0; index + 8 <= bits.length; index += 8) bytes.push(parseInt(bits.slice(index, index + 8), 2));
+  return Buffer.from(bytes);
+}
+
+function totpCode(secret, counter) {
+  const key = decodeBase32(secret);
+  if (!key.length) return '';
+  const counterBuffer = Buffer.alloc(8);
+  counterBuffer.writeBigUInt64BE(BigInt(counter));
+  const digest = crypto.createHmac('sha1', key).update(counterBuffer).digest();
+  const offset = digest[digest.length - 1] & 15;
+  const value = (digest.readUInt32BE(offset) & 0x7fffffff) % 1000000;
+  return String(value).padStart(6, '0');
+}
+
+function verifyTotp(secret, code) {
+  const clean = String(code || '').replace(/\D/g, '');
+  if (!/^\d{6}$/.test(clean)) return false;
+  const counter = Math.floor(Date.now() / 30000);
+  return [-1, 0, 1].some(offset => timingSafeTextEqual(totpCode(secret, counter + offset), clean));
+}
+
+async function getAdminTotpSecret() {
+  const configured = String(process.env.ADMIN_TOTP_SECRET || '').replace(/\s/g, '').toUpperCase();
+  if (configured) return configured;
+  const stored = await SystemConfig.findOne({ key: 'admin_totp' }).lean();
+  return stored?.encryptedValue ? decryptConfigSecret(stored.encryptedValue) : '';
+}
 
 function base64urlJson(value) {
   return Buffer.from(JSON.stringify(value)).toString('base64url');
@@ -267,13 +343,14 @@ function safeUserData(user) {
     holdings: Array.isArray(user.holdings) ? user.holdings : [],
     profiles: user.profiles && typeof user.profiles === 'object' ? user.profiles : {},
     transactions: Array.isArray(user.transactions) ? user.transactions : [],
+    portfolioSnapshots: Array.isArray(user.portfolioSnapshots) ? user.portfolioSnapshots : [],
     version: Number.isInteger(user.dataVersion) ? user.dataVersion : 0,
     updatedAt: user.updatedAt || null
   };
 }
 
 async function createBackupSnapshot(user, { reason = 'daily_before_write', createdBy = 'system', daily = true } = {}) {
-  const day = new Date().toISOString().slice(0, 10);
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const idSeed = daily ? `${user.customId}:${day}` : `${user.customId}:${Date.now()}:${crypto.randomUUID()}`;
   const backupId = crypto.createHash('sha256').update(idSeed).digest('hex');
   const snapshot = {
@@ -285,12 +362,67 @@ async function createBackupSnapshot(user, { reason = 'daily_before_write', creat
     holdings: Array.isArray(user.holdings) ? user.holdings : [],
     profiles: user.profiles && typeof user.profiles === 'object' ? user.profiles : {},
     transactions: Array.isArray(user.transactions) ? user.transactions : [],
+    portfolioSnapshots: Array.isArray(user.portfolioSnapshots) ? user.portfolioSnapshots : [],
     deletedClients: Array.isArray(user.deletedClients) ? user.deletedClients : [],
     createdBy
   };
   if (daily) return Backup.findOneAndUpdate({ _id: backupId }, { $setOnInsert: snapshot }, { upsert: true, new: true, setDefaultsOnInsert: true });
   return Backup.create(snapshot);
 }
+
+function taipeiDay(date = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
+}
+
+async function updatePortfolioSnapshots(user) {
+  const day = taipeiDay();
+  const capturedAt = new Date().toISOString();
+  const groups = new Map();
+  for (const holding of Array.isArray(user.holdings) ? user.holdings : []) {
+    const client = String(holding?.client || '未命名客戶').trim() || '未命名客戶';
+    const quantity = Math.max(0, Number(holding?.quantity) || 0);
+    const cost = Math.max(0, Number(holding?.cost) || 0);
+    const price = Math.max(0, Number(holding?.currentPrice) || cost);
+    const current = groups.get(client) || { client, marketValue: 0, costBasis: 0, holdingCount: 0 };
+    current.marketValue += price * quantity;
+    current.costBasis += cost * quantity;
+    current.holdingCount += 1;
+    groups.set(client, current);
+  }
+  const dailyRows = [...groups.values()].map(item => ({
+    day,
+    capturedAt,
+    client: item.client,
+    marketValue: Number(item.marketValue.toFixed(2)),
+    costBasis: Number(item.costBasis.toFixed(2)),
+    pnl: Number((item.marketValue - item.costBasis).toFixed(2)),
+    holdingCount: item.holdingCount
+  }));
+  const historical = (Array.isArray(user.portfolioSnapshots) ? user.portfolioSnapshots : [])
+    .filter(item => item?.day !== day)
+    .filter(item => item?.day && new Date(`${item.day}T00:00:00+08:00`).getTime() >= Date.now() - 370 * 24 * 60 * 60 * 1000);
+  user.portfolioSnapshots = [...historical, ...dailyRows].slice(-5000);
+  user.markModified('portfolioSnapshots');
+  await user.save({ validateBeforeSave: false });
+  return dailyRows.length;
+}
+
+async function runScheduledBackups() {
+  if (mongoose.connection.readyState !== 1) return;
+  try {
+    const users = await User.find({ deletedAt: null });
+    for (const user of users) await createBackupSnapshot(user, { reason: 'scheduled_daily', createdBy: 'system', daily: true });
+    const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const removed = await Backup.deleteMany({ createdAt: { $lt: cutoff } });
+    console.log(`[Backup] 每日排程完成：${users.length} 個帳號，清理 ${removed.deletedCount || 0} 份逾期備份`);
+  } catch (error) {
+    console.warn(`[Backup] 每日排程失敗，服務下次喚醒後會重試：${error.message}`);
+  }
+}
+
+mongoose.connection.once('open', () => setTimeout(runScheduledBackups, 15000).unref?.());
+const scheduledBackupTimer = setInterval(runScheduledBackups, 6 * 60 * 60 * 1000);
+scheduledBackupTimer.unref?.();
 
 async function ensureDailyBackup(user, req, reason = 'daily_before_write') {
   try {
@@ -483,7 +615,8 @@ function clientSnapshot(user, clientName) {
     deletedAt: new Date(),
     profile: Object.prototype.hasOwnProperty.call(profiles, clientName) ? profiles[clientName] : null,
     holdings: (user.holdings || []).filter(item => String(item?.client || '未命名客戶') === clientName),
-    transactions: (user.transactions || []).filter(item => String(item?.client || '') === clientName)
+    transactions: (user.transactions || []).filter(item => String(item?.client || '') === clientName),
+    portfolioSnapshots: (user.portfolioSnapshots || []).filter(item => String(item?.client || '') === clientName)
   };
 }
 
@@ -551,15 +684,18 @@ app.post('/api/save_data', requireUser, async (req, res) => {
     const versionFilter = expectedVersion === 0
       ? { $or: [{ dataVersion: 0 }, { dataVersion: { $exists: false } }] }
       : { dataVersion: expectedVersion };
+    const replacement = { holdings: validated.holdings, profiles: validated.profiles, transactions: validated.transactions };
+    if (req.body?.clearSnapshots === true) replacement.portfolioSnapshots = [];
     const updated = await User.findOneAndUpdate(
       { _id: current._id, deletedAt: null, ...versionFilter },
-      { $set: { holdings: validated.holdings, profiles: validated.profiles, transactions: validated.transactions }, $inc: { dataVersion: 1 } },
+      { $set: replacement, $inc: { dataVersion: 1 } },
       { new: true, runValidators: true }
     );
     if (!updated) {
       const latest = await User.findById(current._id).select('dataVersion').lean();
       return res.status(409).json({ success: false, message: '雲端資料已由其他視窗更新', error: { code: 'VERSION_CONFLICT', message: '雲端資料已由其他視窗更新' }, currentVersion: Number(latest?.dataVersion) || 0 });
     }
+    await updatePortfolioSnapshots(updated);
     await writeAudit(req, { action: 'data_saved', targetUserId: updated.customId, metadata: { version: updated.dataVersion, holdings: updated.holdings.length, clients: Object.keys(updated.profiles || {}).length, transactions: updated.transactions.length } });
     return res.json({ success: true, message: '雲端同步成功', version: updated.dataVersion, updatedAt: updated.updatedAt });
   } catch (error) {
@@ -574,18 +710,33 @@ app.post('/api/save_prices', requireUser, async (req, res) => {
   const updates = rawUpdates.map(item => ({
     code: String(item?.code || '').trim(),
     currentPrice: Number(item?.currentPrice),
-    lastPriceAt: String(item?.lastPriceAt || new Date().toISOString()).slice(0, 40)
+    lastPriceAt: String(item?.lastPriceAt || new Date().toISOString()).slice(0, 40),
+    priceSource: String(item?.priceSource || '').slice(0, 40),
+    priceType: String(item?.priceType || '').slice(0, 40),
+    exchangeTime: String(item?.exchangeTime || '').slice(0, 40),
+    bestBid: Number.isFinite(Number(item?.bestBid)) ? Number(item.bestBid) : null,
+    bestAsk: Number.isFinite(Number(item?.bestAsk)) ? Number(item.bestAsk) : null
   })).filter(item => /^\d{4,6}$/.test(item.code) && Number.isFinite(item.currentPrice) && item.currentPrice > 0).slice(0, 200);
   if (!updates.length) return res.json({ success: true, updated: 0 });
   try {
     const operations = updates.map(item => ({
       updateOne: {
         filter: { _id: req.authUser._id, deletedAt: null },
-        update: { $set: { 'holdings.$[holding].currentPrice': item.currentPrice, 'holdings.$[holding].lastPriceAt': item.lastPriceAt } },
+        update: { $set: {
+          'holdings.$[holding].currentPrice': item.currentPrice,
+          'holdings.$[holding].lastPriceAt': item.lastPriceAt,
+          'holdings.$[holding].priceSource': item.priceSource,
+          'holdings.$[holding].priceType': item.priceType,
+          'holdings.$[holding].exchangeTime': item.exchangeTime,
+          'holdings.$[holding].bestBid': item.bestBid,
+          'holdings.$[holding].bestAsk': item.bestAsk
+        } },
         arrayFilters: [{ 'holding.code': { $in: [item.code, Number(item.code)] } }]
       }
     }));
     const result = await User.collection.bulkWrite(operations, { ordered: false });
+    const refreshedUser = await User.findById(req.authUser._id);
+    if (refreshedUser) await updatePortfolioSnapshots(refreshedUser);
     return res.json({ success: true, updated: result.modifiedCount || 0 });
   } catch (error) {
     console.error('行情雲端同步失敗:', error.message);
@@ -615,13 +766,67 @@ app.post('/api/admin/login', adminLoginRateLimit, asyncRoute(async (req, res) =>
   if (!adminCredentialVersion()) return sendError(res, 503, 'ADMIN_NOT_CONFIGURED', '後端尚未設定管理員密碼');
   const accepted = await verifyAdminPassword(String(req.body?.password || ''));
   if (!accepted) {
-    await writeAudit(req, { actorType: 'admin', actorId: 'admin', action: 'admin_login_failed', success: false });
+    await writeAudit(req, { actorType: 'admin', actorId: 'admin', action: 'admin_login_failed', success: false, metadata: { stage: 'password' } });
     return sendError(res, 401, 'INVALID_ADMIN_CREDENTIALS', '管理員密碼錯誤');
   }
+  const totpSecret = await getAdminTotpSecret();
+  if (totpSecret && !String(req.body?.totp || '').trim()) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(428).json({ success: false, message: '請輸入驗證器的六位數代碼', error: { code: 'MFA_REQUIRED', message: '請輸入驗證器的六位數代碼' }, mfaRequired: true });
+  }
+  if (totpSecret && !verifyTotp(totpSecret, req.body?.totp)) {
+    await writeAudit(req, { actorType: 'admin', actorId: 'admin', action: 'admin_login_failed', success: false, metadata: { stage: 'totp' } });
+    return sendError(res, 401, 'INVALID_TOTP', '雙重驗證代碼錯誤或已過期');
+  }
   const token = signToken({ sub: 'admin', role: 'admin', authVersion: adminCredentialVersion(), ttlSeconds: ADMIN_TOKEN_TTL_SECONDS });
-  await writeAudit(req, { actorType: 'admin', actorId: 'admin', action: 'admin_login' });
+  const previousLogin = await AuditLog.findOne({ action: 'admin_login', success: true }).sort({ createdAt: -1 }).lean();
+  const currentIp = String(req.ip || '').slice(0, 120);
+  const newLocation = Boolean(previousLogin?.ip && currentIp && previousLogin.ip !== currentIp);
+  await writeAudit(req, { actorType: 'admin', actorId: 'admin', action: 'admin_login', metadata: { mfa: Boolean(totpSecret), newLocation } });
   res.set('Cache-Control', 'no-store');
-  return res.json({ success: true, token, expiresIn: ADMIN_TOKEN_TTL_SECONDS });
+  return res.json({ success: true, token, expiresIn: ADMIN_TOKEN_TTL_SECONDS, mfaEnabled: Boolean(totpSecret), newLocation });
+}));
+
+app.get('/api/admin/security/status', requireAdmin, adminRateLimit, asyncRoute(async (req, res) => {
+  const secret = await getAdminTotpSecret();
+  const recent = await AuditLog.find({ action: { $in: ['admin_login', 'admin_login_failed'] } }).sort({ createdAt: -1 }).limit(12).lean();
+  return res.json({ success: true, mfaEnabled: Boolean(secret), environmentManaged: Boolean(process.env.ADMIN_TOTP_SECRET), recentLogins: recent.map(item => ({
+    createdAt: item.createdAt,
+    success: item.success,
+    ip: item.ip,
+    userAgent: item.userAgent,
+    newLocation: Boolean(item.metadata?.newLocation),
+    stage: item.metadata?.stage || ''
+  })) });
+}));
+
+app.post('/api/admin/security/setup_totp', requireAdmin, adminRateLimit, asyncRoute(async (req, res) => {
+  if (process.env.ADMIN_TOTP_SECRET) return sendError(res, 409, 'MFA_ENV_MANAGED', '雙重驗證由 Render 環境變數管理，無法在頁面變更');
+  const existing = await getAdminTotpSecret();
+  if (existing) return sendError(res, 409, 'MFA_ALREADY_ENABLED', '雙重驗證已啟用');
+  const secret = encodeBase32(crypto.randomBytes(20));
+  const issuer = encodeURIComponent('Portfolio OS');
+  const account = encodeURIComponent('Administrator');
+  return res.json({ success: true, secret, otpauth: `otpauth://totp/${issuer}:${account}?secret=${secret}&issuer=${issuer}&digits=6&period=30` });
+}));
+
+app.post('/api/admin/security/confirm_totp', requireAdmin, adminRateLimit, asyncRoute(async (req, res) => {
+  if (process.env.ADMIN_TOTP_SECRET) return sendError(res, 409, 'MFA_ENV_MANAGED', '雙重驗證由 Render 環境變數管理');
+  const secret = String(req.body?.secret || '').replace(/\s/g, '').toUpperCase();
+  if (decodeBase32(secret).length < 16 || !verifyTotp(secret, req.body?.code)) return sendError(res, 400, 'INVALID_TOTP_SETUP', '驗證碼不正確，請確認驗證器時間後重試');
+  await SystemConfig.findOneAndUpdate({ key: 'admin_totp' }, { $set: { encryptedValue: encryptConfigSecret(secret), updatedBy: req.auth.sub } }, { upsert: true, new: true });
+  await writeAudit(req, { action: 'admin_mfa_enabled' });
+  return res.json({ success: true, message: '管理員雙重驗證已啟用' });
+}));
+
+app.post('/api/admin/security/disable_totp', requireAdmin, adminRateLimit, asyncRoute(async (req, res) => {
+  if (process.env.ADMIN_TOTP_SECRET) return sendError(res, 409, 'MFA_ENV_MANAGED', '雙重驗證由 Render 環境變數管理，請在 Render 調整');
+  const secret = await getAdminTotpSecret();
+  if (!secret) return res.json({ success: true, message: '雙重驗證目前未啟用' });
+  if (!verifyTotp(secret, req.body?.code)) return sendError(res, 400, 'INVALID_TOTP', '驗證碼不正確');
+  await SystemConfig.deleteOne({ key: 'admin_totp' });
+  await writeAudit(req, { action: 'admin_mfa_disabled' });
+  return res.json({ success: true, message: '管理員雙重驗證已關閉' });
 }));
 
 app.post('/api/admin/all_data', requireAdmin, adminRateLimit, async (req, res) => {
@@ -635,6 +840,7 @@ app.post('/api/admin/all_data', requireAdmin, adminRateLimit, async (req, res) =
       holdings: user.holdings || [],
       profiles: user.profiles || {},
       transactions: user.transactions || [],
+      portfolioSnapshots: user.portfolioSnapshots || [],
       version: Number(user.dataVersion) || 0,
       updatedAt: user.updatedAt || null
     }));
@@ -673,11 +879,13 @@ app.post('/api/admin/delete_client', requireAdmin, adminRateLimit, asyncRoute(as
   user.deletedClients = [...(user.deletedClients || []), snapshot];
   user.holdings = (user.holdings || []).filter(item => String(item?.client || '未命名客戶') !== clientName);
   user.transactions = (user.transactions || []).filter(item => String(item?.client || '') !== clientName);
+  user.portfolioSnapshots = (user.portfolioSnapshots || []).filter(item => String(item?.client || '') !== clientName);
   const profiles = { ...(user.profiles || {}) };
   delete profiles[clientName];
   user.profiles = profiles;
   user.dataVersion = (Number(user.dataVersion) || 0) + 1;
   user.markModified('profiles');
+  user.markModified('portfolioSnapshots');
   user.markModified('deletedClients');
   await user.save();
   await writeAudit(req, { action: 'client_moved_to_trash', targetUserId: userId, targetClient: clientName, metadata: { trashId: snapshot.trashId, holdings: snapshot.holdings.length, transactions: snapshot.transactions.length } });
@@ -737,9 +945,11 @@ app.post('/api/admin/restore_client', requireAdmin, adminRateLimit, asyncRoute(a
   user.profiles = { ...(user.profiles || {}), ...(snapshot.profile ? { [name]: snapshot.profile } : {}) };
   user.holdings = [...(user.holdings || []), ...(snapshot.holdings || [])];
   user.transactions = [...(user.transactions || []), ...(snapshot.transactions || [])];
+  user.portfolioSnapshots = [...(user.portfolioSnapshots || []), ...(snapshot.portfolioSnapshots || [])];
   user.deletedClients.splice(index, 1);
   user.dataVersion = (Number(user.dataVersion) || 0) + 1;
   user.markModified('profiles');
+  user.markModified('portfolioSnapshots');
   user.markModified('deletedClients');
   await user.save();
   await writeAudit(req, { action: 'client_restored', targetUserId: userId, targetClient: name, metadata: { trashId } });
@@ -779,7 +989,9 @@ app.get('/api/admin/audit', requireAdmin, adminRateLimit, asyncRoute(async (req,
     target: [log.targetUserId, log.targetClient].filter(Boolean).join(' / '),
     actor: log.actorType === 'admin' ? '管理員' : log.actorId,
     success: log.success,
-    metadata: log.metadata
+    metadata: log.metadata,
+    ip: log.ip,
+    userAgent: log.userAgent
   })) });
 }));
 
@@ -793,7 +1005,7 @@ app.post('/api/admin/backups', requireAdmin, adminRateLimit, asyncRoute(async (r
     createdAt: item.createdAt,
     dataVersion: item.dataVersion,
     holdingCount: (item.holdings || []).length,
-    clientCount: Object.keys(item.profiles || {}).length,
+    clientCount: new Set([...Object.keys(item.profiles || {}), ...(item.holdings || []).map(holding => String(holding?.client || '')).filter(Boolean)]).size,
     transactionCount: (item.transactions || []).length
   })) });
 }));
@@ -808,9 +1020,11 @@ app.post('/api/admin/restore_backup', requireAdmin, adminRateLimit, asyncRoute(a
   user.holdings = backup.holdings || [];
   user.profiles = backup.profiles || {};
   user.transactions = backup.transactions || [];
+  user.portfolioSnapshots = backup.portfolioSnapshots || user.portfolioSnapshots || [];
   user.deletedClients = backup.deletedClients || [];
   user.dataVersion = (Number(user.dataVersion) || 0) + 1;
   user.markModified('profiles');
+  user.markModified('portfolioSnapshots');
   user.markModified('deletedClients');
   await user.save();
   await writeAudit(req, { action: 'backup_restored', targetUserId: userId, metadata: { backupId, version: user.dataVersion } });
