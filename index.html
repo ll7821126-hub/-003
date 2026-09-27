@@ -695,6 +695,13 @@
     .type-sell{background:#fff0f2;color:#c72f48}
     .type-opening,.type-adjustment{background:#eef2f6;color:#667085}
     .modal-wide{width:min(960px,94vw)}
+    .profit-reminder-modal{width:min(460px,92vw);padding:24px;background:#fffdf9}
+    .profit-reminder-list{display:flex;flex-direction:column;gap:8px;margin:16px 0 20px}
+    .profit-reminder-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 14px;border:1px solid #ead7bb;border-radius:12px;background:#fff8ed}
+    .profit-reminder-stock{font-size:14px;font-weight:800;color:#183848;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .profit-reminder-client{margin-top:4px;font-size:11px;color:#7b6b58}
+    .profit-reminder-rate{font-size:16px;font-weight:850;color:#a66f30;white-space:nowrap}
+    .profit-reminder-copy{font-size:11px;line-height:1.6;color:#7b8585;margin:5px 0 0}
     .modal-subtitle{font-size:11px;color:#8a95a6;margin-top:4px}
     .modal-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
     .filter-pills{display:flex;gap:5px;flex-wrap:wrap}
@@ -934,11 +941,11 @@
       <div id="extraOptions">
         <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
-            <label>止損價 (選填)</label>
+            <label>止損價（選填）</label>
             <input id="stopLoss" type="number" step="0.01" />
           </div>
           <div>
-            <label>止盈價 (選填)</label>
+            <label>止盈價（選填）</label>
             <input id="takeProfit" type="number" step="0.01" />
           </div>
         </div>
@@ -1097,6 +1104,19 @@
       <button class="btn-close" onclick="document.getElementById('riskAlertModal').style.display='none'">關閉</button>
     </div>
     <div id="riskAlertList" class="insight-list"></div>
+  </div>
+</div>
+
+<!-- 收益提醒 Modal -->
+<div id="profitReminderModal" class="modal-overlay">
+  <div class="modal profit-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="profitReminderTitle">
+    <div class="modal-toolbar">
+      <div><div class="profile-title" id="profitReminderTitle">收益達標提醒</div><div class="modal-subtitle">持倉收益率已達 7% 以上</div></div>
+      <button class="btn-close" onclick="closeProfitReminder()">關閉</button>
+    </div>
+    <p class="profit-reminder-copy">以下持倉已達到設定的收益門檻，可查看明細或評估下一步操作。</p>
+    <div id="profitReminderList" class="profit-reminder-list"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;"><button class="btn btn-ghost" onclick="closeProfitReminder()">稍後查看</button><button class="btn btn-save" onclick="openRiskAlerts();closeProfitReminder();">查看提醒中心</button></div>
   </div>
 </div>
 
@@ -1282,6 +1302,7 @@
   let ocrFiles = [];
   let ocrResults = [];
   let ocrBusy = false;
+  const profitReminderShown = new Set();
 
   let userId = localStorage.getItem("app_user_id") || "";
   let authToken = sessionStorage.getItem(AUTH_TOKEN_KEY) || "";
@@ -2364,6 +2385,47 @@
     }).join("");
   }
 
+  function profitReminderKey(holding) {
+    return String(holding.id || `${holding.client || ""}:${holding.code || ""}:${holding.stockName || ""}`);
+  }
+
+  function closeProfitReminder() {
+    const modal = document.getElementById("profitReminderModal");
+    if (modal) modal.style.display = "none";
+  }
+
+  function showProfitReminder(items) {
+    const list = document.getElementById("profitReminderList");
+    if (!list || !items.length) return;
+    list.innerHTML = items.map(item => `
+      <div class="profit-reminder-item">
+        <div>
+          <div class="profit-reminder-stock">${escapeHtml(item.stockName || item.code || "未命名股票")}</div>
+          <div class="profit-reminder-client">${escapeHtml(item.client || "未命名客戶")}</div>
+        </div>
+        <div class="profit-reminder-rate">${fmtPct(item.rate)}</div>
+      </div>`).join("");
+    document.getElementById("profitReminderModal").style.display = "flex";
+  }
+
+  function checkProfitReminders() {
+    const reached = [];
+    holdings.forEach(holding => {
+      const cost = Number(holding.cost) || 0;
+      const price = Number(holding.currentPrice ?? holding.cost) || 0;
+      const rate = cost > 0 ? ((price - cost) / cost) * 100 : 0;
+      const key = profitReminderKey(holding);
+      if (rate < 7) {
+        profitReminderShown.delete(key);
+        return;
+      }
+      if (profitReminderShown.has(key)) return;
+      profitReminderShown.add(key);
+      reached.push({ ...holding, rate });
+    });
+    if (reached.length) showProfitReminder(reached);
+  }
+
   window.openRiskAlerts = () => {
     renderRiskAlerts();
     document.getElementById("riskAlertModal").style.display = "flex";
@@ -2611,6 +2673,7 @@
     });
     renderTransactions();
     renderRiskAlerts();
+    checkProfitReminders();
   }
 
   function stopAutoRefreshTimer() {
@@ -3288,6 +3351,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
