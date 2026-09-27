@@ -583,6 +583,8 @@
     .login-copy{font-size:12px;color:#7b8798;margin:8px 0 28px;line-height:1.6}
     .login-panel .form-group label{color:#5f6c7d}
     .login-panel .btn-save{margin-top:7px}
+    .login-demo-btn{width:100%;margin-top:10px!important;background:transparent!important;border-color:#d9c6a8!important;color:#8b6638!important}
+    .login-demo-btn:hover{background:#f5ecdf!important;border-color:#cdb083!important}
     .login-security{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:18px;font-size:9px;color:#98a2b3}
     .login-error{min-height:18px;margin-top:10px;color:#c23c48;font-size:10px;line-height:1.5;text-align:center}
     .password-modal{width:min(430px,92vw)}
@@ -747,7 +749,7 @@
       .ocr-body{grid-template-columns:290px minmax(0,1fr)}
     }
     @media(max-width:900px){
-      body{height:auto;min-height:100vh;overflow:auto;padding:12px}
+      body{height:auto;min-height:100vh;overflow:auto;overflow-x:hidden;padding:12px}
       .layout-container{display:flex;flex-direction:column;height:auto}
       .sidebar{height:auto;overflow:visible;border-radius:18px}
       .main-content{height:auto;overflow:visible;order:1}
@@ -775,6 +777,8 @@
       .btn-profile-save{width:100%}
       .toast{left:12px;right:12px;bottom:12px;min-width:0}
     }
+    /* Keep sidebar controls at intrinsic height so the scanner button is not clipped. */
+    .sidebar > *{flex-shrink:0}
   /* Premium visual refresh */
     :root{
       --bg-body:#f3f1ed;
@@ -860,6 +864,7 @@
           <input type="password" id="loginPassword" placeholder="輸入管理密碼" autocomplete="current-password" required />
         </div>
         <button type="submit" class="btn btn-save" id="loginSubmitBtn">安全登入</button>
+        <button type="button" class="btn btn-ghost login-demo-btn" onclick="enterDemoMode()">先浏览界面（演示模式）</button>
         <div id="loginError" class="login-error" role="alert"></div>
       </form>
       <div class="login-security"><span class="live-dot"></span>資料傳輸與帳戶驗證已加密</div>
@@ -922,7 +927,7 @@
       </div>
       
       <div class="form-group">
-        <label id="priceLabel">買入價格 (NT$)</label>
+        <label id="priceLabel">買入價格</label>
         <input id="cost" type="number" step="0.01" placeholder="例如：34.78" required />
       </div>
 
@@ -977,6 +982,7 @@
         <div class="user-pill">
           <span class="user-avatar">ID</span>
           <span id="userStatusDisplay" style="color:#344054;font-weight:700;">未登入</span>
+          <button onclick="requireFreshLogin('请输入账号密码以登入云端工作台')" class="btn btn-ghost" style="padding:3px 7px;font-size:10px;border-radius:7px;">登入</button>
           <button onclick="openChangePassword()" class="btn btn-ghost" style="padding:3px 7px;font-size:10px;border-radius:7px;">修改密碼</button>
           <button onclick="logout()" class="btn btn-ghost" style="padding:3px 7px;font-size:10px;border-radius:7px;">登出</button>
         </div>
@@ -998,17 +1004,17 @@
     <section class="summary-grid" aria-label="持倉摘要">
       <article class="summary-card primary-card">
         <div class="summary-label">持倉總市值</div>
-        <div class="summary-value" id="summaryMarketValue">NT$ 0</div>
+        <div class="summary-value" id="summaryMarketValue">0</div>
         <div class="summary-sub"><span>依最新可用行情估算</span><span class="summary-indicator"><span></span></span></div>
       </article>
       <article class="summary-card">
         <div class="summary-label">總投入成本</div>
-        <div class="summary-value" id="summaryCost">NT$ 0</div>
+        <div class="summary-value" id="summaryCost">0</div>
         <div class="summary-sub"><span id="summaryHoldings">0 檔持倉</span><span>Cost basis</span></div>
       </article>
       <article class="summary-card">
         <div class="summary-label">未實現盈虧</div>
-        <div class="summary-value" id="summaryPnl">NT$ 0</div>
+        <div class="summary-value" id="summaryPnl">0</div>
         <div class="summary-sub"><span id="summaryRate">0.00%</span><span>Unrealized</span></div>
       </article>
       <article class="summary-card">
@@ -1032,7 +1038,7 @@
         <button id="transactionsTab" class="view-tab" onclick="switchDataView('transactions')">交易紀錄</button>
       </div>
       <div class="toolbar-stats">
-        <span>累計已實現 <strong id="realizedPnlTotal">NT$ 0.00</strong></span>
+        <span>累計已實現 <strong id="realizedPnlTotal">0.00</strong></span>
         <span><strong id="transactionCount">0</strong> 筆交易</span>
       </div>
     </div>
@@ -1164,7 +1170,7 @@
 <div id="historyModal" class="modal-overlay">
   <div class="modal history-modal" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
     <div class="modal-toolbar"><div><div class="profile-title" id="historyTitle">客戶資產趨勢</div><div class="modal-subtitle" id="historySubtitle">每日自動保留一個資產快照</div></div><button class="btn-close" onclick="document.getElementById('historyModal').style.display='none'">關閉</button></div>
-    <div class="history-kpis"><div class="history-kpi"><span>目前市值</span><strong id="historyCurrent">NT$ 0</strong></div><div class="history-kpi"><span>期間變化</span><strong id="historyChange">NT$ 0</strong></div><div class="history-kpi"><span>期間最高</span><strong id="historyHigh">NT$ 0</strong></div></div>
+    <div class="history-kpis"><div class="history-kpi"><span>目前市值</span><strong id="historyCurrent">0</strong></div><div class="history-kpi"><span>期間變化</span><strong id="historyChange">0</strong></div><div class="history-kpi"><span>期間最高</span><strong id="historyHigh">0</strong></div></div>
     <div id="historyChart" class="history-chart"><div class="history-empty">尚未建立歷史資料</div></div>
     <div class="history-foot"><span id="historyStart">—</span><span id="historyEnd">—</span></div>
   </div>
@@ -1279,6 +1285,7 @@
 
   let userId = localStorage.getItem("app_user_id") || "";
   let authToken = sessionStorage.getItem(AUTH_TOKEN_KEY) || "";
+  let demoMode = false;
   let dataVersion = null;
   let dataSaveQueue = Promise.resolve(true);
   localStorage.removeItem("app_user_password");
@@ -1389,9 +1396,9 @@
     const chart = document.getElementById("historyChart");
     if (!points.length) {
       chart.innerHTML = `<div class="history-empty">尚無可顯示的資產資料</div>`;
-      document.getElementById("historyCurrent").textContent = "NT$ 0";
-      document.getElementById("historyChange").textContent = "NT$ 0";
-      document.getElementById("historyHigh").textContent = "NT$ 0";
+      document.getElementById("historyCurrent").textContent = "0";
+      document.getElementById("historyChange").textContent = "0";
+      document.getElementById("historyHigh").textContent = "0";
       document.getElementById("historyStart").textContent = "—";
       document.getElementById("historyEnd").textContent = "—";
     } else {
@@ -1400,10 +1407,10 @@
       const change = current - (values[0] || 0);
       const changePct = values[0] ? change / values[0] * 100 : 0;
       const changeEl = document.getElementById("historyChange");
-      document.getElementById("historyCurrent").textContent = `NT$ ${fmtMoney(current)}`;
-      changeEl.textContent = `${change >= 0 ? "+" : ""}NT$ ${fmtMoney(change)} · ${fmtPct(changePct)}`;
+      document.getElementById("historyCurrent").textContent = `${fmtMoney(current)}`;
+      changeEl.textContent = `${change >= 0 ? "+" : ""}${fmtMoney(change)} · ${fmtPct(changePct)}`;
       changeEl.className = change >= 0 ? "color-up" : "color-down";
-      document.getElementById("historyHigh").textContent = `NT$ ${fmtMoney(Math.max(...values))}`;
+      document.getElementById("historyHigh").textContent = `${fmtMoney(Math.max(...values))}`;
       document.getElementById("historyStart").textContent = points[0].day;
       document.getElementById("historyEnd").textContent = points.at(-1).day;
       if (points.length === 1) {
@@ -1417,7 +1424,7 @@
         }));
         const line = coords.map(point => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
         const area = `${padX},${height-padY} ${line} ${coords.at(-1).x},${height-padY}`;
-        chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" aria-label="${escapeHtml(client)} 資產市值趨勢"><defs><linearGradient id="historyGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f9f8f" stop-opacity=".24"/><stop offset="1" stop-color="#0f9f8f" stop-opacity=".02"/></linearGradient></defs><line class="history-axis" x1="${padX}" y1="${height-padY}" x2="${width-padX}" y2="${height-padY}"/><polygon class="history-area" points="${area}"/><polyline class="history-line" points="${line}"/>${coords.map((point,index) => `<circle class="history-point" cx="${point.x}" cy="${point.y}" r="${index === coords.length - 1 ? 5 : 3}"><title>${points[index].day} · NT$ ${fmtMoney(values[index])}</title></circle>`).join("")}</svg>`;
+        chart.innerHTML = `<svg viewBox="0 0 ${width} ${height}" aria-label="${escapeHtml(client)} 資產市值趨勢"><defs><linearGradient id="historyGradient" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f9f8f" stop-opacity=".24"/><stop offset="1" stop-color="#0f9f8f" stop-opacity=".02"/></linearGradient></defs><line class="history-axis" x1="${padX}" y1="${height-padY}" x2="${width-padX}" y2="${height-padY}"/><polygon class="history-area" points="${area}"/><polyline class="history-line" points="${line}"/>${coords.map((point,index) => `<circle class="history-point" cx="${point.x}" cy="${point.y}" r="${index === coords.length - 1 ? 5 : 3}"><title>${points[index].day} · ${fmtMoney(values[index])}</title></circle>`).join("")}</svg>`;
       }
     }
     document.getElementById("historyModal").style.display = "flex";
@@ -2083,14 +2090,14 @@
       extraOptions.style.display = "none";
       lotsLabel.innerText = "賣出張數 (張)";
       qtyLabel.innerText = "賣出數量 (股)";
-      priceLabel.innerText = "賣出價格 (NT$)";
+      priceLabel.innerText = "賣出價格";
     } else {
       submitBtn.innerText = "儲存持倉";
       submitBtn.classList.remove("sell-mode");
       extraOptions.style.display = "block";
       lotsLabel.innerText = "持股張數 (張)";
       qtyLabel.innerText = "持股數量 (股)";
-      priceLabel.innerText = "買入價格 (NT$)";
+      priceLabel.innerText = "買入價格";
     }
   }
 
@@ -2124,6 +2131,15 @@
     } catch (err) {
       errorBox.textContent = err.message || "連線失敗，請檢查網路狀況";
     }
+  }
+
+  function enterDemoMode() {
+    demoMode = true;
+    document.getElementById("loginModal").style.display = "none";
+    const display = document.getElementById("userStatusDisplay");
+    if (display) display.textContent = "演示模式";
+    render();
+    showToast("已进入演示模式；保存、同步等操作仍需登入");
   }
 
   function logout() {
@@ -2242,7 +2258,7 @@
 
     const realized = visible.reduce((sum, tx) => sum + (Number(tx.realizedPnl) || 0), 0);
     const realizedEl = document.getElementById("realizedPnlTotal");
-    realizedEl.textContent = `NT$ ${realized >= 0 ? "+" : ""}${fmtMoney(realized)}`;
+    realizedEl.textContent = `${realized >= 0 ? "+" : ""}${fmtMoney(realized)}`;
     realizedEl.className = realized >= 0 ? "color-up" : "color-down";
     document.getElementById("transactionCount").textContent = visible.length;
     transactionsBody.innerHTML = "";
@@ -2266,8 +2282,8 @@
         <td class="t-left"><strong>${escapeHtml(tx.stockName)}</strong> <span style="color:#98a2b3;">${escapeHtml(tx.code)}</span></td>
         <td>${fmtMoney(tx.quantity)}</td>
         <td>${tx.price ? fmtMoney(tx.price) : "-"}</td>
-        <td>${tx.amount ? `NT$ ${fmtMoney(tx.amount)}` : "-"}</td>
-        <td class="${tx.type === "sell" ? realizedClass : ""}">${tx.type === "sell" ? `NT$ ${fmtMoney(tx.realizedPnl)}` : "-"}</td>
+        <td>${tx.amount ? `${fmtMoney(tx.amount)}` : "-"}</td>
+        <td class="${tx.type === "sell" ? realizedClass : ""}">${tx.type === "sell" ? `${fmtMoney(tx.realizedPnl)}` : "-"}</td>
         <td class="t-left" style="color:#7b8798;max-width:240px;">${escapeHtml(tx.note || "-")}</td>`;
       transactionsBody.appendChild(tr);
     });
@@ -2291,11 +2307,11 @@
       let distance = Infinity;
       if (stopLoss && price <= stopLoss) {
         status = "triggered";
-        message = `已跌破止損價 NT$ ${fmtMoney(stopLoss)}`;
+        message = `已跌破止損價 ${fmtMoney(stopLoss)}`;
         distance = 0;
       } else if (takeProfit && price >= takeProfit) {
         status = "triggered";
-        message = `已達止盈價 NT$ ${fmtMoney(takeProfit)}`;
+        message = `已達止盈價 ${fmtMoney(takeProfit)}`;
         distance = 0;
       } else {
         const stopDistance = stopLoss ? Math.abs(price - stopLoss) / price : Infinity;
@@ -2338,12 +2354,12 @@
     }
     const statusLabel = { triggered: "已觸發", near: "接近水位", safe: "區間內" };
     list.innerHTML = alerts.map(alert => {
-      const detail = alert.alertKind === "price" ? `止損 ${alert.stopLoss ? `NT$ ${fmtMoney(alert.stopLoss)}` : "未設定"} · 止盈 ${alert.takeProfit ? `NT$ ${fmtMoney(alert.takeProfit)}` : "未設定"}` : alert.detail;
+      const detail = alert.alertKind === "price" ? `止損 ${alert.stopLoss ? `${fmtMoney(alert.stopLoss)}` : "未設定"} · 止盈 ${alert.takeProfit ? `${fmtMoney(alert.takeProfit)}` : "未設定"}` : alert.detail;
       return `
       <div class="insight-item risk-${alert.status}">
         <div class="insight-code"><strong>${escapeHtml(alert.stockName)}</strong><span>${escapeHtml(alert.code)} · ${escapeHtml(alert.client)}</span></div>
         <div class="insight-main"><strong>${escapeHtml(alert.message)}</strong><p>${escapeHtml(detail || "")}</p></div>
-        <div class="insight-meta"><div class="risk-price">NT$ ${fmtMoney(alert.price)}</div><span class="risk-status ${alert.status}">${statusLabel[alert.status]}</span></div>
+        <div class="insight-meta"><div class="risk-price">${fmtMoney(alert.price)}</div><span class="risk-status ${alert.status}">${statusLabel[alert.status]}</span></div>
       </div>`;
     }).join("");
   }
@@ -2404,7 +2420,7 @@
     list.innerHTML = visible.map(event => {
       const [label, tagClass] = categoryMap[event.category] || ["資訊", "event-announcement"];
       let detail = event.detail || "";
-      if (event.category === "revenue") detail = `當月營收 NT$ ${fmtMoney((Number(event.revenue) || 0) * 1000)} · 月增 ${fmtPct(event.mom || 0)} · 年增 ${fmtPct(event.yoy || 0)}`;
+      if (event.category === "revenue") detail = `當月營收 ${fmtMoney((Number(event.revenue) || 0) * 1000)} · 月增 ${fmtPct(event.mom || 0)} · 年增 ${fmtPct(event.yoy || 0)}`;
       if (event.category === "dividend") detail = `${event.progress || "董事會通過"} · 股利年度 ${event.dividendYear || "-"}`;
       return `<a class="insight-item" href="${escapeHtml(event.sourceUrl || "https://mops.twse.com.tw/")}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
         <div class="insight-code"><strong>${escapeHtml(event.companyName)}</strong><span>${escapeHtml(event.code)} · ${escapeHtml(event.market)}</span></div>
@@ -2444,11 +2460,11 @@
     const totalPnl = allSummary.value - allSummary.cost;
     const totalRate = allSummary.cost ? totalPnl / allSummary.cost * 100 : 0;
     const summaryPnl = document.getElementById("summaryPnl");
-    document.getElementById("summaryMarketValue").textContent = `NT$ ${fmtMoney(allSummary.value)}`;
-    document.getElementById("summaryCost").textContent = `NT$ ${fmtMoney(allSummary.cost)}`;
+    document.getElementById("summaryMarketValue").textContent = `${fmtMoney(allSummary.value)}`;
+    document.getElementById("summaryCost").textContent = `${fmtMoney(allSummary.cost)}`;
     document.getElementById("summaryHoldings").textContent = `${holdings.length} 檔持倉`;
     document.getElementById("summaryClients").textContent = `${allSummary.clients.size} 位`;
-    summaryPnl.textContent = `NT$ ${totalPnl >= 0 ? "+" : ""}${fmtMoney(totalPnl)}`;
+    summaryPnl.textContent = `${totalPnl >= 0 ? "+" : ""}${fmtMoney(totalPnl)}`;
     summaryPnl.classList.remove("color-up", "color-down");
     if (totalPnl !== 0) summaryPnl.classList.add(totalPnl > 0 ? "color-up" : "color-down");
     const summaryRate = document.getElementById("summaryRate");
@@ -2524,10 +2540,10 @@
         </div>
         <div class="cc-body">
           <div class="cc-info-text">檔案：${escapeHtml(profileText)} · ${g.count} 檔 / ${g.qty} 股</div>
-          <div class="cc-row"><span class="cc-label">投入</span><span class="cc-value">NT$ ${fmtMoney(g.cost)}</span></div>
-          <div class="cc-row"><span class="cc-label">市值</span><span class="cc-value">NT$ ${fmtMoney(g.val)}</span></div>
-          <div class="cc-row"><span class="cc-label">盈虧</span><span class="cc-value ${pnlClass}">NT$ ${fmtMoney(pnl)}</span></div>
-          <div class="cc-row"><span class="cc-label">已實現</span><span class="cc-value ${clientRealized >= 0 ? "color-up" : "color-down"}">NT$ ${fmtMoney(clientRealized)}</span></div>
+          <div class="cc-row"><span class="cc-label">投入</span><span class="cc-value">${fmtMoney(g.cost)}</span></div>
+          <div class="cc-row"><span class="cc-label">市值</span><span class="cc-value">${fmtMoney(g.val)}</span></div>
+          <div class="cc-row"><span class="cc-label">盈虧</span><span class="cc-value ${pnlClass}">${fmtMoney(pnl)}</span></div>
+          <div class="cc-row"><span class="cc-label">已實現</span><span class="cc-value ${clientRealized >= 0 ? "color-up" : "color-down"}">${fmtMoney(clientRealized)}</span></div>
         </div>
         <div class="cc-actions">
           <button class="cc-btn" onclick="openProfile(decodeURIComponent('${encodedClient}'))">客戶檔案</button>
@@ -2552,7 +2568,7 @@
 
       const headRow = document.createElement("tr");
       headRow.className = "group-row";
-      headRow.innerHTML = `<td colspan="10">${safeClient} · 投入 NT$ ${fmtMoney(g.cost)} · 盈虧 <span class="${pnlClass}">NT$ ${fmtMoney(pnl)} (${fmtPct(rate)})</span></td>`;
+      headRow.innerHTML = `<td colspan="10">${safeClient} · 投入 ${fmtMoney(g.cost)} · 盈虧 <span class="${pnlClass}">${fmtMoney(pnl)} (${fmtPct(rate)})</span></td>`;
       tableBody.appendChild(headRow);
 
       g.items.forEach(item => {
@@ -2867,7 +2883,7 @@
             amount: qtyVal * costVal,
             avgCost: costVal,
             costBasis: qtyVal * costVal,
-            note: `手動調整：${previousItem.quantity} 股／NT$ ${Number(previousItem.cost).toLocaleString("zh-TW")} → ${qtyVal} 股／NT$ ${costVal.toLocaleString("zh-TW")}`
+            note: `手動調整：${previousItem.quantity} 股／${Number(previousItem.cost).toLocaleString("zh-TW")} → ${qtyVal} 股／${costVal.toLocaleString("zh-TW")}`
           }));
         }
       } else {
@@ -3144,7 +3160,7 @@
     const realized = clientTransactions.reduce((sum, tx) => sum + (Number(tx.realizedPnl) || 0), 0);
     const risks = getRiskAlerts(client).filter(item => item.status !== "safe");
     const display = value => escapeHtml(value || "—");
-    const signedMoney = value => `${Number(value) >= 0 ? "+" : "−"}NT$ ${fmtMoney(Math.abs(Number(value) || 0))}`;
+    const signedMoney = value => `${Number(value) >= 0 ? "+" : "−"}${fmtMoney(Math.abs(Number(value) || 0))}`;
     const typeLabel = { buy: "買入", sell: "賣出", opening: "期初", adjustment: "調整" };
     const holdingRows = clientHoldings.map(h => {
       const quantity = Number(h.quantity) || 0;
@@ -3165,7 +3181,7 @@
       <td class="num">${tx.price ? fmtMoney(tx.price) : "—"}</td><td class="num ${Number(tx.realizedPnl) >= 0 ? "gain" : "loss"}">${tx.type === "sell" ? signedMoney(tx.realizedPnl) : "—"}</td>
     </tr>`).join("") || `<tr><td colspan="6" class="empty-cell">本月尚無交易紀錄</td></tr>`;
     const riskRows = risks.length ? risks.map(risk => `<div class="risk-row">
-      <span class="risk-dot"></span><div><strong>${display(risk.stockName)} <small>${display(risk.code)}</small></strong><p>${display(risk.message)} · 現價 NT$ ${fmtMoney(risk.price)}</p></div>
+      <span class="risk-dot"></span><div><strong>${display(risk.stockName)} <small>${display(risk.code)}</small></strong><p>${display(risk.message)} · 現價 ${fmtMoney(risk.price)}</p></div>
     </div>`).join("") : `<div class="risk-clear">本月檢視時，沒有已觸發或接近水位的風險提醒。</div>`;
 
     const report = document.createElement("section");
@@ -3187,7 +3203,7 @@
       <div class="pdf-report">
         <header class="pdf-head"><div><div class="pdf-brand">PORTFOLIO OS · CLIENT REPORT</div><h1 class="pdf-title">${display(client)} 投資組合月報</h1><div class="pdf-sub">${monthLabel} · 產出日期 ${now.toLocaleDateString("zh-TW")}</div></div><div class="pdf-account"><strong>客戶資產管理中心</strong><span>${display(userId)}</span></div></header>
         <div class="pdf-kpis">
-          <div class="pdf-kpi"><span>目前市值</span><strong>NT$ ${fmtMoney(summary.value)}</strong></div>
+          <div class="pdf-kpi"><span>目前市值</span><strong>${fmtMoney(summary.value)}</strong></div>
           <div class="pdf-kpi"><span>未實現損益</span><strong class="${unrealized >= 0 ? "gain" : "loss"}">${signedMoney(unrealized)}</strong></div>
           <div class="pdf-kpi"><span>投資報酬率</span><strong class="${unrealized >= 0 ? "gain" : "loss"}">${fmtPct(unrealizedRate)}</strong></div>
           <div class="pdf-kpi"><span>本月已實現</span><strong class="${realized >= 0 ? "gain" : "loss"}">${signedMoney(realized)}</strong></div>
@@ -3266,12 +3282,14 @@
       loadFromCloud(true);
     } else {
       if (userId) document.getElementById("loginAccount").value = userId;
-      document.getElementById("loginModal").style.display = "flex";
+      enterDemoMode();
     }
   });
 </script>
 </body>
 </html>
+
+
 
 
 
