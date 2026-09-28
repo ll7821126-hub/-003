@@ -839,6 +839,40 @@
     @media(max-width:620px){body{padding:10px}.summary-grid{gap:9px}.summary-card{border-radius:15px;padding:13px}.summary-value{font-size:18px}.cards-wrapper,.table-container{border-radius:15px}.page-heading strong{font-size:18px}}
     @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
   </style>
+<style>
+  /* Desktop workspace refinements */
+  .sidebar{overflow:hidden}
+  .sidebar .sidebar-scroll{min-height:0;flex:1 1 0;overflow-y:auto;padding-right:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
+  #holdForm{display:block}
+  .sidebar-form-actions{flex:none;padding-top:14px;margin-top:12px;border-top:1px solid rgba(255,255,255,.14)}
+  .sidebar .sidebar-note{margin-top:18px;padding-bottom:8px}
+  .top-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;position:relative;z-index:20}
+  .top-actions{display:contents}
+  .page-title{flex-wrap:nowrap;gap:16px}
+  .page-heading{flex:none}
+  .search-wrapper{min-width:130px;max-width:250px;width:auto;flex:1}
+  .toolbar-controls{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px}
+  .toolbar-controls #lastUpdate{margin-left:auto}
+  .toolbar-controls .switch-label{font-size:11px}
+  .toolbar-controls .btn,.more-actions>summary{min-height:34px}
+  .more-actions{position:relative}
+  .more-actions>summary{list-style:none;cursor:pointer}
+  .more-actions>summary::-webkit-details-marker{display:none}
+  .more-actions-menu{position:absolute;right:0;top:calc(100% + 8px);z-index:80;display:grid;gap:6px;min-width:150px;padding:8px;border:1px solid #e4ded4;border-radius:12px;background:#fffdf9;box-shadow:0 16px 34px rgba(30,38,42,.14)}
+  .more-actions-menu .btn{width:100%;justify-content:flex-start}
+  .empty-actions{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .empty-actions .btn-save{width:auto}
+  #holdingsView{min-height:160px}
+  #holdingsView table{min-width:950px}
+  #holdingsView th:first-child,#holdingsView tr:not(.group-row) td:first-child{position:sticky;left:0;z-index:2;background:var(--bg-card);box-shadow:1px 0 var(--border)}
+  #holdingsView th:last-child,#holdingsView tr:not(.group-row) td:last-child{position:sticky;right:0;z-index:2;background:var(--bg-card);box-shadow:-1px 0 var(--border)}
+  #holdingsView thead th:first-child,#holdingsView thead th:last-child{z-index:12;background:#f8f5ef}
+  #holdingsView .is-recommend td:first-child,#holdingsView .is-recommend td:last-child{background:var(--recommend-bg)}
+  .client-controls{display:flex;align-items:center;gap:8px}
+  .client-controls select{width:auto;padding:6px 9px;font-size:12px}
+  .client-empty{padding:10px 0;color:var(--text-sub);font-size:12px}
+  @media(max-width:900px){.sidebar .sidebar-scroll{flex:none;overflow:visible;padding-right:0}.top-bar{display:flex}.top-actions{display:flex}.toolbar-controls{width:100%}.page-title{flex-wrap:wrap}.more-actions-menu{right:0}.client-controls{flex-wrap:wrap}}
+</style>
 </head>
 <body>
 
@@ -887,6 +921,7 @@
       <div class="brand-mark">TW</div>
       <div><div class="brand-name">Portfolio OS</div><div class="brand-sub">Wealth workspace</div></div>
     </div>
+    <div class="sidebar-scroll">
     <div class="sidebar-heading">
       <h2>交易工作台</h2>
       <span id="marketStatusBadge" class="market-live"><span class="live-dot"></span><span id="marketStatusText">台股狀態</span></span>
@@ -941,16 +976,6 @@
       </div>
 
       <div id="extraOptions">
-        <div class="form-group" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div>
-            <label>止損價（選填）</label>
-            <input id="stopLoss" type="number" step="0.01" />
-          </div>
-          <div>
-            <label>止盈價（選填）</label>
-            <input id="takeProfit" type="number" step="0.01" />
-          </div>
-        </div>
         <div class="form-group">
           <label>是否為推薦飆股</label>
           <select id="recommendType">
@@ -960,18 +985,16 @@
         </div>
       </div>
 
-      <div style="margin-top:16px;">
-        <button type="submit" class="btn btn-save" id="submitBtn">儲存持倉</button>
-      </div>
-      <div style="margin-top:12px;display:flex;gap:8px;">
-        <button type="button" class="btn btn-reset" onclick="resetForm()">重設</button>
-        <button type="button" class="btn btn-clear" onclick="exportCSV()">匯出備份</button>
-      </div>
-      <div class="danger-zone">
-        <button type="button" id="clearAllBtn" class="btn-danger-clear" onclick="clearAllData()">一鍵清除所有資料</button>
-      </div>
     </form>
     <div class="sidebar-note">投資資訊僅供研究與客戶溝通使用，不構成任何形式的投資保證或交易承諾。</div>
+    </div>
+      <div class="sidebar-form-actions">
+        <button type="submit" form="holdForm" class="btn btn-save" id="submitBtn">儲存持倉</button>
+        <div style="margin-top:10px;display:flex;gap:8px;">
+          <button type="button" class="btn btn-reset" onclick="resetForm()">重設</button>
+          <button type="button" class="btn btn-clear" onclick="exportCSV()">匯出備份</button>
+        </div>
+      </div>
   </aside>
 
   <main class="main-content">
@@ -996,18 +1019,27 @@
           <button onclick="logout()" class="btn btn-ghost" style="padding:3px 7px;font-size:10px;border-radius:7px;">登出</button>
         </div>
 
-        <span id="lastUpdate" class="sync-meta"></span>
+        <div class="toolbar-controls">
+        <button class="btn btn-ghost btn-sm btn-smart" onclick="startNewHolding()">新增持倉</button>
+        <button class="btn btn-ghost btn-sm action-with-badge" onclick="openProfitReminderList()">收益達標</button>
+        <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
+        <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="startRealtimeRefresh()">更新行情</button>
         <label class="switch-label">
           <input type="checkbox" id="autoRefreshCheck" onchange="toggleAutoRefresh()">
           <span id="autoRefreshText">5 秒即時更新</span>
         </label>
-        <button class="btn btn-ghost btn-sm btn-smart" onclick="openHoldingScanner()">截圖辨識</button>
-        <button class="btn btn-ghost btn-sm" onclick="openBatchImport()">批量匯入</button>
-        <button class="btn btn-ghost btn-sm action-with-badge" onclick="openProfitReminderList()">收益達標</button>
-        <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
-        <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
-        <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="startRealtimeRefresh()">更新行情</button>
-        <button class="btn btn-ghost btn-sm" onclick="exportCSV()">匯出 CSV</button>
+        <details class="more-actions">
+          <summary class="btn btn-ghost btn-sm">更多操作</summary>
+          <div class="more-actions-menu">
+            <button class="btn btn-ghost btn-sm" onclick="openHoldingScanner()">截圖辨識</button>
+            <button class="btn btn-ghost btn-sm" onclick="openBatchImport()">批量匯入</button>
+            <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">匯出 CSV</button>
+            <button type="button" id="clearAllBtn" class="btn btn-ghost" onclick="clearAllData()">清除所有資料</button>
+          </div>
+        </details>
+        <span id="lastUpdate" class="sync-meta"></span>
+        </div>
       </div>
     </header>
 
@@ -1061,7 +1093,6 @@
             <th>代碼</th>
             <th>數量</th>
             <th>成本價</th>
-            <th>止損 / 止盈</th>
             <th>現價</th>
             <th>市值</th>
             <th>盈虧</th>
@@ -1075,6 +1106,10 @@
         <div style="width:44px;height:44px;border-radius:14px;background:#e7f6f3;color:#0f9f8f;display:grid;place-items:center;margin:0 auto 12px;font-size:19px;">↗</div>
         <div style="font-weight:700;color:#475467;">尚未建立持倉</div>
         <div style="font-size:11px;margin-top:5px;">請從交易工作台新增第一筆紀錄</div>
+        <div class="empty-actions">
+          <button type="button" class="btn btn-save" onclick="resetForm();document.getElementById('client').focus()">新增第一筆持倉</button>
+          <button type="button" class="btn btn-ghost" onclick="openBatchImport()">批量導入</button>
+        </div>
       </div>
     </div>
     <div id="transactionsView" class="table-container" style="display:none;">
@@ -2652,7 +2687,7 @@
 
       const headRow = document.createElement("tr");
       headRow.className = "group-row";
-      headRow.innerHTML = `<td colspan="10">${safeClient} · 投入 ${fmtMoney(g.cost)} · 盈虧 <span class="${pnlClass}">${fmtMoney(pnl)} (${fmtPct(rate)})</span></td>`;
+      headRow.innerHTML = `<td colspan="9">${safeClient} · 投入 ${fmtMoney(g.cost)} · 盈虧 <span class="${pnlClass}">${fmtMoney(pnl)} (${fmtPct(rate)})</span></td>`;
       tableBody.appendChild(headRow);
 
       g.items.forEach(item => {
@@ -2677,7 +2712,6 @@
           <td>${escapeHtml(item.code)}</td>
           <td>${fmtMoney(item.quantity)}</td>
           <td>${fmtMoney(item.cost)}</td>
-          <td style="font-size:12px;color:#9ca3af;">${item.stopLoss ? '損:'+item.stopLoss : '-'} / ${item.takeProfit ? '盈:'+item.takeProfit : '-'}</td>
           <td><div class="price-stack"><strong>${fmtMoney(item.cur)}</strong><span class="price-origin ${priceInfo.status}" title="${escapeHtml(priceInfo.title)}">${escapeHtml(priceInfo.label)}</span></div></td>
           <td>${fmtMoney(val)}</td>
           <td class="${pnlTextClass}">${fmtMoney(itemPnl)}</td>
@@ -2946,8 +2980,8 @@
         code: codeVal,
         quantity: qtyVal,
         cost: costVal,
-        stopLoss: document.getElementById("stopLoss").value,
-        takeProfit: document.getElementById("takeProfit").value,
+        stopLoss: "",
+        takeProfit: "",
         recommendType: document.getElementById("recommendType").value,
         currentPrice: costVal
       };
@@ -2956,6 +2990,8 @@
         const idx = holdings.findIndex(h => h.id === id);
         if (idx > -1) {
           const previousItem = { ...holdings[idx] };
+          newItem.stopLoss = previousItem.stopLoss ?? "";
+          newItem.takeProfit = previousItem.takeProfit ?? "";
           newItem.currentPrice = previousItem.currentPrice ?? newItem.currentPrice;
           newItem.lastPriceAt = previousItem.lastPriceAt || "";
           holdings[idx] = newItem;
@@ -3042,10 +3078,9 @@
     document.getElementById("quantity").value = h.quantity;
     document.getElementById("lots").value = h.quantity ? (h.quantity / 1000) : "";
     document.getElementById("cost").value = h.cost;
-    document.getElementById("stopLoss").value = h.stopLoss || "";
-    document.getElementById("takeProfit").value = h.takeProfit || "";
     document.getElementById("recommendType").value = h.recommendType || "no";
     document.getElementById("submitBtn").innerText = "更新持倉";
+    document.getElementById("client").focus();
   };
 
   function syncQuantityFromLots() {
@@ -3074,6 +3109,23 @@
     document.getElementById("tradeType").value = "buy";
     toggleTradeType();
   }
+
+  function startNewHolding() {
+    resetForm();
+    document.getElementById("client").focus();
+  }
+
+  document.addEventListener("click", event => {
+    const menu = document.querySelector(".more-actions");
+    if (!menu.contains(event.target) || event.target.closest(".more-actions-menu button")) menu.open = false;
+  });
+  document.addEventListener("keydown", event => {
+    const menu = document.querySelector(".more-actions");
+    if (event.key === "Escape" && menu.open) {
+      menu.open = false;
+      menu.querySelector("summary").focus();
+    }
+  });
 
   function downloadFullBackup(snapshot) {
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: "application/json;charset=utf-8" });
@@ -3373,6 +3425,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
