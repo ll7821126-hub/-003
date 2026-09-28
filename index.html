@@ -842,19 +842,21 @@
 <style>
   /* Desktop workspace refinements */
   .sidebar{overflow:hidden}
+  .sidebar-entry-toggle{display:none}
   .sidebar .sidebar-scroll{min-height:0;flex:1 1 0;overflow-y:auto;padding-right:8px;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
   #holdForm{display:block}
   .sidebar-form-actions{flex:none;padding-top:14px;margin-top:12px;border-top:1px solid rgba(255,255,255,.14)}
   .sidebar .sidebar-note{margin-top:18px;padding-bottom:8px}
-  .top-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;position:relative;z-index:20}
-  .top-actions{display:contents}
+  .top-bar{display:flex;align-items:center;gap:14px;position:relative;z-index:20}
+  .top-actions{display:flex;align-items:center;gap:7px;flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end}
   .page-title{flex-wrap:nowrap;gap:16px}
   .page-heading{flex:none}
   .search-wrapper{min-width:130px;max-width:250px;width:auto;flex:1}
-  .toolbar-controls{grid-column:1/-1;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px}
-  .toolbar-controls #lastUpdate{margin-left:auto}
+  .toolbar-controls{display:contents}
+  .toolbar-controls #lastUpdate{margin-left:0}
   .toolbar-controls .switch-label{font-size:11px}
   .toolbar-controls .btn,.more-actions>summary{min-height:34px}
+  .toolbar-controls .desktop-add-holding{min-height:42px;padding:0 19px;font-size:14px;font-weight:850;letter-spacing:.01em;box-shadow:0 8px 18px rgba(180,136,79,.24)}
   .more-actions{position:relative}
   .more-actions>summary{list-style:none;cursor:pointer}
   .more-actions>summary::-webkit-details-marker{display:none}
@@ -871,7 +873,54 @@
   .client-controls{display:flex;align-items:center;gap:8px}
   .client-controls select{width:auto;padding:6px 9px;font-size:12px}
   .client-empty{padding:10px 0;color:var(--text-sub);font-size:12px}
-  @media(max-width:900px){.sidebar .sidebar-scroll{flex:none;overflow:visible;padding-right:0}.top-bar{display:flex}.top-actions{display:flex}.toolbar-controls{width:100%}.page-title{flex-wrap:wrap}.more-actions-menu{right:0}.client-controls{flex-wrap:wrap}}
+  @media(max-width:1250px) and (min-width:901px){.top-bar{align-items:flex-start;flex-wrap:wrap}.top-actions{flex:1 1 100%;justify-content:flex-start}.toolbar-controls{display:contents}.page-title{flex:1}.top-actions .user-pill{margin-left:auto}}
+  @media(max-width:900px){.sidebar .sidebar-scroll{flex:none;overflow:visible;padding-right:0}.top-bar{display:flex}.top-actions{display:flex}.toolbar-controls{display:flex;width:100%;flex-wrap:wrap}.page-title{flex-wrap:wrap}.more-actions-menu{right:0}.client-controls{flex-wrap:wrap}}
+  @media(min-width:901px){
+    .layout-container:has(.sidebar.collapsed){grid-template-columns:148px minmax(0,1fr)}
+    .main-content{container-type:inline-size;gap:10px}
+    .top-bar{padding:12px 16px;gap:12px;min-height:72px}
+    .page-title{min-width:0;flex:1 1 280px;gap:12px}
+    .page-heading strong{font-size:18px}
+    .search-wrapper{max-width:200px;min-width:120px}
+    .top-actions{gap:6px;flex:0 1 auto;flex-wrap:nowrap}
+    .top-actions .user-pill{order:2;white-space:nowrap}
+    .top-actions .sync-meta{display:none}
+    .toolbar-controls .btn,.more-actions>summary{white-space:nowrap;padding-left:10px;padding-right:10px;font-size:12px}
+    .toolbar-controls .desktop-add-holding{font-size:17px;font-weight:800;background:#b4884f;color:#fff;min-height:44px;padding:0 16px}
+    .toolbar-controls .desktop-add-holding:hover{background:#936b3e}
+    .summary-card{padding:11px 16px;min-height:82px}
+    .summary-value{margin-top:4px;font-size:22px}
+    .summary-sub{margin-top:4px}
+    .cards-wrapper{padding:10px 14px 6px}
+    .cards-header{margin-bottom:7px}
+    .client-card{flex-basis:292px;padding:10px 12px}
+    .cc-header{margin-bottom:4px}
+    .cc-body{display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;margin-bottom:7px}
+    .cc-info-text{grid-column:1/-1;margin-bottom:0}
+    .cc-row{font-size:11px;gap:5px;min-width:0}
+    .cc-label{flex:none}
+    .cc-value{min-width:0;overflow-wrap:anywhere;text-align:right}
+    .cc-btn{min-height:28px}
+    .data-toolbar{padding:5px 9px}
+    @container (max-width:1080px){
+      .top-bar{flex-wrap:wrap}
+      .top-actions{flex:1 1 100%;flex-wrap:wrap;justify-content:flex-start}
+      .top-actions .user-pill{margin-left:auto}
+    }
+    .sidebar{transition:width .2s ease,padding .2s ease}
+    .sidebar.collapsed{width:148px;padding:20px 14px}
+    .sidebar.collapsed .sidebar-brand{justify-content:center;border-bottom:0;margin-bottom:16px;padding-bottom:0}
+    .sidebar.collapsed .sidebar-brand>div:last-child{display:none}
+    .sidebar.collapsed .sidebar-scroll,.sidebar.collapsed .sidebar-form-actions{display:none}
+    .sidebar.collapsed .sidebar-entry-toggle{display:flex}
+    .sidebar-entry-toggle{display:flex;flex-direction:column;gap:10px;align-items:center}
+    .sidebar-entry-toggle .collapsed-caption{font-size:11px;line-height:1.4;text-align:center;color:#bfd0d2}
+    .sidebar-entry-toggle button{width:100%;min-height:68px;padding:10px 8px;border:1px solid rgba(220,185,126,.35);border-radius:13px;background:linear-gradient(145deg,#d1a564,#a87840);color:#fffdf8;font-size:16px;font-weight:900;line-height:1.25;box-shadow:0 10px 22px rgba(180,136,79,.25);cursor:pointer}
+    .sidebar-entry-toggle button:hover{background:linear-gradient(145deg,#e0b875,#b68448);transform:translateY(-1px)}
+    .sidebar:not(.collapsed) .sidebar-entry-toggle{display:flex;align-items:stretch;margin:0 0 8px}
+    .sidebar:not(.collapsed) .sidebar-entry-toggle button{min-height:38px;font-size:12px;padding:7px 10px;box-shadow:none}
+    .sidebar:not(.collapsed) .sidebar-entry-toggle .collapsed-caption{display:none}
+  }
 </style>
 </head>
 <body>
@@ -916,10 +965,14 @@
 </div>
 
 <div class="layout-container">
-  <aside class="sidebar">
+  <aside class="sidebar collapsed" id="workspaceSidebar">
     <div class="sidebar-brand">
       <div class="brand-mark">TW</div>
       <div><div class="brand-name">Portfolio OS</div><div class="brand-sub">Wealth workspace</div></div>
+    </div>
+    <div class="sidebar-entry-toggle">
+      <div class="collapsed-caption">交易工作台</div>
+      <button type="button" onclick="toggleEntryPanel()" aria-controls="holdForm" aria-expanded="false">新增持倉</button>
     </div>
     <div class="sidebar-scroll">
     <div class="sidebar-heading">
@@ -1020,7 +1073,7 @@
         </div>
 
         <div class="toolbar-controls">
-        <button class="btn btn-ghost btn-sm btn-smart" onclick="startNewHolding()">新增持倉</button>
+        <button class="btn desktop-add-holding" onclick="openEntryPanel()" aria-controls="holdForm" aria-expanded="false">新增持倉</button>
         <button class="btn btn-ghost btn-sm action-with-badge" onclick="openProfitReminderList()">收益達標</button>
         <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
         <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="startRealtimeRefresh()">更新行情</button>
@@ -1107,7 +1160,7 @@
         <div style="font-weight:700;color:#475467;">尚未建立持倉</div>
         <div style="font-size:11px;margin-top:5px;">請從交易工作台新增第一筆紀錄</div>
         <div class="empty-actions">
-          <button type="button" class="btn btn-save" onclick="resetForm();document.getElementById('client').focus()">新增第一筆持倉</button>
+          <button type="button" class="btn btn-save" onclick="startNewHolding()">新增第一筆持倉</button>
           <button type="button" class="btn btn-ghost" onclick="openBatchImport()">批量導入</button>
         </div>
       </div>
@@ -3069,6 +3122,7 @@
   window.editItem = (id) => {
     const h = holdings.find(i => i.id === id);
     if(!h) return;
+    openEntryPanel();
     document.getElementById("tradeType").value = "buy";
     toggleTradeType();
     document.getElementById("editId").value = h.id;
@@ -3110,9 +3164,40 @@
     toggleTradeType();
   }
 
+  function openEntryPanel() {
+    const sidebar = document.getElementById("workspaceSidebar");
+    if (sidebar) {
+      sidebar.classList.remove("collapsed");
+      const toggle = sidebar.querySelector(".sidebar-entry-toggle button");
+      if (toggle) {
+        toggle.textContent = "收起錄入欄";
+        toggle.setAttribute("aria-expanded", "true");
+      }
+    }
+    document.querySelector(".desktop-add-holding").setAttribute("aria-expanded", "true");
+    requestAnimationFrame(() => document.getElementById("client")?.focus());
+  }
+
+  function toggleEntryPanel() {
+    const sidebar = document.getElementById("workspaceSidebar");
+    if (!sidebar) return;
+    if (sidebar.classList.contains("collapsed")) {
+      openEntryPanel();
+      return;
+    }
+    sidebar.classList.add("collapsed");
+    document.querySelector(".desktop-add-holding").setAttribute("aria-expanded", "false");
+    const toggle = sidebar.querySelector(".sidebar-entry-toggle button");
+    if (toggle) {
+      toggle.textContent = "新增持倉";
+      toggle.setAttribute("aria-expanded", "false");
+      toggle.focus();
+    }
+  }
+
   function startNewHolding() {
     resetForm();
-    document.getElementById("client").focus();
+    openEntryPanel();
   }
 
   document.addEventListener("click", event => {
@@ -3425,6 +3510,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
