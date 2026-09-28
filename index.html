@@ -699,6 +699,7 @@
     .profit-reminder-list{display:flex;flex-direction:column;gap:8px;margin:16px 0 20px}
     .profit-reminder-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 14px;border:1px solid #ead7bb;border-radius:12px;background:#fff8ed}
     .profit-reminder-stock{grid-column:1/-1;font-size:14px;font-weight:800;color:#183848;overflow-wrap:anywhere}
+    .profit-reminder-featured{display:inline-flex;align-items:center;margin-left:7px;padding:3px 7px;border-radius:99px;background:#f5ecdf;color:#9a6c35;font-size:10px;font-weight:850;vertical-align:middle}
     .profit-reminder-clients{grid-column:1/-1;display:flex;flex-direction:column;gap:5px;margin-top:2px;padding-top:9px;border-top:1px solid #efdfc8}
     .profit-reminder-client-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;color:#7b6b58}
     .profit-reminder-client{min-width:0;overflow-wrap:anywhere}
@@ -2494,9 +2495,14 @@
       if (!groups.has(name)) groups.set(name, []);
       groups.get(name).push(item);
     });
-    list.innerHTML = groups.size ? [...groups].map(([name, clients]) => `
+    const sortedGroups = [...groups].map(([name, clients]) => ({
+      name,
+      clients: clients.sort((a, b) => b.rate - a.rate || String(a.client || "").localeCompare(String(b.client || ""))),
+      featured: clients.some(item => item.recommendType === "yes")
+    })).sort((a, b) => Number(b.featured) - Number(a.featured) || (b.clients[0]?.rate || 0) - (a.clients[0]?.rate || 0) || a.name.localeCompare(b.name));
+    list.innerHTML = sortedGroups.length ? sortedGroups.map(({name, clients, featured}) => `
       <section class="profit-reminder-item">
-        <div class="profit-reminder-stock">${escapeHtml(name)}</div>
+        <div class="profit-reminder-stock">${escapeHtml(name)}${featured ? '<span class="profit-reminder-featured">精選推薦</span>' : ""}</div>
         <div class="profit-reminder-clients">${clients.map(item => `
           <div class="profit-reminder-client-row">
             <span class="profit-reminder-client">${escapeHtml(item.client || "未命名客戶")}</span>
@@ -3510,6 +3516,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
