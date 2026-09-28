@@ -698,8 +698,10 @@
     .profit-reminder-modal{width:min(460px,92vw);padding:24px;background:#fffdf9}
     .profit-reminder-list{display:flex;flex-direction:column;gap:8px;margin:16px 0 20px}
     .profit-reminder-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 14px;border:1px solid #ead7bb;border-radius:12px;background:#fff8ed}
-    .profit-reminder-stock{font-size:14px;font-weight:800;color:#183848;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .profit-reminder-client{margin-top:4px;font-size:11px;color:#7b6b58}
+    .profit-reminder-stock{grid-column:1/-1;font-size:14px;font-weight:800;color:#183848;overflow-wrap:anywhere}
+    .profit-reminder-clients{grid-column:1/-1;display:flex;flex-direction:column;gap:5px;margin-top:2px;padding-top:9px;border-top:1px solid #efdfc8}
+    .profit-reminder-client-row{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:11px;color:#7b6b58}
+    .profit-reminder-client{min-width:0;overflow-wrap:anywhere}
     .profit-reminder-rate{font-size:16px;font-weight:850;color:#a66f30;white-space:nowrap}
     .profit-reminder-copy{font-size:11px;line-height:1.6;color:#7b8585;margin:5px 0 0}
     .modal-subtitle{font-size:11px;color:#8a95a6;margin-top:4px}
@@ -1001,6 +1003,7 @@
         </label>
         <button class="btn btn-ghost btn-sm btn-smart" onclick="openHoldingScanner()">截圖辨識</button>
         <button class="btn btn-ghost btn-sm" onclick="openBatchImport()">批量匯入</button>
+        <button class="btn btn-ghost btn-sm action-with-badge" onclick="openProfitReminderList()">收益達標</button>
         <button class="btn btn-ghost btn-sm action-with-badge" onclick="openRiskAlerts()">風險提醒<span id="riskAlertCount" class="alert-count">0</span></button>
         <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
         <button class="btn btn-ghost btn-sm" id="refreshBtn" onclick="startRealtimeRefresh()">更新行情</button>
@@ -2396,34 +2399,52 @@
 
   function showProfitReminder(items) {
     const list = document.getElementById("profitReminderList");
-    if (!list || !items.length) return;
-    list.innerHTML = items.map(item => `
-      <div class="profit-reminder-item">
-        <div>
-          <div class="profit-reminder-stock">${escapeHtml(item.stockName || item.code || "未命名股票")}</div>
-          <div class="profit-reminder-client">${escapeHtml(item.client || "未命名客戶")}</div>
-        </div>
-        <div class="profit-reminder-rate">${fmtPct(item.rate)}</div>
-      </div>`).join("");
+    if (!list) return;
+    const groups = new Map();
+    items.forEach(item => {
+      const name = String(item.stockName || "").trim() || String(item.code || "未命名股票");
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(item);
+    });
+    list.innerHTML = groups.size ? [...groups].map(([name, clients]) => `
+      <section class="profit-reminder-item">
+        <div class="profit-reminder-stock">${escapeHtml(name)}</div>
+        <div class="profit-reminder-clients">${clients.map(item => `
+          <div class="profit-reminder-client-row">
+            <span class="profit-reminder-client">${escapeHtml(item.client || "未命名客戶")}</span>
+            <span class="profit-reminder-rate">${fmtPct(item.rate)}</span>
+          </div>`).join("")}</div>
+      </section>`).join("") : '<div class="loading-state" role="status">目前沒有收益率達到 7% 的持倉。</div>';
+    document.querySelector("#profitReminderModal .profit-reminder-copy").textContent =
+      groups.size ? `共 ${groups.size} 檔股票、${items.length} 筆持倉達標，按目前可用行情計算。` : "行情更新後會自動檢查，您也可以隨時重新查看。";
     document.getElementById("profitReminderModal").style.display = "flex";
   }
 
-  function checkProfitReminders() {
-    const reached = [];
-    holdings.forEach(holding => {
-      const cost = Number(holding.cost) || 0;
-      const price = Number(holding.currentPrice ?? holding.cost) || 0;
-      const rate = cost > 0 ? ((price - cost) / cost) * 100 : 0;
-      const key = profitReminderKey(holding);
-      if (rate < 7) {
-        profitReminderShown.delete(key);
-        return;
-      }
-      if (profitReminderShown.has(key)) return;
-      profitReminderShown.add(key);
-      reached.push({ ...holding, rate });
+  function getProfitReminderItems() {
+    return holdings.flatMap(holding => {
+      const cost = Number(holding.cost);
+      const price = Number(holding.currentPrice ?? holding.cost);
+      const quantity = Number(holding.quantity);
+      if (![cost, price, quantity].every(Number.isFinite) || cost <= 0 || price <= 0 || quantity <= 0) return [];
+      const rate = ((price - cost) / cost) * 100;
+      return rate >= 7 - 1e-10 ? [{ ...holding, rate }] : [];
     });
-    if (reached.length) showProfitReminder(reached);
+  }
+
+  function openProfitReminderList() {
+    showProfitReminder(getProfitReminderItems());
+  }
+
+  function checkProfitReminders() {
+    const items = getProfitReminderItems();
+    const activeKeys = new Set(items.map(profitReminderKey));
+    profitReminderShown.forEach(key => {
+      if (!activeKeys.has(key)) profitReminderShown.delete(key);
+    });
+    const hasNew = items.some(item => !profitReminderShown.has(profitReminderKey(item)));
+    items.forEach(item => profitReminderShown.add(profitReminderKey(item)));
+    const isOpen = document.getElementById("profitReminderModal").style.display === "flex";
+    if (hasNew || isOpen) showProfitReminder(items);
   }
 
   window.openRiskAlerts = () => {
@@ -2569,6 +2590,7 @@
       tableBody.innerHTML = "";
       renderTransactions();
       renderRiskAlerts();
+      checkProfitReminders();
       return;
     }
     emptyTip.style.display = "none";
@@ -3351,6 +3373,8 @@
 </script>
 </body>
 </html>
+
+
 
 
 
