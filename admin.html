@@ -744,7 +744,7 @@
         const reasonLabels = { scheduled_daily:"每日自動備份", daily_before_write:"修改前自動備份", before_backup_restore:"恢復前安全備份", before_delete_user:"刪除帳號前備份", before_delete_client:"刪除客戶前備份" };
         const rawReason = item.reason || item.action || item.label || "資料快照";
         const reason = reasonLabels[rawReason] || rawReason;
-        return `<div class="data-card"><div class="data-card-main"><div class="data-card-title">${esc(reason)}</div><div class="data-card-meta">${esc(formatTime(item.createdAt || item.timestamp || item.date))} · ${clientCount} 位客戶 · ${holdingCount} 筆持倉</div></div><div class="data-card-actions"><button class="btn btn-primary btn-small" onclick="restoreBackup(${index})">恢復此快照</button></div></div>`;
+        return `<div class="data-card"><div class="data-card-main"><div class="data-card-title">${esc(reason)}</div><div class="data-card-meta">${esc(formatTime(item.createdAt || item.timestamp || item.date))} · ${clientCount} 位客戶 · ${holdingCount} 筆持倉 · ${Number(item.transactionCount ?? snapshot.transactions?.length ?? 0)} 筆交易</div></div><div class="data-card-actions"><button class="btn btn-primary btn-small" onclick="restoreBackup(${index})">恢復此快照</button></div></div>`;
       }).join("");
     } catch (error) {
       host.innerHTML = `<div class="empty-state">${esc(error.message || "備份讀取失敗")}</div>`;
