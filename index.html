@@ -1685,9 +1685,9 @@
   let profileImportRows = [];
   const profileImportAliases = {
     client:["客戶","客户","客戶姓名","客户姓名","姓名","名稱","名称","client","name"],
-    gender:["性別","性别","gender"], age:["年齡","年龄","age"], experience:["投資經驗","投资经验","experience"],
-    style:["投資風格","投资风格","style"], hobbies:["興趣","興趣與偏好","兴趣","hobbies"],
-    family:["家庭狀況","家庭状况","family"], note:["備註","备注","客戶備註","客户备注","note"]
+    gender:["性別","性别","gender"], age:["年齡","年龄","age"], experience:["投資經驗","投资经验","experience","股齡","股龄"],
+    style:["投資風格","投资风格","style","操作"], hobbies:["興趣","興趣與偏好","兴趣","hobbies","生活"],
+    family:["家庭狀況","家庭状况","family","家庭","婚姻"], note:["備註","备注","客戶備註","客户备注","note"]
   };
   const profileImportFieldNames = new Set(Object.values(profileImportAliases).flat().map(normalizeImportHeader));
   function readProfileImportValue(row, keys) {
@@ -1714,7 +1714,14 @@
   }
   window.openProfileImport=()=>{if(!authToken)return requireFreshLogin("請先登入後再匯入客戶檔案");profileImportRows=[];renderProfileImportPreview();document.getElementById("profileImportModal").style.display="flex";};
   window.closeProfileImport=()=>{document.getElementById("profileImportModal").style.display="none";};
-  window.handleProfileImportFile=async event=>{const file=event.target.files?.[0];if(!file)return;document.getElementById("profileImportFileName").textContent=file.name;try{const buffer=await file.arrayBuffer();let rows;if(file.name.toLowerCase().endsWith(".csv"))rows=parseCsv(new TextDecoder("utf-8").decode(buffer));else{if(!window.XLSX)throw new Error("Excel 解析元件尚未載入，請重新整理後再試");const workbook=XLSX.read(buffer,{type:"array"});rows=XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{defval:""});}parseProfileImportRows(rows||[]);if(!profileImportRows.length)throw new Error("檔案中沒有可讀取的資料列");}catch(error){profileImportRows=[];renderProfileImportPreview();showToast(error.message||"檔案讀取失敗","error");}};
+  function profileRowsFromSheetRows(sheetRows) {
+    const rows = Array.isArray(sheetRows) ? sheetRows : [];
+    const headerIndex = rows.findIndex(row => Array.isArray(row) && row.some(cell => ["姓名","客戶姓名","客户姓名","客戶","客户"].includes(normalizeImportHeader(cell))));
+    if (headerIndex < 0) return [];
+    const headers = rows[headerIndex].map((cell,index) => String(cell ?? "").trim() || `未命名欄位${index + 1}`);
+    return rows.slice(headerIndex + 1).map(values => Object.fromEntries(headers.map((header,index) => [header, values?.[index] ?? ""]))).filter(row => Object.values(row).some(value => String(value ?? "").trim()));
+  }
+  window.handleProfileImportFile=async event=>{const file=event.target.files?.[0];if(!file)return;document.getElementById("profileImportFileName").textContent=file.name;try{const buffer=await file.arrayBuffer();let rows;if(file.name.toLowerCase().endsWith(".csv"))rows=parseCsv(new TextDecoder("utf-8").decode(buffer));else{if(!window.XLSX)throw new Error("Excel 解析元件尚未載入，請重新整理後再試");const workbook=XLSX.read(buffer,{type:"array"});rows=profileRowsFromSheetRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{header:1,defval:""}));}parseProfileImportRows(rows||[]);if(!profileImportRows.length)throw new Error("檔案中沒有可讀取的資料列");}catch(error){profileImportRows=[];renderProfileImportPreview();showToast(error.message||"檔案讀取失敗","error");}};
   window.downloadProfileImportTemplate=()=>{const csv="客戶姓名,性別,年齡,投資經驗,投資風格,興趣與偏好,家庭狀況,備註,自訂欄位\n王小姐,女,35,5年,穩健,科技與 ETF,已婚,重視流動性,VIP";const url=URL.createObjectURL(new Blob(["\\uFEFF"+csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="客戶檔案匯入範本.csv";link.click();URL.revokeObjectURL(url);};
   window.confirmProfileImport=async()=>{const rows=profileImportRows.filter(row=>row.client);if(!rows.length)return showToast("沒有可匯入的客戶資料","error");rows.forEach(row=>{const current=profiles[row.client]||{};const next={...current};Object.entries(row.fields).forEach(([key,value])=>{if(value)next[key]=value;});if(row.unknown.length){const additions=row.unknown.map(([key,value])=>`${key}：${value}`);const note=String(next.note||"");next.note=note+ (note && !note.endsWith("\\n")?"\\n":"")+additions.filter(item=>!note.includes(item)).join("\\n");}profiles[row.client]=next;});const saved=await save();if(saved){closeProfileImport();profileImportRows=[];document.getElementById("profileImportFile").value="";document.getElementById("profileImportFileName").textContent="選擇或拖入 CSV / Excel 檔";showToast(`已成功匯入 ${rows.length} 位客戶檔案`);}};
   function requireFreshLogin(message = "登入已失效，請重新登入") {
