@@ -1086,7 +1086,7 @@
           <summary class="btn btn-ghost btn-sm">更多操作</summary>
           <div class="more-actions-menu">
             <button class="btn btn-ghost btn-sm" onclick="openHoldingScanner()">截圖辨識</button>
-            <button class="btn btn-ghost btn-sm" onclick="openBatchImport()">批量匯入</button>
+            <button class="btn btn-ghost btn-sm" onclick="openBatchImport()">批量匯入</button><button class="btn btn-ghost btn-sm" onclick="openProfileImport()">匯入客戶檔案</button>
             <button class="btn btn-ghost btn-sm" onclick="openMarketEvents()">資訊日曆</button>
             <button class="btn btn-ghost btn-sm" onclick="exportCSV()">匯出 CSV</button>
             <button type="button" id="clearAllBtn" class="btn btn-ghost" onclick="clearAllData()">清除所有資料</button>
@@ -1275,6 +1275,19 @@
       <div style="overflow:auto;max-height:52vh;"><table class="import-table"><thead><tr><th>狀態</th><th>客戶</th><th>股票名稱</th><th>代碼</th><th>股數</th><th>平均成本</th><th>現價</th><th>處理方式</th></tr></thead><tbody id="importPreview"><tr><td colspan="8" class="loading-state">尚未選擇檔案</td></tr></tbody></table></div>
     </div>
     <footer class="import-footer"><span style="font-size:10px;color:#7f8a9a;">匯入前會再次檢查必填資料，並保留一筆交易紀錄。</span><div style="display:flex;gap:8px;"><button class="btn btn-ghost" onclick="closeBatchImport()">取消</button><button id="importConfirmBtn" class="btn btn-save" onclick="confirmBatchImport()" disabled>匯入 0 筆</button></div></footer>
+  </div>
+</div>
+
+<!-- 客戶檔案 XLSX 匯入 Modal -->
+<div id="profileImportModal" class="modal-overlay">
+  <div class="modal import-modal" role="dialog" aria-modal="true" aria-labelledby="profileImportTitle">
+    <header class="import-head"><div><div class="profile-title" id="profileImportTitle">匯入客戶檔案</div><div class="modal-subtitle">按客戶姓名自動匹配；未知欄位會保留到客戶備註。</div></div><button class="btn-close" onclick="closeProfileImport()">關閉</button></header>
+    <div class="import-body">
+      <div class="import-controls"><div><div class="form-label">選擇檔案</div><input id="profileImportFile" type="file" accept=".csv,.xlsx,.xls" hidden onchange="handleProfileImportFile(event)"><div id="profileImportDrop" class="import-drop" onclick="document.getElementById('profileImportFile').click()"><span id="profileImportFileName">選擇或拖入 CSV / Excel 檔</span></div></div><button class="btn btn-ghost" type="button" onclick="downloadProfileImportTemplate()">下載範本</button></div>
+      <div id="profileImportSummary" class="import-summary">支援客戶姓名、性別、年齡、投資經驗、投資風格、興趣、家庭狀況與備註；其他欄位會保留到備註。</div>
+      <div style="overflow:auto;max-height:52vh"><table class="import-table"><thead><tr><th>狀態</th><th>客戶</th><th>匹配結果</th><th>匯入內容</th><th>未知欄位</th></tr></thead><tbody id="profileImportPreview"><tr><td colspan="5" class="loading-state">尚未選擇檔案</td></tr></tbody></table></div>
+    </div>
+    <footer class="import-footer"><span style="font-size:10px;color:#7f8a9a">空白欄位不會覆蓋既有資料，請確認後再同步。</span><div style="display:flex;gap:8px"><button class="btn btn-ghost" onclick="closeProfileImport()">取消</button><button id="profileImportConfirm" class="btn btn-save" onclick="confirmProfileImport()" disabled>匯入 0 筆</button></div></footer>
   </div>
 </div>
 
@@ -1669,6 +1682,41 @@
     }
   };
 
+  let profileImportRows = [];
+  const profileImportAliases = {
+    client:["客戶","客户","客戶姓名","客户姓名","姓名","名稱","名称","client","name"],
+    gender:["性別","性别","gender"], age:["年齡","年龄","age"], experience:["投資經驗","投资经验","experience"],
+    style:["投資風格","投资风格","style"], hobbies:["興趣","興趣與偏好","兴趣","hobbies"],
+    family:["家庭狀況","家庭状况","family"], note:["備註","备注","客戶備註","客户备注","note"]
+  };
+  const profileImportFieldNames = new Set(Object.values(profileImportAliases).flat().map(normalizeImportHeader));
+  function readProfileImportValue(row, keys) {
+    const normalized = Object.fromEntries(Object.entries(row || {}).map(([key,value]) => [normalizeImportHeader(key), String(value ?? "").trim()]));
+    for (const key of keys) { const value = normalized[normalizeImportHeader(key)]; if (value) return value; }
+    return "";
+  }
+  function parseProfileImportRows(rawRows) {
+    profileImportRows = (rawRows || []).map((raw,index) => {
+      const client = readProfileImportValue(raw, profileImportAliases.client);
+      const fields = {}; Object.entries(profileImportAliases).filter(([key]) => key !== "client").forEach(([key,aliases]) => { fields[key] = readProfileImportValue(raw, aliases); });
+      const unknown = Object.entries(raw || {}).filter(([key,value]) => String(value ?? "").trim() && !profileImportFieldNames.has(normalizeImportHeader(key))).map(([key,value]) => [String(key).trim(),String(value).trim()]);
+      const existing = client ? (profiles[client] || null) : null;
+      return {index,client,fields,unknown,existing,action:existing ? "更新" : "新增"};
+    });
+    renderProfileImportPreview();
+  }
+  function renderProfileImportPreview() {
+    const body=document.getElementById("profileImportPreview"), valid=profileImportRows.filter(row=>row.client).length, invalid=profileImportRows.length-valid;
+    document.getElementById("profileImportSummary").textContent=profileImportRows.length ? `共讀取 ${profileImportRows.length} 行 · 可匯入 ${valid} 行${invalid ? ` · ${invalid} 行缺少客戶姓名` : " · 格式檢查通過"}` : "支援客戶姓名、性別、年齡、投資經驗、投資風格、興趣、家庭狀況與備註；其他欄位會保留到備註。";
+    const button=document.getElementById("profileImportConfirm"); button.disabled=!valid; button.textContent=`匯入 ${valid} 筆`;
+    if(!profileImportRows.length){body.innerHTML='<tr><td colspan="5" class="loading-state">尚未讀取到資料</td></tr>';return;}
+    body.innerHTML=profileImportRows.map(row=>{const provided=Object.entries(row.fields).filter(([,v])=>v).map(([k,v])=>`${k}：${escapeHtml(v)}`).join("、")||"—"; const unknown=row.unknown.map(([k,v])=>`${escapeHtml(k)}：${escapeHtml(v)}`).join("、")||"—"; return `<tr><td><span class="risk-status ${row.client?"safe":"triggered"}">${row.client?"可匯入":"缺少姓名"}</span></td><td><strong>${escapeHtml(row.client||"—")}</strong></td><td>${row.client?(row.existing?"更新既有檔案":"新增客戶檔案"):"—"}</td><td style="min-width:260px">${provided}</td><td style="min-width:220px">${unknown}</td></tr>`}).join("");
+  }
+  window.openProfileImport=()=>{if(!authToken)return requireFreshLogin("請先登入後再匯入客戶檔案");profileImportRows=[];renderProfileImportPreview();document.getElementById("profileImportModal").style.display="flex";};
+  window.closeProfileImport=()=>{document.getElementById("profileImportModal").style.display="none";};
+  window.handleProfileImportFile=async event=>{const file=event.target.files?.[0];if(!file)return;document.getElementById("profileImportFileName").textContent=file.name;try{const buffer=await file.arrayBuffer();let rows;if(file.name.toLowerCase().endsWith(".csv"))rows=parseCsv(new TextDecoder("utf-8").decode(buffer));else{if(!window.XLSX)throw new Error("Excel 解析元件尚未載入，請重新整理後再試");const workbook=XLSX.read(buffer,{type:"array"});rows=XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{defval:""});}parseProfileImportRows(rows||[]);if(!profileImportRows.length)throw new Error("檔案中沒有可讀取的資料列");}catch(error){profileImportRows=[];renderProfileImportPreview();showToast(error.message||"檔案讀取失敗","error");}};
+  window.downloadProfileImportTemplate=()=>{const csv="客戶姓名,性別,年齡,投資經驗,投資風格,興趣與偏好,家庭狀況,備註,自訂欄位\n王小姐,女,35,5年,穩健,科技與 ETF,已婚,重視流動性,VIP";const url=URL.createObjectURL(new Blob(["\\uFEFF"+csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="客戶檔案匯入範本.csv";link.click();URL.revokeObjectURL(url);};
+  window.confirmProfileImport=async()=>{const rows=profileImportRows.filter(row=>row.client);if(!rows.length)return showToast("沒有可匯入的客戶資料","error");rows.forEach(row=>{const current=profiles[row.client]||{};const next={...current};Object.entries(row.fields).forEach(([key,value])=>{if(value)next[key]=value;});if(row.unknown.length){const additions=row.unknown.map(([key,value])=>`${key}：${value}`);const note=String(next.note||"");next.note=note+ (note && !note.endsWith("\\n")?"\\n":"")+additions.filter(item=>!note.includes(item)).join("\\n");}profiles[row.client]=next;});const saved=await save();if(saved){closeProfileImport();profileImportRows=[];document.getElementById("profileImportFile").value="";document.getElementById("profileImportFileName").textContent="選擇或拖入 CSV / Excel 檔";showToast(`已成功匯入 ${rows.length} 位客戶檔案`);}};
   function requireFreshLogin(message = "登入已失效，請重新登入") {
     authToken = "";
     dataVersion = null;
