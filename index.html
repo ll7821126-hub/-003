@@ -1281,7 +1281,7 @@
 <!-- 客戶檔案 XLSX 匯入 Modal -->
 <div id="profileImportModal" class="modal-overlay">
   <div class="modal import-modal" role="dialog" aria-modal="true" aria-labelledby="profileImportTitle">
-    <header class="import-head"><div><div class="profile-title" id="profileImportTitle">匯入客戶檔案</div><div class="modal-subtitle">按客戶姓名自動匹配；未知欄位會保留到客戶備註。</div></div><button class="btn-close" onclick="closeProfileImport()">關閉</button></header>
+    <header class="import-head"><div><div class="profile-title" id="profileImportTitle">匯入客戶檔案</div><div class="modal-subtitle">按客戶姓名自動匹配；只有「客戶備註」欄的新表，會將該欄當作姓名。其他資訊保留到備註。</div></div><button class="btn-close" onclick="closeProfileImport()">關閉</button></header>
     <div class="import-body">
       <div class="import-controls"><div><div class="form-label">選擇檔案</div><input id="profileImportFile" type="file" accept=".csv,.xlsx,.xls" hidden onchange="handleProfileImportFile(event)"><div id="profileImportDrop" class="import-drop" onclick="document.getElementById('profileImportFile').click()"><span id="profileImportFileName">選擇或拖入 CSV / Excel 檔</span></div></div><button class="btn btn-ghost" type="button" onclick="downloadProfileImportTemplate()">下載範本</button></div>
       <div id="profileImportSummary" class="import-summary">支援客戶姓名、性別、年齡、投資經驗、投資風格、興趣、家庭狀況與備註；其他欄位會保留到備註。</div>
@@ -1582,7 +1582,7 @@
 
   function normalizeImportRows(rawRows) {
     const aliases = {
-      client:["客戶","客户","客戶姓名","客户姓名","client"], name:["股票","股票名稱","股票名称","商品","名稱","名称","stockname"],
+      client:["客戶","客户","客戶姓名","客户姓名","line","LINE","名稱","名称","client","name","姓名"], name:["股票","股票名稱","股票名称","商品","名稱","名称","stockname"],
       code:["代碼","代码","股票代碼","股票代码","code"], quantity:["股數","股数","數量","数量","quantity","shares"], lots:["張數","张数","庫存張數","lots"],
       cost:["成本","成本價","成本价","平均成本","均價","均价","cost"], current:["現價","现价","目前價格","currentprice"], stop:["止損","止损","stoploss"], take:["止盈","takeprofit"]
     };
@@ -1697,10 +1697,24 @@
   }
   function parseProfileImportRows(rawRows) {
     profileImportRows = (rawRows || []).map((raw,index) => {
-      const client = readProfileImportValue(raw, profileImportAliases.client);
-      const fields = {}; Object.entries(profileImportAliases).filter(([key]) => key !== "client").forEach(([key,aliases]) => { fields[key] = readProfileImportValue(raw, aliases); });
-      const unknown = Object.entries(raw || {}).filter(([key,value]) => String(value ?? "").trim() && !profileImportFieldNames.has(normalizeImportHeader(key))).map(([key,value]) => [String(key).trim(),String(value).trim()]);
-      const existing = client ? (profiles[client] || null) : null;
+      const entries = Object.entries(raw || {});
+      const hasNameColumn = entries.some(([key]) => profileImportAliases.client.includes(normalizeImportHeader(key)));
+      const nameAliases = hasNameColumn ? profileImportAliases.client : ["客戶備註","客户备注"];
+      const consumed = new Set();
+      function take(aliases) {
+        for (const alias of aliases) {
+          const entry = entries.find(([key,value]) => normalizeImportHeader(key) === normalizeImportHeader(alias) && String(value ?? "").trim());
+          if (entry) { consumed.add(entry[0]); return String(entry[1]).trim(); }
+        }
+        return "";
+      }
+      const client = take(nameAliases);
+      const fields = {};
+      Object.entries(profileImportAliases).filter(([key]) => key !== "client").forEach(([key,aliases]) => {
+        fields[key] = take(key === "note" && !hasNameColumn ? aliases.filter(alias => !nameAliases.includes(alias)) : aliases);
+      });
+      const unknown = entries.filter(([key,value]) => String(value ?? "").trim() && !consumed.has(key)).map(([key,value]) => [String(key).trim(),String(value).trim()]);
+      const existing = client && Object.hasOwn(profiles,client) ? profiles[client] : null;
       return {index,client,fields,unknown,existing,action:existing ? "更新" : "新增"};
     });
     renderProfileImportPreview();
@@ -1723,7 +1737,37 @@
   }
   window.handleProfileImportFile=async event=>{const file=event.target.files?.[0];if(!file)return;document.getElementById("profileImportFileName").textContent=file.name;try{const buffer=await file.arrayBuffer();let rows;if(file.name.toLowerCase().endsWith(".csv"))rows=parseCsv(new TextDecoder("utf-8").decode(buffer));else{if(!window.XLSX)throw new Error("Excel 解析元件尚未載入，請重新整理後再試");const workbook=XLSX.read(buffer,{type:"array"});rows=profileRowsFromSheetRows(XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]],{header:1,defval:""}));}parseProfileImportRows(rows||[]);if(!profileImportRows.length)throw new Error("檔案中沒有可讀取的資料列");}catch(error){profileImportRows=[];renderProfileImportPreview();showToast(error.message||"檔案讀取失敗","error");}};
   window.downloadProfileImportTemplate=()=>{const csv="客戶姓名,性別,年齡,投資經驗,投資風格,興趣與偏好,家庭狀況,備註,自訂欄位\n王小姐,女,35,5年,穩健,科技與 ETF,已婚,重視流動性,VIP";const url=URL.createObjectURL(new Blob(["\\uFEFF"+csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="客戶檔案匯入範本.csv";link.click();URL.revokeObjectURL(url);};
-  window.confirmProfileImport=async()=>{const rows=profileImportRows.filter(row=>row.client);if(!rows.length)return showToast("沒有可匯入的客戶資料","error");rows.forEach(row=>{const current=profiles[row.client]||{};const next={...current};Object.entries(row.fields).forEach(([key,value])=>{if(value)next[key]=value;});if(row.unknown.length){const additions=row.unknown.map(([key,value])=>`${key}：${value}`);const note=String(next.note||"");next.note=note+ (note && !note.endsWith("\\n")?"\\n":"")+additions.filter(item=>!note.includes(item)).join("\\n");}profiles[row.client]=next;});const saved=await save();if(saved){closeProfileImport();profileImportRows=[];document.getElementById("profileImportFile").value="";document.getElementById("profileImportFileName").textContent="選擇或拖入 CSV / Excel 檔";showToast(`已成功匯入 ${rows.length} 位客戶檔案`);}};
+  let profileImportSaving = false;
+  window.confirmProfileImport=async()=>{
+    if(profileImportSaving) return;
+    if(!authToken) return requireFreshLogin("請先登入後再匯入客戶檔案");
+    const rows=profileImportRows.filter(row=>row.client);
+    if(!rows.length)return showToast("沒有可匯入的客戶資料","error");
+    profileImportSaving=true;
+    document.getElementById("profileImportConfirm").disabled=true;
+    try {
+      rows.forEach(row=>{
+        const current=Object.hasOwn(profiles,row.client) ? profiles[row.client] : {};
+        const next={...current};
+        Object.entries(row.fields).forEach(([key,value])=>{if(value && key!=="note")next[key]=value;});
+        let note=String(current.note||"");
+        const additions=[row.fields.note,...row.unknown.map(([key,value])=>key+"："+value)].filter(Boolean);
+        for(const addition of additions) {
+          if(!note.split("\n").includes(addition) && note !== addition)
+            note+=(note && !note.endsWith("\n")?"\n":"")+addition;
+        }
+        next.note=note;
+        Object.defineProperty(profiles,row.client,{value:next,writable:true,enumerable:true,configurable:true});
+      });
+      const saved=await save();
+      if(saved){
+        closeProfileImport();profileImportRows=[];
+        document.getElementById("profileImportFile").value="";
+        document.getElementById("profileImportFileName").textContent="選擇或拖入 CSV / Excel 檔";
+        showToast("已成功匯入 "+rows.length+" 筆客戶檔案");
+      }
+    } finally {profileImportSaving=false;renderProfileImportPreview();}
+  };
   function requireFreshLogin(message = "登入已失效，請重新登入") {
     authToken = "";
     dataVersion = null;
