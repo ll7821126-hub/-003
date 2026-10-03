@@ -1730,7 +1730,7 @@
   window.closeProfileImport=()=>{document.getElementById("profileImportModal").style.display="none";};
   function profileRowsFromSheetRows(sheetRows) {
     const rows = Array.isArray(sheetRows) ? sheetRows : [];
-    const headerIndex = rows.findIndex(row => Array.isArray(row) && row.some(cell => ["姓名","客戶姓名","客户姓名","客戶","客户"].includes(normalizeImportHeader(cell))));
+    const headerIndex = rows.findIndex(row => Array.isArray(row) && row.some(cell => ["姓名","客戶姓名","客户姓名","客戶","客户","客戶備註","客户备注"].includes(normalizeImportHeader(cell))));
     if (headerIndex < 0) return [];
     const headers = rows[headerIndex].map((cell,index) => String(cell ?? "").trim() || `未命名欄位${index + 1}`);
     return rows.slice(headerIndex + 1).map(values => Object.fromEntries(headers.map((header,index) => [header, values?.[index] ?? ""]))).filter(row => Object.values(row).some(value => String(value ?? "").trim()));
