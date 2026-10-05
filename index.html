@@ -1832,12 +1832,27 @@
   window.reloadConflictData = async () => {
     if(activeWrites)return showToast("請等待目前的同步完成","error");
     if(!confirm("將匯出本機編輯備份，再載入雲端資料。本機尚未同步的新增、刪除不會套用到雲端，確定繼續？"))return;
-    exportPendingEdits();
-    const prefix=pendingPrefix+encodeURIComponent(userId)+":";
-    for(const key of Object.keys(localStorage))if(key.startsWith(prefix))localStorage.removeItem(key);
-    pendingEdit=null;syncBlocked=false;editRevision++;updateSyncNotice();
-    document.getElementById("conflictModal").style.display = "none";
-    await loadFromCloud(true);
+    const account=userId,token=authToken,revision=editRevision;
+    const prefix=pendingPrefix+encodeURIComponent(account)+":";
+    const draftEntries=Object.keys(localStorage).filter(key=>key.startsWith(prefix)).map(key=>[key,localStorage.getItem(key)]);
+    try {
+      const response=await authorizedFetch(API_URL+"/get_data",{cache:"no-store"});
+      const result=await response.json();
+      if(!response.ok || !result.success)throw new Error("雲端資料讀取失敗");
+      const currentKeys=Object.keys(localStorage).filter(key=>key.startsWith(prefix));
+      if(account!==userId || token!==authToken || revision!==editRevision || activeWrites ||
+        currentKeys.length!==draftEntries.length || draftEntries.some(([key,value])=>localStorage.getItem(key)!==value))
+        return showToast("讀取期間有新的編輯，已保留本機資料，請重新核對","error");
+      // Export and retire drafts only after a successful read, never on network failure.
+      exportPendingEdits();
+      draftEntries.forEach(([key])=>localStorage.removeItem(key));
+      pendingEdit=null;syncBlocked=false;editRevision++;updateSyncNotice();
+      applyCloudPayload(result.data||{},result.data?.version);
+      document.getElementById("conflictModal").style.display="none";
+      render();realRefresh(true);
+    } catch(error) {
+      showToast("載入失敗，尚未同步的本機編輯仍保留","error");updateSyncNotice();
+    }
   };
 
   window.openChangePassword = () => {
