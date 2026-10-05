@@ -401,9 +401,15 @@ async function updatePortfolioSnapshots(user) {
   const historical = (Array.isArray(user.portfolioSnapshots) ? user.portfolioSnapshots : [])
     .filter(item => item?.day !== day)
     .filter(item => item?.day && new Date(`${item.day}T00:00:00+08:00`).getTime() >= Date.now() - 370 * 24 * 60 * 60 * 1000);
-  user.portfolioSnapshots = [...historical, ...dailyRows].slice(-5000);
-  user.markModified('portfolioSnapshots');
-  await user.save({ validateBeforeSave: false });
+  // Only update the derived field, and never overwrite a newer business version.
+  const version = Number(user.dataVersion) || 0;
+  const versionFilter = version === 0
+    ? { $or: [{ dataVersion: 0 }, { dataVersion: { $exists: false } }] }
+    : { dataVersion: version };
+  await User.updateOne(
+    { _id: user._id, deletedAt: null, ...versionFilter },
+    { $set: { portfolioSnapshots: [...historical, ...dailyRows].slice(-5000) } }
+  );
   return dailyRows.length;
 }
 
@@ -695,7 +701,8 @@ app.post('/api/save_data', requireUser, async (req, res) => {
       const latest = await User.findById(current._id).select('dataVersion').lean();
       return res.status(409).json({ success: false, message: '雲端資料已由其他視窗更新', error: { code: 'VERSION_CONFLICT', message: '雲端資料已由其他視窗更新' }, currentVersion: Number(latest?.dataVersion) || 0 });
     }
-    await updatePortfolioSnapshots(updated);
+    try { await updatePortfolioSnapshots(updated); }
+    catch (error) { console.warn('[Snapshots] Business data committed; snapshot deferred:', error.message); }
     await writeAudit(req, { action: 'data_saved', targetUserId: updated.customId, metadata: { version: updated.dataVersion, holdings: updated.holdings.length, clients: Object.keys(updated.profiles || {}).length, transactions: updated.transactions.length } });
     return res.json({ success: true, message: '雲端同步成功', version: updated.dataVersion, updatedAt: updated.updatedAt });
   } catch (error) {
@@ -736,7 +743,10 @@ app.post('/api/save_prices', requireUser, async (req, res) => {
     }));
     const result = await User.collection.bulkWrite(operations, { ordered: false });
     const refreshedUser = await User.findById(req.authUser._id);
-    if (refreshedUser) await updatePortfolioSnapshots(refreshedUser);
+    if (refreshedUser) {
+      try { await updatePortfolioSnapshots(refreshedUser); }
+      catch (error) { console.warn('[Snapshots] Price data committed; snapshot deferred:', error.message); }
+    }
     return res.json({ success: true, updated: result.modifiedCount || 0 });
   } catch (error) {
     console.error('行情雲端同步失敗:', error.message);
