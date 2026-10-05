@@ -1200,6 +1200,12 @@
 </div>
 
 <!-- 收益提醒 Modal -->
+<div id="syncNotice" hidden role="status" style="position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:10000;background:#fff8e8;color:#483a25;border:1px solid #b58a4b;padding:14px;border-radius:12px;max-width:90vw;box-shadow:0 8px 30px #0003">
+  <span id="syncNoticeText"></span>
+  <button class="btn btn-ghost" onclick="retryPendingSync()">重試同步</button>
+  <button class="btn btn-ghost" onclick="exportPendingEdits()">匯出本機編輯</button>
+  <button class="btn btn-ghost" onclick="reloadConflictData()">匯出後載入雲端</button>
+</div>
 <div id="profitReminderModal" class="modal-overlay">
   <div class="modal profit-reminder-modal" role="dialog" aria-modal="true" aria-labelledby="profitReminderTitle">
     <div class="modal-toolbar">
@@ -1472,6 +1478,13 @@
   }
 
   function applyCloudPayload(payload, versionValue) {
+    if(syncAccount!==userId){syncAccount=userId;pendingEdit=null;syncBlocked=false;cloudReady=false;}
+    cloudReady=true;
+    if(!pendingEdit)recoverPending(userId);
+    if(pendingEdit){
+      syncBlocked=true;updateSyncNotice();
+      return false;
+    }
     const cloud = payload && typeof payload === "object" ? payload : {};
     holdings = Array.isArray(cloud.holdings) ? cloud.holdings : [];
     profiles = cloud.profiles && typeof cloud.profiles === "object" ? cloud.profiles : {};
@@ -1481,6 +1494,7 @@
     dataVersion = Number.isFinite(parsedVersion) ? parsedVersion : 0;
     migrateLegacyTransactions();
     cacheCurrentData();
+    return true;
   }
 
   function taipeiDay(value = new Date()) {
@@ -1816,6 +1830,12 @@
   };
 
   window.reloadConflictData = async () => {
+    if(activeWrites)return showToast("請等待目前的同步完成","error");
+    if(!confirm("將匯出本機編輯備份，再載入雲端資料。本機尚未同步的新增、刪除不會套用到雲端，確定繼續？"))return;
+    exportPendingEdits();
+    const prefix=pendingPrefix+encodeURIComponent(userId)+":";
+    for(const key of Object.keys(localStorage))if(key.startsWith(prefix))localStorage.removeItem(key);
+    pendingEdit=null;syncBlocked=false;editRevision++;updateSyncNotice();
     document.getElementById("conflictModal").style.display = "none";
     await loadFromCloud(true);
   };
@@ -2355,11 +2375,13 @@
   }
 
   function logout() {
+    if(activeWrites)return showToast("正在同步，請完成後再登出","error");
     if (confirm("確定要退出登入嗎？")) {
       localStorage.removeItem("app_user_id");
       localStorage.removeItem("app_user_password");
       sessionStorage.removeItem(AUTH_TOKEN_KEY);
       stopAutoRefreshTimer();
+      pendingEdit=null;syncBlocked=false;cloudReady=false;syncAccount="";editRevision++;updateSyncNotice();
       userId = ""; authToken = ""; dataVersion = null; holdings = []; profiles = {}; transactions = []; portfolioSnapshots = [];
       cacheCurrentData();
       updateUserDisplay();
@@ -2370,6 +2392,7 @@
 
   async function apiSaveData(data) {
     if (!userId || !authToken) return false;
+    const requestAccount=userId, requestToken=authToken;
     try {
       const response = await authorizedFetch(`${API_URL}/save_data`, {
         method: 'POST',
@@ -2383,6 +2406,7 @@
         })
       });
       const result = await response.json();
+      if(requestAccount!==userId || requestToken!==authToken)return false;
       if (response.status === 409 || result?.error?.code === "VERSION_CONFLICT") {
         showVersionConflict(result);
         return false;
@@ -3071,11 +3095,13 @@
 
   async function loadFromCloud(showFailure = false) {
     if (!userId || !authToken) return false;
+    const loadAccount=userId, loadToken=authToken, loadRevision=editRevision;
     try {
       const res = await authorizedFetch(`${API_URL}/get_data`, { cache:"no-store", headers:{ "Cache-Control":"no-cache" } });
       const resData = await res.json();
       if (!res.ok || !resData.success) throw new Error(resData.message || "雲端資料讀取失敗");
-      applyCloudPayload(resData.data || {}, resData.data?.version);
+      if(loadAccount!==userId || loadToken!==authToken || loadRevision!==editRevision)return false;
+      if(!applyCloudPayload(resData.data || {}, resData.data?.version)){render();return false;}
       render();
       realRefresh(true);
       return true;
@@ -3197,7 +3223,8 @@
       }
     }
 
-    await save();
+    const saved = await save();
+    if (!saved) { showToast("尚未同步，編輯已保留於本機，請勿重複登記","error"); resetForm(); return; }
     showToast(tradeType === "sell" ? "減倉紀錄已更新" : "持倉已安全儲存");
     resetForm();
     if(searchInput.value) { searchInput.value = ""; filterText = ""; render(); }
@@ -3220,8 +3247,8 @@
       }));
     }
     holdings = holdings.filter(h => h.id !== id);
-    await save();
-    showToast("持倉紀錄已刪除");
+    const saved = await save();
+    showToast(saved ? "持倉紀錄已刪除並同步" : "刪除尚未同步，本機編輯已保留", saved ? "success" : "error");
   };
 
   window.editItem = (id) => {
@@ -3252,12 +3279,93 @@
     document.getElementById("lots").value = !isNaN(qtyVal) ? (qtyVal / 1000).toFixed(3).replace(/\.?0+$/, '') : "";
   }
 
+
+  // Pending edits have their own account-scoped storage, separate from display cache.
+  const pendingPrefix = "portfolio_pending_v1:";
+  const editorId = crypto.randomUUID();
+  let pendingEdit = null, syncBlocked = false, editRevision = 0, activeWrites = 0;
+  let syncAccount = userId, cloudReady = false;
+  const cloneData = data => JSON.parse(JSON.stringify(data));
+  const draftKey = draft => pendingPrefix + encodeURIComponent(draft.account) + ":" + draft.id;
+  function updateSyncNotice(message) {
+    const el=document.getElementById("syncNotice");
+    if(!el)return;
+    el.hidden=!pendingEdit;
+    document.getElementById("syncNoticeText").textContent=message || (syncBlocked ?
+      "尚未同步：本機編輯已保留。請重試同步，或匯出後核對雲端資料。" : "正在同步，本機編輯已保留。");
+  }
+  function preservePending(data) {
+    pendingEdit={account:userId,id:pendingEdit?.account===userId ? pendingEdit.id : editorId,revision:++editRevision,baseVersion:dataVersion,
+      updatedAt:Date.now(),data:cloneData(data)};
+    localStorage.setItem(draftKey(pendingEdit),JSON.stringify(pendingEdit));
+    updateSyncNotice();
+  }
+  function recoverPending(account) {
+    const prefix=pendingPrefix+encodeURIComponent(account)+":";
+    const drafts=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(!key.startsWith(prefix))continue;
+      try { const d=JSON.parse(localStorage.getItem(key));if(d.account===account && Array.isArray(d.data?.holdings))drafts.push(d); } catch {}
+    }
+    drafts.sort((a,b)=>b.updatedAt-a.updatedAt);
+    if(!drafts.length)return false;
+    pendingEdit=drafts[0];syncBlocked=true;
+    holdings=cloneData(pendingEdit.data.holdings);profiles=cloneData(pendingEdit.data.profiles);
+    transactions=cloneData(pendingEdit.data.transactions);dataVersion=pendingEdit.baseVersion;
+    cacheCurrentData();updateSyncNotice("找到未同步編輯，已保留本機版本。請先重試同步或匯出備份；其他視窗的暫存也仍保留。");
+    return true;
+  }
+  window.exportPendingEdits=()=>{
+    const drafts=[];
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i);
+      if(key.startsWith(pendingPrefix+encodeURIComponent(userId)+":")){
+        try{drafts.push(JSON.parse(localStorage.getItem(key)));}catch{}
+      }
+    }
+    downloadFullBackup({account:userId,holdings,profiles,transactions,portfolioSnapshots,pendingDrafts:drafts,exportedAt:new Date().toISOString()});
+  };
+  window.retryPendingSync=async()=>{
+    if(activeWrites)return;
+    if(!authToken)return requireFreshLogin("請重新登入；未同步編輯會保留");
+    syncBlocked=false;
+    const ok=await save();
+    if(ok)showToast("本機編輯已同步至雲端");
+  };
+  window.addEventListener("beforeunload",event=>{
+    if(pendingEdit||activeWrites){event.preventDefault();event.returnValue="";}
+  });
+
   async function save() {
     recordLocalSnapshots();
-    cacheCurrentData();
+    const account=userId, token=authToken;
+    const data=cloneData({holdings,profiles,transactions});
+    try { preservePending(data);cacheCurrentData(); } catch {
+      syncBlocked=true;updateSyncNotice("本機儲存空間不足，請先匯出編輯備份。");
+      showToast("尚未同步：本機備份失敗，請匯出資料","error");return false;
+    }
     render();
-    const operation = () => apiSaveData({ holdings, profiles, transactions });
-    dataSaveQueue = dataSaveQueue.then(operation, operation);
+    const draft=pendingEdit;
+    const operation=async()=>{
+      if(account!==userId || token!==authToken || syncBlocked || !cloudReady){
+        syncBlocked=true;updateSyncNotice();return false;
+      }
+      activeWrites++;
+      try {
+        const ok=await apiSaveData(data);
+        if(account!==userId || token!==authToken)return false;
+        if(!ok){syncBlocked=true;updateSyncNotice();return false;}
+        if(pendingEdit===draft){
+          localStorage.removeItem(draftKey(draft));pendingEdit=null;
+        }else if(pendingEdit?.account===account){
+          pendingEdit.baseVersion=dataVersion;
+          localStorage.setItem(draftKey(pendingEdit),JSON.stringify(pendingEdit));
+        }
+        updateSyncNotice();return true;
+      }finally{activeWrites--;}
+    };
+    dataSaveQueue=dataSaveQueue.then(operation,operation);
     return await dataSaveQueue;
   }
 
@@ -3329,6 +3437,7 @@
   }
 
   window.clearAllData = async () => {
+    if(pendingEdit||activeWrites||!cloudReady)return showToast("請先完成同步或處理衝突後再清空","error");
     if (!holdings.length && !Object.keys(profiles).length && !transactions.length) {
       showToast("目前沒有可清除的資料");
       return;
@@ -3414,8 +3523,8 @@
     };
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profiles));
     document.getElementById("profileModal").style.display = "none";
-    await save();
-    showToast("客戶檔案已更新");
+    const saved = await save();
+    showToast(saved ? "客戶檔案已同步" : "客戶檔案尚未同步，本機編輯已保留", saved ? "success" : "error");
   };
 
   async function callGeminiAI(clientData) {
