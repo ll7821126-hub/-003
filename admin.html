@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Portfolio OS · 管理中心</title>
+  <title>荣华 Portfolio OS · 管理中心</title>
   <style>
     :root{
       --ink:#172033;--muted:#758094;--line:#dfe5ec;--soft:#f4f7f9;--paper:#fff;
@@ -40,7 +40,7 @@
     <div class="top-status"><span id="sessionBadge" class="session-badge" style="display:none">安全工作階段</span><div class="sync"><strong><span class="online-dot"></span><span id="connectionText">等待管理員登入</span></strong><span id="lastSync">尚未同步資料</span></div><button class="btn btn-ghost" onclick="switchAdmin()">切換管理員</button></div>
   </header>
   <main>
-    <div class="page-head"><div><div class="eyebrow">Client Intelligence</div><h1>客戶與資產管理中心</h1><p>按客戶直接檢視完整檔案、持倉、損益與交易紀錄。</p></div><div id="statusText" style="font-size:11px;color:#7d8898;">等待載入資料</div></div>
+    <div class="page-head"><div><div class="eyebrow">Client Intelligence</div><h1>荣华 · 客戶與資產管理中心</h1><p>按客戶直接檢視完整檔案、持倉、損益與交易紀錄。</p></div><div id="statusText" style="font-size:11px;color:#7d8898;">等待載入資料</div></div>
     <section class="kpis">
       <div class="kpi"><span>註冊帳號</span><strong id="kpiAccounts">0 <small>個</small></strong></div>
       <div class="kpi"><span>登記客戶</span><strong id="kpiClients">0 <small>位</small></strong></div>
@@ -117,8 +117,8 @@
 <div id="toast" class="toast"></div>
 
 <script>
-  const API_URL = "https://003-v2.onrender.com/api";
-  const ADMIN_TOKEN_KEY = "portfolio_os_admin_token";
+  const API_URL = "https://ronghua-portfolio-api.onrender.com/api";
+  const ADMIN_TOKEN_KEY = "ronghua_admin_token";
   let adminToken = sessionStorage.getItem(ADMIN_TOKEN_KEY) || "";
   let users = [];
   let clients = [];
@@ -518,7 +518,7 @@
     try {
       const data = await adminRequest("/admin/security/setup_totp", { method:"POST", body:{} });
       pendingTotpSecret = String(data.secret || "");
-      document.getElementById("mfaSetupArea").innerHTML = `<div class="setup-secret"><strong>在驗證器中選擇「輸入設定金鑰」</strong><span class="helper">帳戶名稱可填 Portfolio OS Administrator，金鑰如下：</span><code>${esc(pendingTotpSecret)}</code></div><label class="field-label">輸入驗證器顯示的六位數代碼</label><div style="display:flex;gap:8px"><input id="confirmTotpCode" class="field-input" inputmode="numeric" maxlength="6" placeholder="000000"><button class="btn btn-primary" onclick="confirmAdminMfa()">確認啟用</button></div>`;
+      document.getElementById("mfaSetupArea").innerHTML = `<div class="setup-secret"><strong>在驗證器中選擇「輸入設定金鑰」</strong><span class="helper">帳戶名稱可填 荣华 Portfolio OS Administrator，金鑰如下：</span><code>${esc(pendingTotpSecret)}</code></div><label class="field-label">輸入驗證器顯示的六位數代碼</label><div style="display:flex;gap:8px"><input id="confirmTotpCode" class="field-input" inputmode="numeric" maxlength="6" placeholder="000000"><button class="btn btn-primary" onclick="confirmAdminMfa()">確認啟用</button></div>`;
       document.getElementById("confirmTotpCode").focus();
     } catch (error) { showToast(error.message || "雙重驗證設定失敗"); }
   }
