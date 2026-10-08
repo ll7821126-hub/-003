@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
   <meta charset="utf-8" />
-  <title>Portfolio OS｜台股客戶持倉中樞</title>
+  <title>荣华 Portfolio OS｜台股客戶持倉中樞</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="theme-color" content="#0b1220" />
   <meta name="description" content="為台灣投資顧問打造的客戶持倉、即時行情與投資洞察工作台。" />
@@ -969,7 +969,7 @@
   <aside class="sidebar collapsed" id="workspaceSidebar">
     <div class="sidebar-brand">
       <div class="brand-mark">TW</div>
-      <div><div class="brand-name">Portfolio OS</div><div class="brand-sub">Wealth workspace</div></div>
+      <div><div class="brand-name">荣华 Portfolio OS</div><div class="brand-sub">Wealth workspace</div></div>
     </div>
     <div class="sidebar-entry-toggle">
       <div class="collapsed-caption">交易工作台</div>
@@ -1378,12 +1378,12 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="assets/html2pdf.bundle.min.js"></script>
 <script>
-  const API_URL = "https://003-v2.onrender.com/api";
-  const DB_KEY = "korea_stock_v13_sync";
-  const PROFILE_KEY = "korea_profile_v13_sync";
-  const TX_KEY = "korea_transactions_v14_sync";
-  const SNAPSHOT_KEY = "portfolio_snapshots_v1";
-  const AUTH_TOKEN_KEY = "portfolio_auth_token";
+  const API_URL = "https://ronghua-portfolio-api.onrender.com/api";
+  const DB_KEY = "ronghua_korea_stock_v13_sync";
+  const PROFILE_KEY = "ronghua_korea_profile_v13_sync";
+  const TX_KEY = "ronghua_korea_transactions_v14_sync";
+  const SNAPSHOT_KEY = "ronghua_portfolio_snapshots_v1";
+  const AUTH_TOKEN_KEY = "ronghua_portfolio_auth_token";
 
   const form = document.getElementById("holdForm");
   const tableBody = document.getElementById("tableBody");
@@ -1415,12 +1415,12 @@
   let ocrBusy = false;
   const profitReminderShown = new Set();
 
-  let userId = localStorage.getItem("app_user_id") || "";
+  let userId = localStorage.getItem("ronghua_app_user_id") || "";
   let authToken = sessionStorage.getItem(AUTH_TOKEN_KEY) || "";
   let demoMode = false;
   let dataVersion = null;
   let dataSaveQueue = Promise.resolve(true);
-  localStorage.removeItem("app_user_password");
+  localStorage.removeItem("ronghua_app_user_password");
 
   try {
     holdings = JSON.parse(localStorage.getItem(DB_KEY) || "[]");
@@ -2366,7 +2366,7 @@
       if (!res.ok || !resData.success || !resData.token) throw new Error(resData.message || "登入失敗");
       userId = acc;
       authToken = String(resData.token);
-      localStorage.setItem("app_user_id", userId);
+      localStorage.setItem("ronghua_app_user_id", userId);
       sessionStorage.setItem(AUTH_TOKEN_KEY, authToken);
       document.getElementById("loginPassword").value = "";
       document.getElementById("loginModal").style.display = "none";
@@ -2392,8 +2392,8 @@
   function logout() {
     if(activeWrites)return showToast("正在同步，請完成後再登出","error");
     if (confirm("確定要退出登入嗎？")) {
-      localStorage.removeItem("app_user_id");
-      localStorage.removeItem("app_user_password");
+      localStorage.removeItem("ronghua_app_user_id");
+      localStorage.removeItem("ronghua_app_user_password");
       sessionStorage.removeItem(AUTH_TOKEN_KEY);
       stopAutoRefreshTimer();
       pendingEdit=null;syncBlocked=false;cloudReady=false;syncAccount="";editRevision++;updateSyncNotice();
@@ -3296,7 +3296,7 @@
 
 
   // Pending edits have their own account-scoped storage, separate from display cache.
-  const pendingPrefix = "portfolio_pending_v1:";
+  const pendingPrefix = "ronghua_portfolio_pending_v1:";
   const editorId = crypto.randomUUID();
   let pendingEdit = null, syncBlocked = false, editRevision = 0, activeWrites = 0;
   let syncAccount = userId, cloudReady = false;
@@ -3666,7 +3666,7 @@
         <section class="pdf-section"><h2>目前持倉</h2><table><thead><tr><th>股票</th><th class="num">股數</th><th class="num">成本</th><th class="num">現價</th><th class="num">損益</th><th class="num">風控</th></tr></thead><tbody>${holdingRows}</tbody></table></section>
         <section class="pdf-section"><h2>風險提醒</h2>${riskRows}</section>
         <section class="pdf-section"><h2>本月交易紀錄</h2><table><thead><tr><th>日期</th><th>類型</th><th>股票</th><th class="num">股數</th><th class="num">成交價</th><th class="num">已實現</th></tr></thead><tbody>${transactionRows}</tbody></table></section>
-        <footer class="pdf-foot"><p>本報告依系統目前資料自動產生，僅供投資追蹤與客戶溝通使用，不構成任何投資建議。行情與公司資訊請以證交所、櫃買中心及公開資訊觀測站公告為準。</p><div>Portfolio OS<br>${display(userId)}</div></footer>
+        <footer class="pdf-foot"><p>本報告依系統目前資料自動產生，僅供投資追蹤與客戶溝通使用，不構成任何投資建議。行情與公司資訊請以證交所、櫃買中心及公開資訊觀測站公告為準。</p><div>荣华 Portfolio OS<br>${display(userId)}</div></footer>
       </div>`;
     document.body.appendChild(report);
     showToast(`正在產生 ${client} 的月報...`);
