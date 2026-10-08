@@ -26,6 +26,9 @@ const allowedOrigins = new Set(
     .filter(Boolean)
 );
 
+// Separate frontend for the friend account; keep all configured origins intact.
+allowedOrigins.add('https://portfolio-friend-20261008.onrender.com');
+
 app.use((req, res, next) => {
   res.set({
     'X-Content-Type-Options': 'nosniff',
